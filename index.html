@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Arena · Combat Lab 3D</title>
+<link rel="stylesheet" href="css/arena.css">
+</head>
+<body>
+
+<div id="viewport">
+  <canvas id="gl"></canvas>
+</div>
+
+<div id="hud">
+  <div id="brand" class="passthrough">
+    <div class="t">Project Arena</div>
+    <div class="s">Combat Lab 3D · v0.2 · WebGL2 nativo, cero dependencias</div>
+  </div>
+
+  <div id="help">
+    <div class="head">Controles ▾</div>
+    <div class="rows">
+      <b>Mover</b> <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><br>
+      <b>Cámara</b> arrastrar con el ratón · rueda para zoom<br>
+      <b>Girar el personaje</b> arrastrar con botón derecho<br>
+      <b>Objetivo</b> clic · <kbd>Tab</kbd> enemigos · <kbd>⇧Tab</kbd> aliados<br>
+      <b>Uno mismo</b> <kbd>F</kbd><br>
+      <b>Habilidades</b> <kbd>1</kbd>…<kbd>6</kbd> · <b>Ataque normal</b> <kbd>T</kbd><br>
+      <b>Cancelar casteo</b> <kbd>Esc</kbd> · <b>Reiniciar</b> <kbd>R</kbd>
+    </div>
+  </div>
+</div>
+
+<div id="fatal">
+  <div class="box">
+    <h2>El Combat Lab no ha podido arrancar</h2>
+    <p>Necesita un navegador con WebGL2 (Chrome, Edge, Firefox o Safari recientes).
+       Si lo has abierto desde <code>file://</code> y falla, prueba con otro navegador:
+       el prototipo no necesita servidor, pero sí WebGL2.</p>
+    <pre></pre>
+  </div>
+</div>
+
+<!-- =========================================================================
+     Orden de carga. Sin módulos ES, sin fetch y sin empaquetador: etiquetas
+     <script> clásicas sobre un único namespace global (documento §23).
+     El mismo bloque de simulación se carga en tests.html; si divergen, el
+     runner headless deja de probar lo que realmente se ejecuta.
+     ====================================================================== -->
+
+<!-- Núcleo -->
+<script src="js/namespace.js"></script>
+<script src="js/math/vec3.js"></script>
+<script src="js/math/mat4.js"></script>
+<script src="js/math/ray.js"></script>
+<script src="js/core/eventBus.js"></script>
+<script src="js/core/rng.js"></script>
+<script src="js/core/fixedTick.js"></script>
+
+<!-- Datos y reglas -->
+<script src="js/data/balance.js"></script>
+<script src="js/data/effects.js"></script>
+<script src="js/core/entity.js"></script>
+<script src="js/combat/statusSystem.js"></script>
+<script src="js/combat/damageSystem.js"></script>
+<script src="js/combat/healingSystem.js"></script>
+<script src="js/combat/resolver.js"></script>
+<script src="js/combat/abilitySystem.js"></script>
+<script src="js/data/classes.js"></script>
+<script src="js/data/abilities.js"></script>
+<script src="js/data/passives.js"></script>
+
+<!-- Simulación -->
+<script src="js/sim/arena.js"></script>
+<script src="js/sim/world.js"></script>
+<script src="js/ai/dummyAI.js"></script>
+
+<!-- Presentación 3D -->
+<script src="js/render/shaders.js"></script>
+<script src="js/render/primitives.js"></script>
+<script src="js/render/camera3d.js"></script>
+<script src="js/render/characterVisual.js"></script>
+<script src="js/render/webglRenderer.js"></script>
+<script src="js/render/vfx.js"></script>
+<script src="js/render/picking.js"></script>
+
+<!-- Interfaz -->
+<script src="js/ui/hud.js"></script>
+<script src="js/ui/combatLog.js"></script>
+<script src="js/ui/labPanel.js"></script>
+<script src="js/ui/tooltips.js"></script>
+
+<!-- Arranque -->
+<script src="js/main.js"></script>
+
+<script>
+(function () {
+  var help = document.getElementById('help');
+  help.querySelector('.head').addEventListener('click', function () {
+    help.classList.toggle('collapsed');
+  });
+})();
+</script>
+</body>
+</html>

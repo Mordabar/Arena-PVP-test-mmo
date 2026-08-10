@@ -383,7 +383,18 @@ Arena.define('sim/world',
       }
     }
 
-    // 3. Casteos, cola de input y ataque normal
+    // 3. Intención de movimiento del jugador.
+    //    Se aplica DENTRO del paso fijo: si se hiciera por fotograma, un equipo
+    //    a 144 fps se movería igual que uno a 30, pero cancelaría casteos con
+    //    granularidad distinta y las reglas dejarían de ser las mismas.
+    for (i = 0; i < this.entities.length; i++) {
+      e = this.entities[i];
+      if (e.alive && e._moveIntent) {
+        this.moveEntityBy(e, e._moveIntent.x, e._moveIntent.z, dt);
+      }
+    }
+
+    // 4. Casteos, cola de input y ataque normal
     for (i = 0; i < this.entities.length; i++) {
       e = this.entities[i];
       if (e.alive) Ability.tick(this, e, dt);
