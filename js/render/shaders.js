@@ -167,6 +167,13 @@ void main() {
 
   vec3 diffuse = uLightColor * ndl * shadow;
 
+  // Luz de relleno fría desde el lado opuesto, sin sombras. Es lo que separa un
+  // personaje del fondo cuando está a contraluz: sin ella, media silueta se
+  // funde en negro justo cuando hay que leer quién es y qué está haciendo.
+  vec3 fillDir = normalize(vec3(-L.x, 0.35, -L.z));
+  float ndf = saturate(dot(N, fillDir));
+  vec3 fill = uSkyColor * ndf * 1.45;
+
   float gloss = mix(64.0, 4.0, saturate(uRoughness));
   float spec = pow(saturate(dot(N, H)), gloss) * (1.0 - uRoughness) * shadow * ndl;
   vec3 specular = uLightColor * spec * mix(0.25, 1.0, uMetallic);
@@ -175,7 +182,7 @@ void main() {
   float rim = pow(1.0 - saturate(dot(N, V)), max(uRimPower, 0.001));
   vec3 rimLight = uRimColor * rim;
 
-  vec3 color = albedo * (ambient + diffuse) + specular + rimLight + uEmissive;
+  vec3 color = albedo * (ambient + diffuse + fill) + specular + rimLight + uEmissive;
 
   float fog = 1.0 - exp(-uFogDensity * uFogDensity * viewDist * viewDist);
   color = mix(color, uFogColor, saturate(fog));
