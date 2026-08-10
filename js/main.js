@@ -7,7 +7,7 @@
  * ========================================================================== */
 Arena.define('main',
   ['sim/world', 'render/webglRenderer', 'render/vfx', 'render/picking',
-   'ui/hud', 'ui/combatLog', 'ui/labPanel', 'ui/tooltips', 'ai/dummyAI'],
+   'ui/hud', 'ui/combatLog', 'ui/labPanel', 'ui/tooltips', 'ai/dummyAI', 'audio/audio'],
   function (Arena) {
   'use strict';
 
@@ -56,6 +56,18 @@ Arena.define('main',
       buildScenario: function (id) { self.buildScenario(id); },
       resetWorld: function () { self.buildScenario(self.scenario); }
     });
+
+    // El audio se arma en el primer gesto: los navegadores bloquean el contexto
+    // hasta que hay interacción real del usuario.
+    Arena.Audio.install(this.world, function () { return self.hud.playerId; });
+    var armAudio = function () {
+      Arena.Audio.init();
+      Arena.Audio.resume();
+      window.removeEventListener('pointerdown', armAudio);
+      window.removeEventListener('keydown', armAudio);
+    };
+    window.addEventListener('pointerdown', armAudio);
+    window.addEventListener('keydown', armAudio);
 
     this._bindInput(canvas);
     this._bindActionBar();
