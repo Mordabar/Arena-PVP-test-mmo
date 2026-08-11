@@ -46,7 +46,15 @@ Arena.define('data/balance', [], function (Arena) {
 
   /* --- Movimiento (documento §5) ----------------------------------------- */
   B.MOVE_SPEED_BASE = 6.0;
-  B.TURN_SPEED = 12.0;            // rad/s: girar debe sentirse inmediato
+  /* Giro del personaje con Q/E y con el arrastre de cámara. Se aplica DENTRO
+     del paso fijo, como el desplazamiento: si se aplicara por fotograma, un
+     equipo a 144 fps giraría el doble de rápido que uno a 72 y el arco frontal
+     dejaría de significar lo mismo para los dos. */
+  B.TURN_SPEED = 6.5;             // rad/s — ~0.97 s para dar media vuelta
+  /* Arco frontal del ataque normal. El objetivo tiene que estar DELANTE: sin
+     esta condición, quitar el auto-encarado no cambiaría nada en la práctica,
+     porque el jugador seguiría pegando de espaldas. */
+  B.AUTO_ATTACK_HALF_ANGLE = Math.PI / 2.4;   // 75° a cada lado → arco de 150°
   B.ENTITY_RADIUS = 0.45;
   B.ENTITY_HEIGHT = 1.85;
   B.CAST_MOVE_TOLERANCE = 0.12;   // desplazamiento que no cancela un cast estacionario

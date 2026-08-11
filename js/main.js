@@ -25,7 +25,17 @@ Arena.define('main',
       forward: 0, strafe: 0,
       mouseNdc: { x: 0, y: 0 },
       dragging: false, dragButton: -1, dragMoved: 0,
-      lastX: 0, lastY: 0
+      lastX: 0, lastY: 0,
+      /* Distinguir CLIC de ARRASTRE. Se guarda cuándo y dónde empezó la
+         pulsación: un clic breve con poco desplazamiento sigue seleccionando,
+         y usa la posición ORIGINAL del cursor, no la final. Con Pointer Lock
+         activo el cursor deja de existir, así que sin guardarla no habría
+         forma de saber a qué se apuntaba. */
+      downTime: 0, downX: 0, downY: 0, downNdc: { x: 0, y: 0 },
+      pointerLocked: false,
+      /* Modo de cámara activo: 'steer' (botón izquierdo — la cámara arrastra al
+         personaje) o 'freelook' (botón derecho — mirar sin girar el cuerpo). */
+      camMode: null
     },
     _lastFrame: 0,
     _running: false
@@ -39,7 +49,12 @@ Arena.define('main',
     var hudRoot = document.getElementById('hud');
 
     this.world = new Arena.Sim.World({ seed: 20260810 });
-    this.renderer = new Arena.Render.Renderer(canvas, this.world).init();
+    /* El renderer se elige por nombre a través del contrato común
+       (render/rendererBackend.js). `index.html` no declara ninguno y usa el
+       WebGL2 nativo; `index-three.html` declara 'three'. Así el arranque es el
+       mismo fichero para las dos presentaciones. */
+    this.renderer = Arena.Render.RendererBackend.create(
+      window.ARENA_RENDERER || 'webgl2', canvas, this.world);
     VFX.install(this.world, this.renderer);
 
     this.hud = new Arena.UI.HUD(hudRoot, this.world, this.renderer);
@@ -189,12 +204,34 @@ Arena.define('main',
 
     canvas.addEventListener('contextmenu', function (e) { e.preventDefault(); });
 
+    /* --- RATÓN --------------------------------------------------------------
+     *
+     * IZQUIERDO tiene dos comportamientos que hay que poder distinguir:
+     *   clic corto   → seleccionar lo que hay bajo el cursor
+     *   mantener     → gobernar la cámara Y arrastrar al personaje con ella
+     *
+     * DERECHO es free look: la cámara gira libremente y el cuerpo NO. Poder
+     * mirar atrás mientras sigues corriendo hacia delante es una de las cosas
+     * que separan un MMO de un juego de acción con lock-on.
+     *
+     * Con Pointer Lock el cursor desaparece, así que la selección usa la
+     * posición que tenía el ratón AL PULSAR, no la que tiene al soltar.
+     */
+    var CLICK_MAX_MS = 260, CLICK_MAX_PX = 6;
+
     canvas.addEventListener('mousedown', function (e) {
       input.dragging = true;
       input.dragButton = e.button;
       input.dragMoved = 0;
       input.lastX = e.clientX;
       input.lastY = e.clientY;
+      input.downTime = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      input.downX = e.clientX;
+      input.downY = e.clientY;
+      var ndc0 = Picking.ndcFromEvent(canvas, e);
+      input.downNdc.x = ndc0.x;
+      input.downNdc.y = ndc0.y;
+      input.camMode = (e.button === 0) ? 'steer' : (e.button === 2 ? 'freelook' : null);
       canvas.classList.add('dragging');
       e.preventDefault();
     });
@@ -202,38 +239,57 @@ Arena.define('main',
     window.addEventListener('mouseup', function (e) {
       if (!input.dragging) return;
       canvas.classList.remove('dragging');
-      // Clic corto = seleccionar. Arrastre = mover cámara. El umbral evita
-      // que un temblor de mano cambie de objetivo en mitad de un burst.
-      if (input.dragMoved < 5 && e.button === 0 && e.target === canvas) {
-        self._selectAtCursor();
+
+      var now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+      var held = now - input.downTime;
+      var moved = Math.abs(e.clientX - input.downX) + Math.abs(e.clientY - input.downY);
+      // Clic corto y quieto = seleccionar. El umbral doble —tiempo y píxeles—
+      // evita que un temblor de mano cambie de objetivo en mitad de un burst y
+      // que una cámara movida despacio cuente como selección.
+      if (e.button === 0 && held < CLICK_MAX_MS && moved < CLICK_MAX_PX && !input.pointerLocked) {
+        self._selectAt(input.downNdc.x, input.downNdc.y);
       }
+      self._exitPointerLock();
       input.dragging = false;
       input.dragButton = -1;
+      input.camMode = null;
     });
 
     window.addEventListener('mousemove', function (e) {
-      var ndc = Picking.ndcFromEvent(canvas, e);
-      input.mouseNdc.x = ndc.x;
-      input.mouseNdc.y = ndc.y;
-
-      if (input.dragging) {
-        var dx = e.clientX - input.lastX;
-        var dy = e.clientY - input.lastY;
+      // Con Pointer Lock el ratón no tiene posición: sólo entrega desplazamiento.
+      var dx, dy;
+      if (input.pointerLocked) {
+        dx = e.movementX || 0;
+        dy = e.movementY || 0;
+      } else {
+        var ndc = Picking.ndcFromEvent(canvas, e);
+        input.mouseNdc.x = ndc.x;
+        input.mouseNdc.y = ndc.y;
+        dx = e.clientX - input.lastX;
+        dy = e.clientY - input.lastY;
         input.lastX = e.clientX;
         input.lastY = e.clientY;
+      }
+
+      if (input.dragging) {
         input.dragMoved += Math.abs(dx) + Math.abs(dy);
         self.renderer.camera.orbit(dx, dy);
-        // Botón derecho: el personaje gira con la cámara, como en cualquier MMO.
-        if (input.dragButton === 2) {
-          var p = self.world.getPlayer();
-          if (p && p.alive) p.yaw = self.renderer.camera.yaw + Math.PI;
-        }
+        // Superado el umbral, el gesto ya no puede ser un clic: se toma el
+        // ratón. Antes de eso no, o un clic de selección robaría el cursor.
+        if (input.dragMoved >= CLICK_MAX_PX) self._enterPointerLock(canvas);
+        /* El personaje NO se gira aquí. En modo `steer` el frame siguiente lee
+           el yaw de cámara y emite una INTENCIÓN de giro; quien la aplica es la
+           simulación, dentro del paso fijo. La presentación no escribe yaw. */
       } else if (e.target === canvas) {
         var hover = Picking.entityAt(self.world, self.renderer.camera,
-          ndc.x, ndc.y, self.world.getPlayer());
+          input.mouseNdc.x, input.mouseNdc.y, self.world.getPlayer());
         self.renderer.hoverId = hover ? hover.id : null;
         canvas.style.cursor = hover ? 'pointer' : 'crosshair';
       }
+    });
+
+    document.addEventListener('pointerlockchange', function () {
+      input.pointerLocked = (document.pointerLockElement === canvas);
     });
 
     canvas.addEventListener('wheel', function (e) {
@@ -320,16 +376,55 @@ Arena.define('main',
     panel.querySelector('pre').textContent = D.lines(handle, subject).join('\n');
   };
 
+  /** Pantalla de error compartida por los dos arranques. */
+  Game.showFatal = function (err) {
+    var fatal = document.getElementById('fatal');
+    if (!fatal) return;
+    fatal.classList.add('show');
+    var pre = fatal.querySelector('pre');
+    if (pre) pre.textContent = (err && err.stack) ? err.stack : String(err);
+  };
+
   Game._onKeyUp = function (e) {
     var key = e.key.toLowerCase();
     this._keys[key] = false;
   };
 
+  /** W/S avanzan y retroceden · A/D son STRAFE, nunca giro. */
   Game._readMovement = function () {
     var k = this._keys;
     var f = (k['w'] ? 1 : 0) - (k['s'] ? 1 : 0);
     var s = (k['d'] ? 1 : 0) - (k['a'] ? 1 : 0);
     return { forward: f, strafe: s };
+  };
+
+  /**
+   * Intención de giro, en −1..1. Dos fuentes que se combinan:
+   *
+   *   Q/E              giro explícito a velocidad plena
+   *   arrastre izq.    la cámara arrastra al cuerpo consigo
+   *
+   * Devuelve INTENCIÓN, no un ángulo. Quien gira de verdad es la simulación,
+   * dentro del paso fijo. El renderer no escribe `yaw` en ningún caso, ni
+   * siquiera cuando el gesto que lo provoca nace en el ratón.
+   */
+  Game._readTurn = function (player) {
+    var k = this._keys;
+    var turn = (k['e'] ? 1 : 0) - (k['q'] ? 1 : 0);
+    if (turn) return turn;
+
+    // Modo "steer": el cuerpo persigue el yaw de la cámara. Se expresa como
+    // proporción del desfase para que el giro frene al llegar en vez de oscilar.
+    if (this.input.camMode === 'steer' && player) {
+      var want = this.renderer.camera.yaw + Math.PI;
+      var delta = V.angleDelta(player.yaw, want);
+      if (Math.abs(delta) < 0.01) return 0;
+      var B = Arena.Data.balance;
+      // El paso máximo por tick cubre `TURN_SPEED / TICK_RATE` radianes; pedir
+      // más que eso sólo produciría sobrepasarse y volver.
+      return Math.max(-1, Math.min(1, delta / (B.TURN_SPEED / B.TICK_RATE)));
+    }
+    return 0;
   };
 
   Game._useSlot = function (index) {
@@ -356,11 +451,29 @@ Arena.define('main',
     Ability.tryUse(world, player, abilityId, ctx);
   };
 
+  /** Pointer Lock donde exista; donde no, el juego sigue funcionando igual. */
+  Game._enterPointerLock = function (canvas) {
+    if (this.input.pointerLocked) return;
+    if (canvas.requestPointerLock) {
+      try { canvas.requestPointerLock(); } catch (err) { /* no soportado */ }
+    }
+  };
+  Game._exitPointerLock = function () {
+    if (!this.input.pointerLocked) return;
+    if (document.exitPointerLock) {
+      try { document.exitPointerLock(); } catch (err) { /* no soportado */ }
+    }
+  };
+
   Game._selectAtCursor = function () {
+    this._selectAt(this.input.mouseNdc.x, this.input.mouseNdc.y);
+  };
+
+  /** Selecciona en unas coordenadas concretas, no necesariamente las actuales. */
+  Game._selectAt = function (ndcX, ndcY) {
     var world = this.world;
     var player = world.getPlayer();
-    var hit = Picking.entityAt(world, this.renderer.camera,
-      this.input.mouseNdc.x, this.input.mouseNdc.y, player);
+    var hit = Picking.entityAt(world, this.renderer.camera, ndcX, ndcY, player);
     if (hit) {
       if (player) player.targetId = hit.id;
       this.renderer.selectedId = hit.id;
@@ -413,18 +526,29 @@ Arena.define('main',
     var world = this.world;
     var player = world.getPlayer();
 
-    /* --- Intención de movimiento ---------------------------------------- */
+    /* --- Intención de movimiento y giro -----------------------------------
+     *
+     * EL MOVIMIENTO ES RELATIVO AL FRENTE DEL PERSONAJE, no a la cámara.
+     *
+     * Con base de cámara, mirar a un lado cambia hacia dónde avanza W, y el
+     * cuerpo deja de tener un frente propio: da igual hacia dónde mire el
+     * personaje porque el desplazamiento no lo usa. Aquí el frente del cuerpo
+     * es lo que decide todo —hacia dónde se avanza, qué hay en el arco frontal,
+     * qué habilidad puede lanzarse— y por eso orientarse es una decisión
+     * táctica y no un efecto secundario de mover el ratón.
+     */
     if (player && player.alive) {
       var mv = this._readMovement();
       if (mv.forward || mv.strafe) {
-        var basis = this.renderer.camera.movementBasis();
-        var dx = basis.forward.x * mv.forward + basis.right.x * mv.strafe;
-        var dz = basis.forward.z * mv.forward + basis.right.z * mv.strafe;
-        // El movimiento se aplica dentro del paso fijo para no depender de fps.
+        var sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
+        var dx = sy * mv.forward + cy * mv.strafe;
+        var dz = cy * mv.forward - sy * mv.strafe;
+        // Se aplica dentro del paso fijo para no depender de los fps.
         player._moveIntent = { x: dx, z: dz };
       } else {
         player._moveIntent = null;
       }
+      player._turnIntent = this._readTurn(player);
     }
 
     /* --- Simulación ------------------------------------------------------- */
@@ -472,14 +596,23 @@ Arena.define('main',
     try {
       Arena.Game.start();
     } catch (err) {
-      var fatal = document.getElementById('fatal');
-      if (fatal) {
-        fatal.classList.add('show');
-        fatal.querySelector('pre').textContent = (err && err.stack) ? err.stack : String(err);
-      }
+      Arena.Game.showFatal(err);
       throw err;
     }
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
+  Arena.Game.boot = boot;
+
+  /* Arranque diferido. `index-three.html` carga Three.js como módulo ES, que es
+     asíncrono por definición: si el juego arrancara aquí, lo haría antes de que
+     exista el renderer. En ese caso da la salida el bootstrap del módulo, que
+     llama a `Arena.Game.boot()` cuando ya tiene la escena montada.
+
+     El guard va AQUÍ y no dentro de `boot()`: puesto dentro, bloquearía también
+     la llamada explícita del bootstrap y el juego no arrancaría nunca. */
+  function autoBoot() {
+    if (window.ARENA_DEFER_BOOT) return;
+    boot();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', autoBoot);
+  else autoBoot();
 })();

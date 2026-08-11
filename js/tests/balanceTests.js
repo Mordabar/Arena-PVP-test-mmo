@@ -125,6 +125,13 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
       var target = T.spawn(w, 'arcanista', { team: 1, x: 1.8, z: 3 });
       dev.targetId = target.id;
       dev.autoAttackOn = true;
+      /* Encarar al objetivo. Ya no hay auto-encarado: el ataque normal exige
+         tener al enemigo en el arco frontal, y un jugador que ejecuta una
+         rotación de burst evidentemente está mirándolo. Sin esta línea el
+         harness mediría a alguien pegando de espaldas, que no es el escenario
+         que estos objetivos de ritmo describen. */
+      dev.yaw = Math.atan2(target.pos.x - dev.pos.x, target.pos.z - dev.pos.z);
+      dev.prevYaw = dev.yaw;
       Arena.Data.passives.initEntity(dev);
 
       var hpBefore = target.hp;

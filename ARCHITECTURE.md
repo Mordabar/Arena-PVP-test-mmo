@@ -79,7 +79,14 @@ js/sim/                    Mundo y bucle.
 
 js/ai/dummyAI.js           Perfiles de dummy y bots de clase.
 
-js/render/                 WebGL2 nativo. Sólo lectura.
+js/render/                 Presentación. Sólo lectura.
+  rendererBackend.js       Contrato que cumplen las dos presentaciones.
+  three/                   Presentación con Three.js (index-three.html).
+    bootstrap.js           Arranque del módulo ES: registra y da la salida.
+    threeRenderer.js       Escena, cámara y bucle. Mismo contrato.
+    threeEnvironment.js    Arena, luces y niebla, construidas una vez.
+    threeCharacter.js      Mallas gobernadas por la animación que ya existe.
+    threeVfx.js            Dibujo de partículas y anillos de selección.
   shaders.js               GLSL embebido como cadenas (no hay fetch en file://).
   primitives.js            Geometría procedural.
   camera3d.js              Tercera persona orbital, look-ahead y sacudida por
@@ -198,6 +205,50 @@ al antebrazo. El retardo **es** la masa: báculo 7.5 · espada 20 · arco 22 (1/
 vector de movimiento, vector de frente y dirección al objetivo, más el estado de
 locomoción, de acción y de control, más el `AnimationIntent` completo. Sólo
 lee: apagarlo deja el juego idéntico.
+
+---
+
+## 2.c Control y presentación
+
+### El movimiento es relativo al PERSONAJE
+
+`W`/`S` avanzan y retroceden según `entity.yaw`; `A`/`D` son strafe y **no**
+giran; `Q`/`E` giran y **no** desplazan. Mantener el botón izquierdo gobierna la
+cámara y arrastra el cuerpo con ella; el derecho es free look y no toca el yaw.
+
+Con base de cámara, mirar a un lado cambiaba hacia dónde avanza `W` y el cuerpo
+dejaba de tener un frente propio. Ahora el frente decide todo —desplazamiento,
+arco frontal, validación de habilidades— y por eso orientarse es una decisión
+táctica y no un efecto secundario de mover el ratón.
+
+### No hay auto-encarado
+
+Seleccionar objetivo, usar una habilidad y atacar **no** giran al personaje. El
+ataque normal exige además tener al enemigo en el arco frontal
+(`B.AUTO_ATTACK_HALF_ANGLE`). El objetivo es información sobre a quién afecta la
+habilidad, no un lock-on: con auto-encarado, flanquear o dar la espalda no
+significan nada.
+
+El giro se aplica **dentro del paso fijo**, antes del movimiento y de las
+habilidades. Ese orden importa: girar y atacar en el mismo instante debe validar
+contra la orientación ya girada, no contra la del tick anterior.
+
+La presentación **nunca** escribe `yaw`. El arrastre de cámara emite una
+intención acotada a −1..1 y la simulación la convierte en giro, así que no hay
+forma de saltarse el límite de velocidad moviendo el ratón muy rápido.
+
+### Dos presentaciones, una simulación
+
+`index.html` usa el renderer WebGL2 nativo; `index-three.html` usa Three.js.
+Ambos cumplen `render/rendererBackend.js` y comparten cámara lógica, sistema de
+selección, estado de VFX y toda la capa de animación.
+
+Verificado: un duelo de bots de 777 ticks con la misma semilla produce
+resultados **idénticos hasta el último decimal** en las dos páginas. Ver
+`docs/DEPLOY_HOSTINGER.md`.
+
+`index-three.html` no se abre con doble clic —los módulos ES no funcionan sobre
+`file://`— y necesita HTTP: `node tools/serve.js`.
 
 ---
 

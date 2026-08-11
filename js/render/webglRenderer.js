@@ -12,7 +12,7 @@
  * ========================================================================== */
 Arena.define('render/webglRenderer',
   ['render/shaders', 'render/primitives', 'render/camera3d', 'render/characterBackend',
-   'render/animDebug'],
+   'render/animDebug', 'render/rendererBackend'],
   function (Arena) {
   'use strict';
 
@@ -749,5 +749,13 @@ Arena.define('render/webglRenderer',
 
   Renderer.prototype.theme = THEME;
   Arena.Render.Renderer = Renderer;
+
+  /* Se registra bajo el contrato común. `init()` devuelve `this`, así que la
+     factoría entrega un renderer ya arrancado y verificado. */
+  if (Arena.Render.RendererBackend) {
+    Arena.Render.RendererBackend.register('webgl2', function (canvas, world) {
+      return new Renderer(canvas, world).init();
+    });
+  }
   Arena.Render.THEME = THEME;
 });

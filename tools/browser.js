@@ -176,13 +176,51 @@ const KEYS = {
 };
 
 async function main() {
-  const cmd = process.argv[2] || 'smoke';
+  /** Servidor estático en un puerto libre, para las páginas con módulos ES. */
+function startServer() {
+  return new Promise((resolve, reject) => {
+    const http = require('http');
+    const TYPES = {
+      '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+      '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8',
+      '.png': 'image/png', '.glb': 'model/gltf-binary'
+    };
+    const srv = http.createServer((req, res) => {
+      let rel = decodeURIComponent(req.url.split('?')[0]);
+      if (rel === '/') rel = '/index.html';
+      const file = path.join(ROOT, rel);
+      if (!file.startsWith(ROOT)) { res.writeHead(403).end('403'); return; }
+      fs.readFile(file, (err, data) => {
+        if (err) { res.writeHead(404).end('404 ' + rel); return; }
+        res.writeHead(200, {
+          'Content-Type': TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream'
+        });
+        res.end(data);
+      });
+    });
+    srv.on('error', reject);
+    srv.listen(0, () => resolve(srv.address().port));
+  });
+}
+
+const cmd = process.argv[2] || 'smoke';
   const arg = process.argv[3];
   const { session, child, userDir } = await connect();
   let exitCode = 0;
 
   try {
-    const url = 'file://' + path.join(ROOT, 'index.html');
+    /* La página se puede pedir por argumento o por ARENA_PAGE. `index-three.html`
+       usa módulos ES, que el navegador bloquea sobre file://, así que en ese
+       caso se levanta el servidor estático y se carga por HTTP — igual que
+       hará el hosting real. */
+    const page = process.env.ARENA_PAGE || 'index.html';
+    let url;
+    if (page.indexOf('three') >= 0 || process.env.ARENA_HTTP) {
+      const port = await startServer();
+      url = 'http://localhost:' + port + '/' + page;
+    } else {
+      url = 'file://' + path.join(ROOT, page);
+    }
     await session.send('Page.navigate', { url });
     await sleep(2500);
 

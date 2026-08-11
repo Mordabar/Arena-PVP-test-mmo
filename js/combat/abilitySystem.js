@@ -209,17 +209,21 @@ Arena.define('combat/abilitySystem',
   A._commit = function (world, caster, ability, target, ctx) {
     var now = world.time;
 
-    // Auto-encarar al objetivo al comprometer la acción.
-    //
-    // El documento pide validar orientación en las habilidades frontales (§5),
-    // pero rechazar una habilidad de objetivo único porque el personaje mira
-    // 10° de más rompe el pilar de "respuesta inmediata": el jugador ya eligió
-    // objetivo, girar es una consecuencia, no una decisión aparte. La
-    // orientación sigue siendo decisiva donde realmente importa — los conos
-    // (target: 'cone') usan el yaw actual y no se auto-encaran.
-    if (target && target.id !== caster.id && !(ability.flags && ability.flags.noAutoFace)) {
-      caster.yaw = V.yawTo(caster.pos, target.pos);
-    }
+    /* NO HAY AUTO-ENCARADO. Y es una decisión de diseño, no un olvido.
+     *
+     * Antes se giraba al personaje hacia su objetivo al comprometer la acción,
+     * con el argumento de que rechazar por 10° rompía la respuesta inmediata.
+     * Ese argumento se sostiene en un juego donde apuntar no es una habilidad;
+     * aquí lo es. Con auto-encarado, seleccionar un objetivo equivale a apuntar
+     * a él para siempre y la orientación deja de ser una decisión táctica:
+     * flanquear, dar la espalda o rodear no significan nada.
+     *
+     * El objetivo pasa a ser INFORMACIÓN —a quién afecta la habilidad— y no un
+     * lock-on. Quien quiera golpear, que mire.
+     *
+     * Los bots no se ven afectados: dummyAI encara a su anclaje cada tick por
+     * su cuenta, así que esto no cambia el ritmo de combate ya validado.
+     */
     var cost = A.costOf(world, caster, ability);
     caster.resource = Math.max(0, caster.resource - cost);
 
@@ -300,10 +304,9 @@ Arena.define('combat/abilitySystem',
         Status.consumeOnCast(world, caster, ability);
         return null;
       }
-      // Encarar al objetivo al ejecutar: es lo que el jugador espera ver.
-      if (!(ability.flags && ability.flags.noAutoFace)) {
-        caster.yaw = V.yawTo(caster.pos, target.pos);
-      }
+      // Tampoco se encara al resolver el casteo: si el personaje se dio la
+      // vuelta durante el canal, eso es lo que hizo el jugador y la habilidad
+      // sale desde donde mira, no desde donde estaría cómodo que mirara.
     }
 
     world.bus.emit('AbilityCastCompleted', {
@@ -387,9 +390,17 @@ Arena.define('combat/abilitySystem',
 
     if (now < entity.autoAttackNextAt) return;
 
+    /* ARCO FRONTAL. El ataque normal exige tener al objetivo delante, y no gira
+       al personaje para conseguirlo. Sin esta condición, quitar el auto-encarado
+       no cambiaría nada en la práctica: se seguiría pegando de espaldas. */
+    var toTarget = V.yawTo(entity.pos, target.pos);
+    if (Math.abs(V.angleDelta(entity.yaw, toTarget)) > B.AUTO_ATTACK_HALF_ANGLE) {
+      world.bus.emit('AutoAttackBlocked', { casterId: entity.id, targetId: target.id, reason: 'facing' });
+      return;
+    }
+
     var cycle = entity.autoAttackCycle / (1 + m.attackSpeedPct);
     entity.autoAttackNextAt = now + cycle;
-    entity.yaw = V.yawTo(entity.pos, target.pos);
 
     Status.breakStealth(world, entity, 'attack');
 

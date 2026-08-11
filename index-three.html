@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- GENERADO A PARTIR DE index.html -->
 <title>Project Arena · Combat Lab 3D</title>
 <link rel="stylesheet" href="css/arena.css">
 </head>
@@ -15,7 +16,7 @@
 <div id="hud">
   <div id="brand" class="passthrough">
     <div class="t">Project Arena</div>
-    <div class="s">Combat Lab 3D · v0.2 · WebGL2 nativo, cero dependencias</div>
+    <div class="s">Combat Lab 3D · v0.2 · Three.js 0.160 · presentación alternativa</div>
   </div>
 
   <div id="help">
@@ -111,7 +112,34 @@
 <script src="js/audio/audio.js"></script>
 
 <!-- Arranque -->
+<!-- =========================================================================
+     ARRANQUE THREE.JS
+
+     `ARENA_DEFER_BOOT` impide que main.js arranque el juego al cargarse: el
+     renderer de Three.js es un módulo ES y llega después. Quien da la salida es
+     js/render/three/bootstrap.js, cuando ya tiene la escena montada.
+
+     El import map apunta al Three.js VENDORIZADO en el propio proyecto. Para
+     usar un CDN en su lugar bastaría con cambiar estas dos rutas por
+     https://unpkg.com/three@0.160.0/build/three.module.js y
+     https://unpkg.com/three@0.160.0/examples/jsm/ — mismo número de versión en
+     las dos, que es la parte que importa.
+
+     Todas las rutas son RELATIVAS: esto funciona igual en
+     https://dominio.com/arena/ que en https://arena.dominio.com/.
+     ====================================================================== -->
+<script>window.ARENA_DEFER_BOOT = true;</script>
 <script src="js/main.js"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three-0.160.0/three.module.js",
+    "three/addons/": "./vendor/three-0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="js/render/three/bootstrap.js"></script>
 
 <script>
 (function () {

@@ -213,6 +213,42 @@ Arena.define('sim/world',
   };
 
   /** Movimiento continuo por intención (WASD o IA). dirX/dirZ en espacio mundo. */
+  /**
+   * Gira a la entidad a velocidad limitada.
+   *
+   * @param rate −1..1 — signo y proporción de B.TURN_SPEED. Puede ser un valor
+   *        continuo: el arrastre de cámara pide giros parciales, no sólo
+   *        "izquierda" o "derecha".
+   *
+   * Un cuerpo aturdido o derribado no gira; uno enraizado SÍ. Enraizar clava
+   * los pies, no el cuello, y poder reorientarse mientras estás anclado es
+   * justo lo que hace que la raíz sea un contratiempo y no una muerte segura.
+   */
+  World.prototype.turnEntityBy = function (entity, rate, dt) {
+    if (!rate) return false;
+    var m = entity.mods();
+    if (!m.canMove && !m.canUseAbility) return false;   // aturdido / derribado / estasis
+    var step = B.TURN_SPEED * dt * Math.max(-1, Math.min(1, rate));
+    entity.yaw = V.wrapAngle(entity.yaw + step);
+    return true;
+  };
+
+  /**
+   * Gira hacia un yaw objetivo sin pasarse, a velocidad limitada.
+   * Devuelve el desfase que queda por cubrir.
+   */
+  World.prototype.turnEntityToward = function (entity, targetYaw, dt) {
+    var delta = V.angleDelta(entity.yaw, targetYaw);
+    var maxStep = B.TURN_SPEED * dt;
+    if (Math.abs(delta) <= maxStep) {
+      var m = entity.mods();
+      if (m.canMove || m.canUseAbility) entity.yaw = V.wrapAngle(targetYaw);
+      return 0;
+    }
+    this.turnEntityBy(entity, delta > 0 ? 1 : -1, dt);
+    return V.angleDelta(entity.yaw, targetYaw);
+  };
+
   World.prototype.moveEntityBy = function (entity, dirX, dirZ, dt) {
     var speed = entity.moveSpeed();
     if (speed <= 0) return false;
@@ -383,10 +419,22 @@ Arena.define('sim/world',
       }
     }
 
-    // 3. Intención de movimiento del jugador.
-    //    Se aplica DENTRO del paso fijo: si se hiciera por fotograma, un equipo
-    //    a 144 fps se movería igual que uno a 30, pero cancelaría casteos con
-    //    granularidad distinta y las reglas dejarían de ser las mismas.
+    /* 3. Intención de GIRO y de movimiento del jugador.
+     *
+     * Ambas dentro del paso fijo. Si se aplicaran por fotograma, un equipo a
+     * 144 fps giraría el doble de rápido que uno a 72 y cancelaría casteos con
+     * otra granularidad: las reglas dejarían de ser las mismas para los dos.
+     *
+     * El GIRO va ANTES que el movimiento y que las habilidades, en ese orden y
+     * a propósito: una tecla de avance pulsada el mismo tick debe usar la
+     * orientación ya girada, y una habilidad lanzada el mismo tick debe validar
+     * su arco frontal contra esa misma orientación. Al revés, girar y atacar en
+     * el mismo instante fallaría por un tick de desfase.
+     */
+    for (i = 0; i < this.entities.length; i++) {
+      e = this.entities[i];
+      if (e.alive && e._turnIntent) this.turnEntityBy(e, e._turnIntent, dt);
+    }
     for (i = 0; i < this.entities.length; i++) {
       e = this.entities[i];
       if (e.alive && e._moveIntent) {

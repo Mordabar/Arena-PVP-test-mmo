@@ -79,5 +79,14 @@ Arena.define('math/vec3', [], function (Arena) {
     return d;
   };
 
+  /** Envuelve un ángulo a [-PI, PI]. Sin esto, girar sin parar hace crecer el
+      yaw sin límite y la precisión de coma flotante se degrada con el tiempo. */
+  V.wrapAngle = function (a) {
+    a = a % (Math.PI * 2);
+    if (a > Math.PI) a -= Math.PI * 2;
+    if (a < -Math.PI) a += Math.PI * 2;
+    return a;
+  };
+
   Arena.Math.Vec3 = V;
 });
