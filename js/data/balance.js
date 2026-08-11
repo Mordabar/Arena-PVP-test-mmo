@@ -84,6 +84,17 @@ Arena.define('data/balance', [], function (Arena) {
     }
   };
 
+  /* --- Fatiga de control global ------------------------------------------
+   * El DR por categoría no basta: alternando categorías distintas se podían
+   * encadenar más de 20 s de control. Esto cuenta el control TOTAL sufrido en
+   * una ventana y concede un respiro inmune al superar el umbral.            */
+  B.CC_FATIGUE = {
+    enabled: true,
+    threshold: 4.0,   // segundos de control acumulados que agotan al objetivo
+    window: 12.0,     // ventana en la que se acumulan
+    immunity: 5.0     // respiro inmune a todo control
+  };
+
   /* --- Ataque normal ----------------------------------------------------- */
   B.AUTO_ATTACK = {
     meleeCycle: 1.6,

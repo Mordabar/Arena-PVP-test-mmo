@@ -127,7 +127,20 @@ es lo que da ventana real a los counters y lo que hace que la distancia se sient
 | AntiHeal | el más fuerte | 60 % |
 | Daño recibido | aditivo | −75 % / +60 % |
 | Barreras | del mismo poder, la mayor; de poderes distintos, suman | — |
-| Control | una sola instancia por tipo, gana la de mayor duración restante | DR |
+| Control | una sola instancia por tipo, gana la de mayor duración restante | DR + fatiga |
+
+### Fatiga de control global
+
+El DR del documento es **por categoría**, y una auditoría adversarial demostró
+que eso deja una puerta abierta: alternando noqueo → mareo → raíz → desarme →
+estasis se encadenaban **20,4 s** de control sin que ninguna categoría llegara
+nunca a su inmunidad, contra el objetivo de ~4 s del §19.
+
+Sobre el DR se añade por eso una **fatiga global** (`B.CC_FATIGUE`): cuenta los
+segundos de control sufridos en una ventana de 12 s y, superados 4 s
+acumulados, concede 5 s de inmunidad a todo control. Con ella la misma cadena
+queda en 5,8 s. Es lo que impide que dos jugadores coordinados encadenen a un
+tercero hasta matarlo sin que pueda pulsar un botón.
 
 Identidad de una instancia de estado:
 * **CC** → clave sólo por tipo. Dos Noqueos simultáneos jamás se apilan.

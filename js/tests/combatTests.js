@@ -773,6 +773,43 @@ Arena.define('tests/combatTests', ['tests/testRunner', 'data/passives'], functio
         'la cadena de control debe quedar por debajo de ' + B.TARGETS.ccChainMax + ' s, fue ' + total.toFixed(2));
     });
 
+    T.test('Alternar categorías no permite encadenar control indefinidamente', function () {
+      // El DR es por categoría: sin fatiga global, alternar noqueo, mareo, raíz,
+      // desarme y estasis encadenaba más de 20 s sin llegar a ninguna inmunidad.
+      var w = T.makeWorld();
+      B.DR.enabled = true;
+      var dev = T.spawn(w, 'devastador', { team: 1 });
+      var victim = T.spawn(w, 'guardian', { team: 0, x: 2 });
+
+      var chain = ['knockdown', 'stun', 'silence', 'root', 'disarm', 'stasis', 'utilityLock'];
+      var total = 0;
+      for (var c = 0; c < chain.length; c++) {
+        for (var i = 0; i < 3; i++) {
+          var inst = Status.apply(w, victim, { effect: chain[c], duration: 2.0, abilityId: 't' }, dev);
+          if (!inst) continue;
+          total += inst.duration;
+          Status.removeInstance(w, victim, inst, 'test');
+        }
+      }
+      T.assert(total <= B.CC_FATIGUE.threshold + 2.4,
+        'la fatiga de control debe cortar la cadena cerca de ' + B.CC_FATIGUE.threshold +
+        ' s, se acumularon ' + total.toFixed(2) + ' s');
+    });
+
+    T.test('La fatiga de control se recupera pasada su ventana', function () {
+      var w = T.makeWorld();
+      var dev = T.spawn(w, 'devastador', { team: 1 });
+      var victim = T.spawn(w, 'guardian', { team: 0, x: 2 });
+
+      for (var i = 0; i < 4; i++) {
+        var inst = Status.apply(w, victim, { effect: 'stun', duration: 1.6, abilityId: 't' }, dev);
+        if (inst) Status.removeInstance(w, victim, inst, 'test');
+      }
+      T.advance(w, B.CC_FATIGUE.immunity + B.CC_FATIGUE.window + 1);
+      var again = Status.apply(w, victim, { effect: 'stun', duration: 1.6, abilityId: 't' }, dev);
+      T.assert(again, 'pasada la ventana el control debe volver a funcionar');
+    });
+
     T.test('Categorías distintas de CC no comparten DR', function () {
       var w = T.makeWorld();
       B.DR.enabled = true;

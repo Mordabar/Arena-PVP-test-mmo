@@ -75,6 +75,37 @@ Arena.define('combat/statusSystem',
   };
 
   /* =========================================================================
+   * Fatiga de control global
+   * ====================================================================== */
+
+  S.queryFatigue = function (world, target) {
+    var f = target.ccFatigue;
+    var now = world.time;
+    if (!f) return { immune: false, seconds: 0 };
+    if (f.immuneUntil > now) return { immune: true, seconds: f.seconds };
+    if (now > f.resetAt) return { immune: false, seconds: 0 };
+    return { immune: false, seconds: f.seconds };
+  };
+
+  S.addFatigue = function (world, target, seconds) {
+    var cfg = B.CC_FATIGUE;
+    var now = world.time;
+    var f = target.ccFatigue;
+    if (!f || now > f.resetAt) f = { seconds: 0, resetAt: 0, immuneUntil: 0 };
+
+    f.seconds += seconds;
+    f.resetAt = now + cfg.window;
+    if (f.seconds >= cfg.threshold) {
+      f.immuneUntil = now + seconds + cfg.immunity;
+      f.seconds = 0;
+      world.bus.emit('CCFatigued', {
+        targetId: target.id, until: f.immuneUntil
+      });
+    }
+    target.ccFatigue = f;
+  };
+
+  /* =========================================================================
    * Aplicación
    * ====================================================================== */
 
@@ -111,6 +142,27 @@ Arena.define('combat/statusSystem',
       return null;
     }
 
+    // -- Fatiga de control global
+    //
+    // El DR es POR CATEGORÍA, y eso deja una puerta abierta: alternando noqueo,
+    // mareo, raíz, desarme y estasis se encadenaban más de 20 s de control sin
+    // que ninguna categoría llegara nunca a su inmunidad. El objetivo del
+    // documento (§19) es que una cadena efectiva no pase de ~4 s.
+    //
+    // La fatiga cuenta los segundos de control sufridos en una ventana; al
+    // superar el umbral, el objetivo queda inmune a TODO control durante un
+    // respiro. Es lo que impide que dos jugadores coordinados encadenen a un
+    // tercero hasta matarlo sin que pueda pulsar un botón.
+    if (d.kind === 'cc' && !spec.ignoreDR && B.CC_FATIGUE.enabled) {
+      var fat = S.queryFatigue(world, target);
+      if (fat.immune) {
+        world.bus.emit('EffectImmune', {
+          targetId: target.id, effect: defId, reason: 'fatigue', sourceId: sourceId
+        });
+        return null;
+      }
+    }
+
     // -- Diminishing Returns / inmunidad de categoría
     var duration = spec.duration === undefined ? 0 : spec.duration;
     var drMult = 1;
@@ -125,6 +177,9 @@ Arena.define('combat/statusSystem',
       }
       drMult = dr.mult;
       duration = duration * drMult;
+    }
+    if (d.kind === 'cc' && !spec.ignoreDR && B.CC_FATIGUE.enabled) {
+      S.addFatigue(world, target, duration);
     }
 
     var endTime = now + duration;

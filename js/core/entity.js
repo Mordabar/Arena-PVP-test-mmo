@@ -76,6 +76,7 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
     this._modsDirty = true;
     this._mods = null;
     this.drTracker = Object.create(null);   // categoría -> {stacks, resetAt, immuneUntil}
+    this.ccFatigue = null;                  // fatiga de control global
 
     /* --- Recursos de clase (Ímpetu, Resonancia…) ------------------------- */
     this.charges = Object.create(null);
@@ -300,6 +301,7 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
     this.cooldowns = Object.create(null);
     this.schoolLockouts = Object.create(null);
     this.drTracker = Object.create(null);
+    this.ccFatigue = null;
     this.charges = Object.create(null);
     this.gcdUntil = 0;
     this.gcdDuration = 0;

@@ -157,7 +157,9 @@ Arena.define('main',
     // orientado hacia una pared es la primera impresión más barata de perder.
     var cam = this.renderer.camera;
     cam.yaw = player.yaw + Math.PI;
-    cam.pitch = 0.52;
+    cam.pitch = 0.48;
+    cam.targetDistance = 8.2;
+    cam.distance = 8.2;
     cam.setFocus(player.pos.x, player.pos.y, player.pos.z);
     V.copy(cam.smoothFocus, cam.focus);
 

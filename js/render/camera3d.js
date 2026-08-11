@@ -20,7 +20,7 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
     opts = opts || {};
     this.yaw = opts.yaw === undefined ? Math.PI : opts.yaw;
     this.pitch = opts.pitch === undefined ? 0.52 : opts.pitch;
-    this.distance = opts.distance === undefined ? 9.5 : opts.distance;
+    this.distance = opts.distance === undefined ? 8.2 : opts.distance;
     this.targetDistance = this.distance;
 
     this.minPitch = -0.30;
