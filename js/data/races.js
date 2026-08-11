@@ -47,8 +47,10 @@ Arena.define('data/races', ['data/balance'], function (Arena) {
       /* --- Rasgos ---------------------------------------------------------- */
       features: {
         earLength: 0.34,     // orejas muy largas
-        earPitch: -0.30,     // inclinadas hacia atrás y arriba
-        earFlare: 0.55,
+        // Casi horizontales, apuntando atrás. Con -0.30 quedaban verticales
+        // y el elfo parecía llevar antenas en lugar de orejas.
+        earPitch: -1.12,
+        earFlare: 0.42,
         hairStyle: 'swept',  // peinado hacia atrás
         glowingEyes: true
       },
