@@ -120,6 +120,24 @@ export function createSelectionRings(Arena, scene) {
   var ringGeo = new THREE.RingGeometry(0.80, 0.98, 40);
   ringGeo.rotateX(-Math.PI / 2);
 
+  /* --- Sombra de contacto ---------------------------------------------------
+   * Una mancha suave bajo los pies, aparte del mapa de sombras.
+   *
+   * No es redundante: el mapa de sombras es direccional, así que con el sol
+   * oblicuo la sombra cae a un lado y el personaje parece flotar sobre el punto
+   * donde realmente está. Esta mancha es la oclusión de contacto —lo que
+   * ocurre justo debajo, donde no entra luz de ninguna dirección— y es lo que
+   * ancla el cuerpo al suelo. Es el truco más barato que existe para que una
+   * escena deje de parecer una maqueta de figuras sueltas. */
+  var contactTex = makeRadialTexture();
+  var contactGeo = new THREE.PlaneGeometry(1, 1);
+  contactGeo.rotateX(-Math.PI / 2);
+  var contactMat = new THREE.MeshBasicMaterial({
+    map: contactTex, transparent: true, opacity: 0.62,
+    depthWrite: false, color: 0x05070c
+  });
+  var contactPool = [];
+
   /* Mezcla NORMAL, no aditiva. Un anillo aditivo sobre suelo claro satura a
      blanco y pierde el color, que es justo la información que transporta: verde
      eres tú, azul aliado, rojo enemigo. Además brillaba más que el personaje. */
@@ -153,11 +171,23 @@ export function createSelectionRings(Arena, scene) {
     return pool[n];
   }
 
+  function takeContact(n) {
+    while (contactPool.length <= n) {
+      var m = new THREE.Mesh(contactGeo, contactMat);
+      m.matrixAutoUpdate = false;
+      m.visible = false;
+      m.renderOrder = 1;       // sobre el suelo opaco, bajo los anillos
+      scene.add(m);
+      contactPool.push(m);
+    }
+    return contactPool[n];
+  }
+
   return {
     render: function (world, playerId, selectedId, hoverId, alpha) {
       var V = Arena.Math.Vec3;
       var player = world.getEntity(playerId);
-      var used = 0;
+      var used = 0, contacts = 0;
 
       for (var i = 0; i < world.entities.length; i++) {
         var e = world.entities[i];
@@ -166,6 +196,14 @@ export function createSelectionRings(Arena, scene) {
 
         var pos = V.lerp(V.create(), e.prevPos, e.pos, alpha);
         var friendly = player ? !world.areHostile(player, e) : (e.team === 0);
+
+        // Sombra de contacto para todo el mundo, vivo o no.
+        var cs = takeContact(contacts++);
+        cs.visible = true;
+        _p.set(pos.x, pos.y + 0.006, pos.z);
+        _s.set(e.radius * 3.6, 1, e.radius * 3.6);
+        cs.matrix.compose(_p, _q, _s);
+        cs.matrixWorldNeedsUpdate = true;
 
         var kind = (e.id === playerId) ? 'player' : (friendly ? 'ally' : 'enemy');
         var mesh = take(used++);
@@ -188,6 +226,32 @@ export function createSelectionRings(Arena, scene) {
         }
       }
       for (var j = used; j < pool.length; j++) pool[j].visible = false;
+      for (var c = contacts; c < contactPool.length; c++) contactPool[c].visible = false;
     }
   };
+}
+
+/**
+ * Textura radial suave, generada en un canvas de 64×64.
+ *
+ * Se genera en código y no se carga de un fichero por una razón práctica: es un
+ * asset menos que subir, que versionar y que puede faltar en producción. Para
+ * un degradado radial no compensa un PNG.
+ */
+function makeRadialTexture() {
+  var size = 64;
+  var canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  var ctx = canvas.getContext('2d');
+  var g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  // Núcleo casi opaco y caída rápida: una sombra de contacto es pequeña y
+  // densa. Un degradado ancho y suave se lee como niebla, no como oclusión.
+  g.addColorStop(0.00, 'rgba(255,255,255,1)');
+  g.addColorStop(0.45, 'rgba(255,255,255,0.55)');
+  g.addColorStop(1.00, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  var tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
 }

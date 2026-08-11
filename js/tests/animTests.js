@@ -83,13 +83,14 @@ Arena.define('tests/animTests',
 
     T.test('desplazarse de lado da STRAFE del lado correcto', function () {
       var e = fakeEntity();
+      // Mirando a +Z, la derecha del personaje es −X (regla de la mano derecha).
       var stR = Loco.createState(cfgFor('centinela', 'archer'));
-      walk(stR, e, 60, 1 / 60, 4.8, 0);
+      walk(stR, e, 60, 1 / 60, -4.8, 0);
       T.assertEqual(stR.state, Loco.STATE.STRAFE_R, 'strafe a la derecha');
 
       var e2 = fakeEntity();
       var stL = Loco.createState(cfgFor('centinela', 'archer'));
-      walk(stL, e2, 60, 1 / 60, -4.8, 0);
+      walk(stL, e2, 60, 1 / 60, 4.8, 0);
       T.assertEqual(stL.state, Loco.STATE.STRAFE_L, 'strafe a la izquierda');
     });
 
@@ -694,8 +695,9 @@ Arena.define('tests/animTests',
 
     T.test('el caster conserva su familia de locomoción en la intención', function () {
       var e = fakeEntity({ classId: 'arcanista' });
+      // −X es la derecha del personaje cuando mira a +Z.
       var r = intentFor(e, {
-        prime: function (loco) { walk(loco, e, 60, 1 / 60, 4.8, 0); }
+        prime: function (loco) { walk(loco, e, 60, 1 / 60, -4.8, 0); }
       });
       T.assertEqual(r.intent.archetype, 'caster', 'arquetipo');
       T.assertEqual(r.intent.weaponType, 'staff', 'arma');

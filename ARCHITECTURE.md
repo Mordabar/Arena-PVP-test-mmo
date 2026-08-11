@@ -216,6 +216,31 @@ lee: apagarlo deja el juego idéntico.
 giran; `Q`/`E` giran y **no** desplazan. Mantener el botón izquierdo gobierna la
 cámara y arrastra el cuerpo con ella; el derecho es free look y no toca el yaw.
 
+La base del personaje se deriva del producto vectorial, no a ojo:
+
+```
+frente   F = ( sin yaw, cos yaw)
+derecha  R = F × arriba = (−cos yaw, sin yaw)
+```
+
+Escribir «derecha» de memoria en un sistema diestro con Y arriba sale del revés
+la mitad de las veces — y salió: `A` y `D` estuvieron intercambiados una
+versión entera. El test de control mide ahora el **signo**, no sólo que el
+personaje se mueva de lado.
+
+### Dos velocidades de giro, y por qué
+
+| Origen | Aplicación | Motivo |
+|---|---|---|
+| `Q`/`E` (`_turnIntent`) | limitada por `TURN_SPEED` | una tecla no tiene magnitud: la velocidad la pone el juego |
+| ratón (`_faceIntent`) | directa, 1:1 | es manipulación directa, como un volante |
+
+Pasar el ratón por el límite de velocidad hacía que arrastrar se sintiera
+desconectado: la mano se mueve más rápido de lo que el límite permite, la
+intención se saturaba durante todo el gesto y el cuerpo llegaba tarde o parecía
+no girar. Las dos rutas siguen pasando por la simulación y las dos respetan el
+control: un aturdido no gira ni con ratón ni sin él.
+
 Con base de cámara, mirar a un lado cambiaba hacia dónde avanza `W` y el cuerpo
 dejaba de tener un frente propio. Ahora el frente decide todo —desplazamiento,
 arco frontal, validación de habilidades— y por eso orientarse es una decisión

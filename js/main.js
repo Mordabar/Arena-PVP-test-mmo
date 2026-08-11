@@ -408,23 +408,22 @@ Arena.define('main',
    * dentro del paso fijo. El renderer no escribe `yaw` en ningún caso, ni
    * siquiera cuando el gesto que lo provoca nace en el ratón.
    */
-  Game._readTurn = function (player) {
+  Game._applyTurnIntent = function (player) {
     var k = this._keys;
-    var turn = (k['e'] ? 1 : 0) - (k['q'] ? 1 : 0);
-    if (turn) return turn;
 
-    // Modo "steer": el cuerpo persigue el yaw de la cámara. Se expresa como
-    // proporción del desfase para que el giro frene al llegar en vez de oscilar.
-    if (this.input.camMode === 'steer' && player) {
-      var want = this.renderer.camera.yaw + Math.PI;
-      var delta = V.angleDelta(player.yaw, want);
-      if (Math.abs(delta) < 0.01) return 0;
-      var B = Arena.Data.balance;
-      // El paso máximo por tick cubre `TURN_SPEED / TICK_RATE` radianes; pedir
-      // más que eso sólo produciría sobrepasarse y volver.
-      return Math.max(-1, Math.min(1, delta / (B.TURN_SPEED / B.TICK_RATE)));
+    /* Arrastre con botón izquierdo: el cuerpo ES la cámara, 1:1 y sin retardo.
+       Así se comporta el giro con ratón en cualquier MMO, y es lo que hace que
+       el gesto se sienta conectado a la mano en vez de a un motor. */
+    if (this.input.camMode === 'steer') {
+      player._faceIntent = this.renderer.camera.yaw + Math.PI;
+      player._turnIntent = 0;
+      return;
     }
-    return 0;
+    player._faceIntent = null;
+
+    // Q/E: giro por tecla, limitado por TURN_SPEED. Una tecla no tiene
+    // magnitud, así que su velocidad la pone el juego.
+    player._turnIntent = (k['e'] ? 1 : 0) - (k['q'] ? 1 : 0);
   };
 
   Game._useSlot = function (index) {
@@ -540,15 +539,23 @@ Arena.define('main',
     if (player && player.alive) {
       var mv = this._readMovement();
       if (mv.forward || mv.strafe) {
+        /* Base ortonormal del personaje.
+         *
+         *   frente   F = ( sin yaw, cos yaw)
+         *   derecha  R = F × arriba = (−cos yaw, sin yaw)
+         *
+         * El producto vectorial NO es opcional: escribir "derecha" a ojo en un
+         * sistema diestro con Y arriba sale del revés la mitad de las veces, y
+         * es exactamente lo que pasó aquí — A y D quedaron intercambiados. */
         var sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
-        var dx = sy * mv.forward + cy * mv.strafe;
-        var dz = cy * mv.forward - sy * mv.strafe;
+        var dx = sy * mv.forward - cy * mv.strafe;
+        var dz = cy * mv.forward + sy * mv.strafe;
         // Se aplica dentro del paso fijo para no depender de los fps.
         player._moveIntent = { x: dx, z: dz };
       } else {
         player._moveIntent = null;
       }
-      player._turnIntent = this._readTurn(player);
+      this._applyTurnIntent(player);
     }
 
     /* --- Simulación ------------------------------------------------------- */

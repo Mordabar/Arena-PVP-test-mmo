@@ -31,7 +31,7 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
      que la fórmula se mantiene idéntica a propósito. */
   function moveIntentFor(entity, forward, strafe) {
     var sy = Math.sin(entity.yaw), cy = Math.cos(entity.yaw);
-    return { x: sy * forward + cy * strafe, z: cy * forward - sy * strafe };
+    return { x: sy * forward - cy * strafe, z: cy * forward + sy * strafe };
   }
 
   function facing(entity, target) {
@@ -71,9 +71,20 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       p._moveIntent = moveIntentFor(p, 0, 1);   // D
       for (var i = 0; i < 15; i++) w.step(1);
 
-      T.assert(p.pos.x > 0.8, 'strafe derecha va a +X');
+      /* Mirando a +Z, la derecha es −X: R = F × arriba. Esta aserción es la que
+         habría cazado que A y D estuvieran intercambiados, y por eso mide el
+         signo concreto en vez de conformarse con "se movió de lado". */
+      T.assert(p.pos.x < -0.8, 'strafe derecha va a −X, fue a ' + p.pos.x.toFixed(2));
       T.assertNear(p.pos.z, 0, 0.05, 'sin componente frontal');
       T.assertEqual(p.yaw, yaw0, 'strafe NO puede cambiar la orientación');
+
+      // Y A va al lado contrario, que es la otra mitad del mismo error.
+      var w2 = T.makeWorld();
+      var q = T.spawn(w2, 'devastador', { team: 0, x: 0, z: 0 });
+      q.yaw = 0;
+      q._moveIntent = moveIntentFor(q, 0, -1);   // A
+      for (var j = 0; j < 15; j++) w2.step(1);
+      T.assert(q.pos.x > 0.8, 'strafe izquierda va a +X');
     });
 
     T.test('Q y E giran sin desplazar', function () {
@@ -311,7 +322,31 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       T.assertEqual(p.yaw, before, 'girar la cámara no gira al personaje');
     });
 
-    T.test('el modo steer produce INTENCIÓN, y la simulación la aplica', function () {
+    T.test('el arrastre de ratón gira 1:1, sin límite de velocidad', function () {
+      /* El ratón es manipulación directa: el jugador agarra el cuerpo y lo gira.
+         Pasarlo por TURN_SPEED hacía que arrastrar se sintiera desconectado —el
+         cuerpo llegaba tarde y a veces parecía no girar—, porque la mano se
+         mueve más rápido de lo que el límite permite. */
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      p.yaw = 0;
+      p._faceIntent = 2.5;                 // giro grande de un solo gesto
+      w.step(1);
+      T.assertNear(p.yaw, 2.5, 1e-6, 'un solo tick basta: es directo');
+    });
+
+    T.test('el giro por ratón sigue respetando el control', function () {
+      // Directo no significa exento: un aturdido no se reorienta ni con ratón.
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      p.yaw = 0;
+      Arena.Combat.StatusSystem.apply(w, p, { effect: 'stun', duration: 5 }, p);
+      p._faceIntent = 2.5;
+      w.step(1);
+      T.assertEqual(p.yaw, 0, 'aturdido no gira, venga de donde venga la orden');
+    });
+
+    T.test('el giro por tecla SÍ está limitado', function () {
       // El renderer nunca escribe yaw: emite una intención acotada a −1..1 que
       // el paso fijo convierte en giro. Así el gesto del ratón no puede saltarse
       // el límite de velocidad de giro.

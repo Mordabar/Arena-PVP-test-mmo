@@ -15,17 +15,33 @@ import * as THREE from 'three';
 /* Paleta fantasy arena. Fría en sombra, cálida bajo la luz: ese contraste es lo
    que separa una silueta del fondo sin necesidad de contornos. */
 export const PALETTE = {
-  sky: 0x9aa8c0,          // rebote de cielo: frío, claro y POCO saturado
-  ground: 0x4a443c,       // rebote de suelo: cálido y apagado
-  fog: 0x2b3446,
-  sun: 0xfff4e2,
-  floor: 0x6f7789,
-  floorLine: 0x99a5bd,
-  wall: 0x8a8794,
-  pillar: 0x9a94a2,
-  platform: 0x7b8296,
-  ramp: 0x757d92,
-  rock: 0x8b8690
+  /* Luz de tarde: cielo frío arriba, rebote cálido del suelo abajo. Esa
+     oposición de temperatura es lo que da volumen a una superficie plana sin
+     necesidad de texturas: la cara que mira al cielo se enfría, la que mira al
+     suelo se calienta, y el ojo lee la forma. */
+  sky: 0x9fb2cf,
+  ground: 0x5c4f40,
+  sun: 0xffe9c4,
+
+  // Degradado del cielo, de cenit a horizonte.
+  skyTop: 0x24406e,
+  skyHorizon: 0x9db4cd,
+  fog: 0x8296ae,          // la niebla iguala al horizonte o se ve el corte
+
+  /* JERARQUÍA DE VALORES. Antes todo vivía entre el 50 % y el 55 % de
+     luminosidad: suelo, muros y plataformas indistinguibles, y el personaje
+     —que debería ser el punto focal— era lo más oscuro del encuadre. Sin
+     escalón de valor no hay lectura, y ninguna cantidad de luces lo arregla.
+     Ahora: suelo OSCURO y frío, arquitectura CLARA y cálida. El personaje cae
+     en el medio y se recorta contra las dos. */
+  floor: 0x2f3644,
+  floorLine: 0x53617c,
+  wall: 0xa2968a,         // piedra cálida contra suelo frío
+  pillar: 0xb3a698,
+  platform: 0x8d8478,
+  ramp: 0x847b70,
+  rock: 0x9a9086,
+  accent: 0xffb45e        // luz de brasero: el único color saturado de la escena
 };
 
 /** Material compartido. Crear uno por objeto multiplica los cambios de estado. */
@@ -50,13 +66,13 @@ export function createEnvironment(scene, arena) {
      no usan las unidades heredadas. Con los valores "de toda la vida" la escena
      sale sub-expuesta y el tonemap ACES lo agrava: se pierde el suelo, se
      pierden las siluetas y no se distingue quién está detrás de qué columna. */
-  var hemi = new THREE.HemisphereLight(PALETTE.sky, PALETTE.ground, 3.1);
+  var hemi = new THREE.HemisphereLight(PALETTE.sky, PALETTE.ground, 2.4);
   scene.add(hemi);
 
   /* Relación luz/ambiente contenida. Con el sol muy por encima del hemisférico
      las sombras se vuelven manchas azules planas y sólidas: llaman más la
      atención que los personajes, que es lo contrario de lo que debe pasar. */
-  var sun = new THREE.DirectionalLight(PALETTE.sun, 2.35);
+  var sun = new THREE.DirectionalLight(PALETTE.sun, 3.0);
   sun.position.set(18, 34, 22);
   sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048);
@@ -72,9 +88,48 @@ export function createEnvironment(scene, arena) {
   scene.add(sun);
   scene.add(sun.target);
 
-  // Niebla suave: separa los planos sin tragarse el fondo de la arena.
-  scene.fog = new THREE.FogExp2(PALETTE.fog, 0.0085);
-  scene.background = new THREE.Color(PALETTE.fog);
+  /* --- Cielo ---------------------------------------------------------------
+   * Una esfera vista desde dentro con un degradado vertical. Cuesta un draw
+   * call y cambia por completo la percepción de calidad: un fondo de color
+   * plano se lee como "escena de pruebas" por bien iluminado que esté todo lo
+   * demás, porque no hay ninguna superficie natural de color uniforme.
+   *
+   * La niebla se iguala al color del HORIZONTE, no al del cenit: si no, la
+   * geometría lejana se disuelve hacia un tono que no está donde debería y
+   * aparece un corte visible a media altura. */
+  var skyGeo = new THREE.SphereGeometry(160, 24, 16);
+  var skyMat = new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false,
+    uniforms: {
+      topColor: { value: new THREE.Color(PALETTE.skyTop) },
+      horizonColor: { value: new THREE.Color(PALETTE.skyHorizon) }
+    },
+    vertexShader: [
+      'varying vec3 vWorld;',
+      'void main() {',
+      '  vWorld = (modelMatrix * vec4(position, 1.0)).xyz;',
+      '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+      '}'
+    ].join('\n'),
+    fragmentShader: [
+      'uniform vec3 topColor;',
+      'uniform vec3 horizonColor;',
+      'varying vec3 vWorld;',
+      'void main() {',
+      '  float h = clamp(normalize(vWorld).y, 0.0, 1.0);',
+      // Curva, no lineal: el degradado real del cielo se concentra cerca del
+      // horizonte y un lerp recto se ve como una rampa de Photoshop.
+      '  float t = pow(h, 0.55);',
+      '  gl_FragColor = vec4(mix(horizonColor, topColor, t), 1.0);',
+      '}'
+    ].join('\n')
+  });
+  var sky = new THREE.Mesh(skyGeo, skyMat);
+  sky.frustumCulled = false;
+  scene.add(sky);
+
+  scene.fog = new THREE.FogExp2(PALETTE.fog, 0.0125);
+  scene.background = new THREE.Color(PALETTE.skyHorizon);
 
   /* --- Suelo --------------------------------------------------------------
    * Un plano segmentado, no uno liso: los vértices extra permiten que la luz
@@ -91,7 +146,7 @@ export function createEnvironment(scene, arena) {
   var grid = new THREE.GridHelper(
     Math.max(arena.width, arena.depth), Math.round(Math.max(arena.width, arena.depth) / 2),
     PALETTE.floorLine, PALETTE.floorLine);
-  grid.material.opacity = 0.22;
+  grid.material.opacity = 0.30;
   grid.material.transparent = true;
   grid.position.y = 0.012;
   group.add(grid);
@@ -153,6 +208,38 @@ export function createEnvironment(scene, arena) {
     m.castShadow = true;
     m.receiveShadow = true;
     group.add(m);
+  }
+
+  /* --- Braseros -----------------------------------------------------------
+   * Cuatro puntos de luz cálida en las esquinas del área jugable. No iluminan
+   * de verdad —serían cuatro pases de sombra— pero sí aportan lo único que le
+   * faltaba a la paleta: un color saturado contra el que todo lo demás se lee
+   * como piedra. Una escena entera en la misma familia de color se percibe como
+   * sin terminar por muy correcta que sea la iluminación. */
+  var brazierMat = mat(PALETTE.wall, { roughness: 0.9 });
+  var flameMat = new THREE.MeshBasicMaterial({ color: PALETTE.accent });
+  var bowlGeo = new THREE.CylinderGeometry(0.34, 0.20, 0.30, 8);
+  var stemGeo = new THREE.CylinderGeometry(0.10, 0.15, 1.10, 6);
+  var flameGeo = new THREE.IcosahedronGeometry(0.26, 0);
+  var braziers = [[-9, -6], [9, -6], [-9, 6], [9, 6]];
+  for (i = 0; i < braziers.length; i++) {
+    var bx = braziers[i][0], bz = braziers[i][1];
+    var stem = new THREE.Mesh(stemGeo, brazierMat);
+    stem.position.set(bx, 0.55, bz);
+    stem.castShadow = true; stem.receiveShadow = true;
+    group.add(stem);
+    var bowl = new THREE.Mesh(bowlGeo, brazierMat);
+    bowl.position.set(bx, 1.22, bz);
+    bowl.castShadow = true;
+    group.add(bowl);
+    var flame = new THREE.Mesh(flameGeo, flameMat);
+    flame.position.set(bx, 1.42, bz);
+    flame.scale.set(1, 1.5, 1);
+    group.add(flame);
+    // Luz sin sombras: aporta el tinte cálido alrededor sin coste de pase.
+    var glow = new THREE.PointLight(PALETTE.accent, 9.0, 9.0, 2.0);
+    glow.position.set(bx, 1.5, bz);
+    scene.add(glow);
   }
 
   scene.add(group);

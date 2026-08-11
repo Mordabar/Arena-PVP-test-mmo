@@ -146,8 +146,11 @@ Arena.define('render/anim/locomotion',
     var f = 0, r = 0;
     if (dist > 1e-5) {
       var sy = Math.sin(entity.yaw), cy = Math.cos(entity.yaw);
+      // Proyección sobre la base del personaje. `r` usa la MISMA derecha que el
+      // control (R = F × arriba); si no coincidieran, el personaje strafearía a
+      // un lado y reproduciría el ciclo del otro.
       f = (dx * sy + dz * cy) / dist;
-      r = (dx * cy - dz * sy) / dist;
+      r = (dz * sy - dx * cy) / dist;
     }
     st.moveForward = damp(st.moveForward, f * (norm > 0.02 ? 1 : 0), cfg.dirBlendRate, dt);
     st.moveRight = damp(st.moveRight, r * (norm > 0.02 ? 1 : 0), cfg.dirBlendRate, dt);

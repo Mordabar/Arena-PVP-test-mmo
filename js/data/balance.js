@@ -45,7 +45,19 @@ Arena.define('data/balance', [], function (Arena) {
   B.FACING_HALF_ANGLE = Math.PI / 3; // 60° a cada lado → cono de 120°
 
   /* --- Movimiento (documento §5) ----------------------------------------- */
-  B.MOVE_SPEED_BASE = 6.0;
+  /* MOVILIDAD REDUCIDA — decisión de diseño, no un ajuste fino.
+   *
+   * 6.0 sobre un cuerpo de 1.85 son 3.2 alturas por segundo: velocidad de juego
+   * de acción. Un MMO clásico táctico ronda 2.2, y esa diferencia es la que
+   * decide si reposicionarse es una decisión con coste o un gesto gratuito. Con
+   * el personaje corriendo, salir de un cono o rodear una columna no cuesta
+   * nada y el posicionamiento deja de significar algo.
+   *
+   * Esto cambia el ritmo de los duelos: acercarse lleva más tiempo, así que las
+   * clases a distancia ganan ventana y el cuerpo a cuerpo tiene que
+   * comprometerse. Es intencionado. Los objetivos de §19 se han revisado en
+   * consecuencia, no al revés. */
+  B.MOVE_SPEED_BASE = 4.15;
   /* Giro del personaje con Q/E y con el arrastre de cámara. Se aplica DENTRO
      del paso fijo, como el desplazamiento: si se aplicara por fotograma, un
      equipo a 144 fps giraría el doble de rápido que uno a 72 y el arco frontal

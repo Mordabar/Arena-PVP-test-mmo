@@ -433,7 +433,21 @@ Arena.define('sim/world',
      */
     for (i = 0; i < this.entities.length; i++) {
       e = this.entities[i];
-      if (e.alive && e._turnIntent) this.turnEntityBy(e, e._turnIntent, dt);
+      /* Orientación ABSOLUTA (arrastre de ratón). Es manipulación directa: el
+         jugador está agarrando el cuerpo y girándolo, como un volante. Pasarla
+         por el límite de TURN_SPEED es lo que hacía que arrastrar se sintiera
+         raro —el cuerpo llegaba medio segundo tarde y a veces parecía no girar
+         en absoluto—, porque el ratón se movía más rápido de lo que el límite
+         permitía y la intención se saturaba durante todo el gesto.
+         Sigue aplicándola la SIMULACIÓN, no el renderer, y sigue respetando el
+         control: un aturdido no gira ni con ratón ni sin él. */
+      if (e.alive && e._faceIntent !== null && e._faceIntent !== undefined) {
+        var mf = e.mods();
+        if (mf.canMove || mf.canUseAbility) e.yaw = V.wrapAngle(e._faceIntent);
+      } else if (e.alive && e._turnIntent) {
+        // Giro por tecla: sí limitado. Q/E son un acelerador, no un volante.
+        this.turnEntityBy(e, e._turnIntent, dt);
+      }
     }
     for (i = 0; i < this.entities.length; i++) {
       e = this.entities[i];

@@ -19,8 +19,8 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
   function Camera3D(opts) {
     opts = opts || {};
     this.yaw = opts.yaw === undefined ? Math.PI : opts.yaw;
-    this.pitch = opts.pitch === undefined ? 0.52 : opts.pitch;
-    this.distance = opts.distance === undefined ? 8.2 : opts.distance;
+    this.pitch = opts.pitch === undefined ? 0.66 : opts.pitch;
+    this.distance = opts.distance === undefined ? 10.0 : opts.distance;
     this.targetDistance = this.distance;
 
     this.minPitch = -0.30;
@@ -42,8 +42,12 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
     this.viewProj = M.create();
     this.invViewProj = M.create();
 
-    this.sensitivity = 0.0032;
-    this.followLerp = 14.0;
+    this.sensitivity = 0.0026;
+    /* Seguimiento CONTENIDO. Una cámara que persigue al milímetro convierte
+       cada paso en un empujón de encuadre y el conjunto se siente de juego de
+       acción. Un MMO táctico quiere una cámara casi estática: sigue, pero no
+       reacciona a cada acelerón. */
+    this.followLerp = 8.0;
     this._shake = 0;
     this._shakeSeed = 0;
     this._shakeFreq = 1.0;
@@ -55,8 +59,8 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
        desplazamiento del PUNTO DE MIRA, nunca de la posición simulada. */
     this.lookAhead = V.create(0, 0, 0);
     this.lookAheadTarget = V.create(0, 0, 0);
-    this.lookAheadAmount = 1.55;      // unidades a velocidad plena
-    this.lookAheadRate = 2.6;         // lento a propósito: rápido produce vaivén
+    this.lookAheadAmount = 0.42;      // unidades a velocidad plena
+    this.lookAheadRate = 1.5;         // lento a propósito: rápido produce vaivén
   }
 
   Camera3D.prototype.orbit = function (dx, dy) {
@@ -77,12 +81,16 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
   /* Niveles de sacudida. Si todo sacude igual, nada comunica nada: el ataque
      normal no debe mover la cámara, un golpe pesado sí y un crítico más, con
      una frecuencia más baja para que se lea como un golpe y no como ruido. */
+  /* Sacudida CONTENIDA. La escala anterior era de juego de acción: cada golpe
+     movía el encuadre y en un intercambio de tres segundos la pantalla no
+     paraba quieta. Aquí la sacudida es un acento, no un efecto: sólo el golpe
+     grande y el crítico llegan a notarse. */
   Camera3D.SHAKE = {
     none:     { amount: 0.00, freq: 1.0 },
-    light:    { amount: 0.05, freq: 1.5 },
-    moderate: { amount: 0.14, freq: 1.1 },
-    heavy:    { amount: 0.26, freq: 0.85 },
-    critical: { amount: 0.42, freq: 0.70 }
+    light:    { amount: 0.015, freq: 1.5 },
+    moderate: { amount: 0.050, freq: 1.1 },
+    heavy:    { amount: 0.105, freq: 0.85 },
+    critical: { amount: 0.180, freq: 0.70 }
   };
 
   /** Sacudida por impacto. `amount` en unidades de intensidad (0.2–1.0). */
@@ -177,7 +185,7 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
       desired.y += Math.cos(this._shakeSeed * 3.9) * s;
       desired.z += Math.sin(this._shakeSeed * 1.9) * s;
       // Caída rápida: una sacudida larga marea, una corta comunica impacto.
-      this._shake *= Math.exp(-9.0 * dt);
+      this._shake *= Math.exp(-11.0 * dt);
     }
 
     V.copy(this.position, desired);
