@@ -30,12 +30,15 @@
  *   caster  normal = estocada de báculo · casteo = báculo en alto y luz
  * ========================================================================== */
 Arena.define('render/characterVisual',
-  ['render/primitives', 'math/mat4', 'data/races'], function (Arena) {
+  ['render/primitives', 'math/mat4', 'data/races',
+   'render/anim/skeleton', 'render/anim/locomotion'], function (Arena) {
   'use strict';
 
   var P = Arena.Render.primitives;
   var M = Arena.Math.Mat4;
   var V = Arena.Math.Vec3;
+  var SK = Arena.Render.Skeleton;
+  var Loco = Arena.Render.Locomotion;
 
   var CV = {};
 
@@ -169,52 +172,39 @@ Arena.define('render/characterVisual',
    * ====================================================================== */
   CV.createState = function () {
     return {
-      phase: 0,
-      speed: 0,            // 0..1 respecto a la velocidad base
-      moveF: 0, moveR: 0,  // avance y costado en espacio local, suavizados
-      turn: 0,             // velocidad angular suavizada
+      // El controlador de locomoción se crea perezosamente en el primer update,
+      // cuando ya se conoce la clase y por tanto su configuración.
+      loco: null, cfg: null,
       attack: 0, attackPower: false, attackKind: 'melee',
       cast: 0, casting: false,
       hurt: 0, downed: 0, deadTime: 0,
-      breathe: Math.random() * 6.28,
-      idleShift: Math.random() * 6.28,
-      lastPos: null, lastYaw: 0
+      // Compatibilidad de lectura para VFX, HUD y depuración.
+      speed: 0, phase: 0
     };
   };
 
   var ATTACK_TIME = { melee: 0.42, archer: 0.55, caster: 0.34 };
 
   CV.update = function (st, entity, dt, world) {
-    if (!st.lastPos) { st.lastPos = V.clone(entity.pos); st.lastYaw = entity.yaw; }
-
-    /* --- Velocidad y DIRECCIÓN de movimiento en espacio local ------------ */
-    var dx = entity.pos.x - st.lastPos.x;
-    var dz = entity.pos.z - st.lastPos.z;
-    V.copy(st.lastPos, entity.pos);
-
-    var dist = Math.sqrt(dx * dx + dz * dz);
-    var rate = dist / Math.max(dt, 1e-4);
-    var targetSpeed = Math.min(1.15, rate / Math.max(entity.moveSpeedBase, 0.001));
-    st.speed += (targetSpeed - st.speed) * Math.min(1, dt * 11);
-
-    // Proyectar el desplazamiento sobre el frente y el costado del personaje.
-    var f = 0, r = 0;
-    if (dist > 1e-5) {
-      var sy = Math.sin(entity.yaw), cy = Math.cos(entity.yaw);
-      f = (dx * sy + dz * cy) / dist;     // +1 avanza, −1 retrocede
-      r = (dx * cy - dz * sy) / dist;     // +1 hacia su derecha
+    // El controlador de locomoción se crea al conocer la clase, no antes.
+    if (!st.loco) {
+      st.cfg = Arena.Data.animConfigFor(entity.classId, CV.archetypeOf(entity.classId));
+      st.loco = Loco.createState(st.cfg);
     }
-    st.moveF += (f * st.speed - st.moveF) * Math.min(1, dt * 9);
-    st.moveR += (r * st.speed - st.moveR) * Math.min(1, dt * 9);
 
-    var dyaw = V.angleDelta(st.lastYaw, entity.yaw) / Math.max(dt, 1e-4);
-    st.lastYaw = entity.yaw;
-    st.turn += (Math.max(-1, Math.min(1, dyaw / 4.0)) - st.turn) * Math.min(1, dt * 8);
+    // Toda la locomoción vive en render/anim/locomotion.js: estados, ciclo de
+    // paso por fases de contacto, foot locking y centro de masa.
+    Loco.update(st.loco, entity, dt);
 
-    // La cadencia del paso escala con la velocidad: correr no es caminar rápido.
-    st.phase += dt * (1.9 + st.speed * 8.2);
-    st.breathe += dt * 1.45;
-    st.idleShift += dt * 0.55;
+    // Seguimiento visual del objetivo. NO gira al personaje ni le pega al
+    // enemigo: sólo mueve cabeza y parte del pecho, que es lo que separa un
+    // MMO táctico de un lock-on de acción.
+    var tgt = entity.targetId && world.getEntity ? world.getEntity(entity.targetId) : null;
+    Loco.trackTarget(st.loco, entity, (tgt && tgt.alive) ? tgt.pos : null, dt);
+
+    // Espejos de lectura para VFX, HUD y depuración.
+    st.speed = st.loco.moveSpeed;
+    st.phase = st.loco.cycle * Math.PI * 2;
 
     if (st.attack > 0) st.attack = Math.max(0, st.attack - dt / (ATTACK_TIME[st.attackKind] || 0.42));
     if (st.hurt > 0) st.hurt = Math.max(0, st.hurt - dt * 3.5);
@@ -245,111 +235,6 @@ Arena.define('render/characterVisual',
   function strike(p, a, b) { return smooth((p - a) / (b - a)); }
 
   /* =========================================================================
-   * LOCOMOCIÓN
-   *
-   * Mezcla los ciclos según hacia dónde se mueve el personaje respecto a su
-   * propio frente. Los cuatro coexisten: correr en diagonal mezcla el ciclo
-   * de avance con el lateral en la proporción que toque.
-   * ====================================================================== */
-  CV._locomotion = function (st) {
-    var L = {
-      thighL: 0, thighR: 0, kneeL: 0.06, kneeR: 0.06,
-      hipYawL: 0, hipYawR: 0, hipSplay: 0,
-      footL: 0, footR: 0,
-      armSwing: 0, bob: 0, lean: 0, sideLean: 0, hipRoll: 0, torsoTwist: 0
-    };
-
-    var sp = Math.min(1, st.speed);
-    var ph = st.phase;
-    var sinA = Math.sin(ph), sinB = Math.sin(ph + Math.PI);
-
-    var fwd = Math.max(0, st.moveF);
-    var back = Math.max(0, -st.moveF);
-    var side = st.moveR;
-    var sideAbs = Math.abs(side);
-
-    if (sp <= 0.04) {
-      /* --- PARADO: respiración, peso que alterna, micro-balanceo --------- */
-      var idle = Math.sin(st.idleShift);
-      L.thighL = 0.03 + idle * 0.02;
-      L.thighR = 0.03 - idle * 0.02;
-      L.kneeL = 0.11 + Math.max(0, idle) * 0.07;
-      L.kneeR = 0.11 + Math.max(0, -idle) * 0.07;
-      L.hipRoll = idle * 0.035;
-      L.hipSplay = 0.05;
-      L.bob = Math.sin(st.breathe) * 0.008;
-      L.armSwing = idle * 0.05;
-
-      /* --- GIRO EN EL SITIO: los pies pivotan, el torso se adelanta ------ */
-      if (Math.abs(st.turn) > 0.05) {
-        var t = st.turn;
-        L.hipYawL = -t * 0.30;
-        L.hipYawR = t * 0.30;
-        L.thighL += Math.abs(t) * 0.14;
-        L.kneeL += Math.abs(t) * 0.20;
-        L.torsoTwist = t * 0.20;
-        L.sideLean = -t * 0.06;
-      }
-      return L;
-    }
-
-    /* --- AVANCE ---------------------------------------------------------- */
-    // La rodilla se flexiona en el recobro, no durante el apoyo: eso es lo que
-    // convierte el balanceo en zancada.
-    if (fwd > 0.02) {
-      var amp = 0.55 + sp * 0.42;
-      L.thighL += sinA * amp * fwd;
-      L.thighR += sinB * amp * fwd;
-      L.kneeL += (0.10 + Math.max(0, -sinA) * (0.85 + sp * 0.75)) * fwd;
-      L.kneeR += (0.10 + Math.max(0, -sinB) * (0.85 + sp * 0.75)) * fwd;
-      L.footL += (-sinA * 0.30 + 0.12) * fwd;
-      L.footR += (-sinB * 0.30 + 0.12) * fwd;
-      L.armSwing += -sinA * (0.55 + sp * 0.35) * fwd;
-      L.bob += Math.abs(Math.sin(ph * 2)) * 0.045 * sp * fwd;
-      L.lean += (0.13 + sp * 0.16) * fwd;
-      L.torsoTwist += sinA * 0.12 * fwd;
-    }
-
-    /* --- RETROCESO -------------------------------------------------------- */
-    // Pasos cortos y altos, torso echado atrás. Nadie retrocede con la misma
-    // zancada con la que avanza.
-    if (back > 0.02) {
-      L.thighL += -sinA * 0.34 * back;
-      L.thighR += -sinB * 0.34 * back;
-      L.kneeL += (0.28 + Math.max(0, sinA) * 0.85) * back;
-      L.kneeR += (0.28 + Math.max(0, sinB) * 0.85) * back;
-      L.footL += 0.30 * back;
-      L.footR += 0.30 * back;
-      L.armSwing += sinA * 0.28 * back;
-      L.bob += Math.abs(Math.sin(ph * 2)) * 0.030 * back;
-      L.lean += -0.16 * back;
-    }
-
-    /* --- DESPLAZAMIENTO LATERAL ------------------------------------------ */
-    // Piernas que cruzan y se abren, cadera girada y cuerpo inclinado contra
-    // la dirección: reposicionarse sin dejar de mirar al rival.
-    if (sideAbs > 0.02) {
-      var dir = side > 0 ? 1 : -1;
-      var cross = Math.sin(ph) * sideAbs;
-      L.hipSplay += 0.16 * sideAbs;
-      L.hipYawL += (dir > 0 ? -0.34 : 0.16) * sideAbs;
-      L.hipYawR += (dir > 0 ? 0.16 : -0.34) * sideAbs;
-      L.thighL += cross * 0.30 * dir;
-      L.thighR += -cross * 0.30 * dir;
-      L.kneeL += (0.20 + Math.abs(cross) * 0.45) * sideAbs;
-      L.kneeR += (0.20 + Math.abs(cross) * 0.45) * sideAbs;
-      L.sideLean += -dir * (0.10 + sp * 0.10) * sideAbs;
-      L.hipRoll += dir * 0.06 * sideAbs;
-      L.bob += Math.abs(Math.sin(ph * 2)) * 0.026 * sideAbs;
-      L.armSwing *= (1 - sideAbs * 0.45);
-    }
-
-    L.sideLean += -st.turn * 0.14 * sp;
-    L.torsoTwist += st.turn * 0.10;
-    return L;
-  };
-
-  /* =========================================================================
    * Pose
    * ====================================================================== */
   CV.buildPose = function (out, st, entity, pos, yaw, palette) {
@@ -360,8 +245,18 @@ Arena.define('render/characterVisual',
     var race = Arena.Data.getRace(entity.raceId);
     var build = race.build, feat = race.features;
 
-    var L = CV._locomotion(st);
-    var breath = Math.sin(st.breathe) * 0.012 * (1 - st.speed);
+    var lc = st.loco;
+    var cfg = st.cfg;
+    // Adaptador: el resto de buildPose sigue leyendo un objeto `L`, así que la
+    // salida del controlador se traduce una sola vez aquí.
+    var L = {
+      lean: lc.leanF, sideLean: lc.leanR,
+      torsoTwist: lc.torsoYaw, hipRoll: lc.hipRoll,
+      bob: lc.hipHeight,
+      armSwing: Math.sin(lc.cycle * Math.PI * 2) * (cfg.armSwing + cfg.armSwingRun * lc.moveSpeed)
+                * lc.moveSpeed * Math.max(0.25, lc.moveForward)
+    };
+    var breath = Math.sin(lc.breathe) * cfg.breathAmount * (1 - lc.moveSpeed);
 
     var root = M.create();
     M.composeFull(root,
@@ -385,16 +280,21 @@ Arena.define('render/characterVisual',
       out.push({ mesh: mesh, matrix: m, color: color || cloth, emissive: emissive || null });
     }
 
+    // Centro de masa: la pelvis se desplaza hacia la pierna que soporta el peso
+    // y cae en el apoyo. Sin esto el personaje flota sobre sus piernas.
     var hipY = 0.96 + L.bob + breath;
+    var hipX = lc.hipShiftX;
 
     /* --- Cadera y tronco articulado -------------------------------------- */
-    var hips = node(root, 0, hipY, 0, 0, L.torsoTwist * 0.4, L.hipRoll);
+    var hips = node(root, hipX, hipY, 0, 0, lc.hipYaw, L.hipRoll);
     draw(hips, 'pelvis', cloth);
 
-    var abdomen = node(hips, 0, 0.06, 0, -L.lean * 0.45, L.torsoTwist * 0.3, L.sideLean * 0.4);
+    var abdomen = node(hips, 0, 0.06, 0, -lc.torsoPitch * 0.45, lc.torsoYaw * 0.3, lc.torsoRoll * 0.4);
     draw(abdomen, 'abdomen', cloth);
 
-    var chest = node(abdomen, 0, 0.14, 0, -L.lean * 0.55, L.torsoTwist * 0.5, L.sideLean * 0.6);
+    // El pecho asume parte del seguimiento del objetivo; la cabeza completa el resto.
+    var chest = node(abdomen, 0, 0.14, 0, -lc.torsoPitch * 0.55,
+      lc.torsoYaw * 0.5 + lc.headYaw * cfg.chestTrackRatio, lc.torsoRoll * 0.6);
     draw(chest, 'ribcage', cloth);
     if (loadout.outfit !== 'robe') draw(chest, 'collar', metal);
     draw(chest, 'tabard', [team[0] * 0.70, team[1] * 0.70, team[2] * 0.70]);
@@ -404,8 +304,10 @@ Arena.define('render/characterVisual',
     draw(node(chest, 0, 0.30, 0, L.lean * 0.3, 0, 0, 1, build.neck, 1), 'neck', skin);
     // La cabeza contrarresta la inclinación del torso: la mirada se mantiene al
     // frente aunque el cuerpo se incline, como en cualquier ser vivo.
-    var head = node(chest, 0, 0.40, 0.005, L.lean * 0.75 - st.turn * 0.10,
-      -L.torsoTwist * 0.6 + st.turn * 0.22, -L.sideLean * 0.3, hs, hs, hs);
+    var head = node(chest, 0, 0.40, 0.005,
+      lc.torsoPitch * cfg.torsoCounterRate + lc.headPitch,
+      lc.headYaw * (1 - cfg.chestTrackRatio) - lc.torsoYaw * 0.4,
+      -lc.torsoRoll * 0.3, hs, hs, hs);
     draw(head, 'skull', skin);
     draw(head, 'jaw', skin);
     draw(head, 'brow', skin);
@@ -429,30 +331,53 @@ Arena.define('render/characterVisual',
 
     /* --- Piernas con rodilla y tobillo ------------------------------------ */
     if (loadout.outfit === 'robe') {
-      var swayR = L.lean * 0.3 + Math.sin(st.phase) * 0.09 * st.speed;
-      var robeM = node(hips, 0, 0.06, 0, swayR, 0, L.sideLean * 0.5);
+      var swayR = lc.leanF * 0.3 + Math.sin(lc.cycle * Math.PI * 2) * 0.09 * lc.moveSpeed;
+      var robeM = node(hips, 0, 0.06, 0, swayR, 0, lc.torsoRoll * 0.5);
       draw(robeM, 'robe', cloth);
       draw(robeM, 'robeTrim', trim);
     } else {
+      /* PIERNAS POR CINEMÁTICA INVERSA.
+       *
+       * El controlador ya decidió DÓNDE está cada pie en el mundo, y mientras
+       * está apoyado ese punto no se mueve (foot locking). Aquí sólo se resuelve
+       * qué ángulos de cadera y rodilla hacen falta para alcanzarlo. Es
+       * exactamente el orden inverso al de antes —donde se elegían ángulos y el
+       * pie caía donde cayera— y es la razón por la que ya no patina.
+       */
       var lb = build.limbs;
-      var legs = [
-        { x: -0.112, thigh: L.thighL, knee: L.kneeL, yawH: L.hipYawL, foot: L.footL, roll: -L.hipSplay },
-        { x: 0.112, thigh: L.thighR, knee: L.kneeR, yawH: L.hipYawR, foot: L.footR, roll: L.hipSplay }
-      ];
+      var thighLen = THIGH * lb, shinLen = SHIN * lb;
+      var cosY = Math.cos(-yaw), sinY = Math.sin(-yaw);
+
       for (var i = 0; i < 2; i++) {
-        var g = legs[i];
-        var thighM = node(hips, g.x, -0.04, 0, g.thigh, g.yawH, g.roll, 1, lb, 1);
+        var leg = lc.legs[i];
+        var side = (i === 0) ? -1 : 1;
+        var hipLocalX = side * cfg.stanceWidth + hipX * 0.5;
+
+        // Pie de espacio mundo a espacio local del personaje.
+        var wx = leg.footPos.x - pos.x;
+        var wz = leg.footPos.z - pos.z;
+        var lx = wx * cosY + wz * sinY;
+        var lz = -wx * sinY + wz * cosY;
+
+        var hipOrigin = { x: hipLocalX, y: hipY - 0.04, z: 0 };
+        var footTarget = { x: lx, y: leg.footPos.y + 0.10, z: lz };
+
+        var ik = SK.solveTwoBoneIK(hipOrigin, footTarget, thighLen, shinLen, st._ik);
+
+        var thighM = node(hips, hipLocalX - hipX, -0.04, 0, ik.pitch, 0, ik.roll, 1, lb, 1);
         draw(thighM, 'thigh', cloth);
-        var kneeM = node(thighM, 0, -THIGH, 0, g.knee, 0, 0);
+        var kneeM = node(thighM, 0, -THIGH, 0, ik.bend, 0, 0);
         draw(kneeM, 'knee', cloth);
         draw(kneeM, 'shin', cloth);
-        // El tobillo cancela muslo y rodilla para que el pie quede plano.
-        var ankleM = node(kneeM, 0, -SHIN, 0, -g.thigh - g.knee + g.foot, 0, 0);
+        // El tobillo cancela cadera y rodilla: el pie queda plano en el suelo
+        // durante el apoyo y sólo se inclina en el vuelo.
+        var toe = (1 - leg.plantWeight) * 0.35;
+        var ankleM = node(kneeM, 0, -SHIN, 0, -ik.pitch - ik.bend + toe, 0, -ik.roll);
         draw(ankleM, 'foot', steel);
       }
     }
 
-    if (loadout.cape) draw(node(chest, 0, 0.22, -0.13, 0.14 + st.speed * 0.40, 0, 0), 'cape', trim);
+    if (loadout.cape) draw(node(chest, 0, 0.22, -0.13, 0.14 + lc.moveSpeed * 0.40, 0, 0), 'cape', trim);
 
     /* --- Brazos con codo -------------------------------------------------- */
     var A = CV._armPose(st, arche, loadout, L);
