@@ -64,8 +64,11 @@ Arena.define('render/anim/locomotion',
       turnRate: 0, acceleration: 0, deceleration: 0,
       isMoving: false, isStarting: false, isStopping: false, isTurning: false,
 
-      /* Ciclo de paso: un reloj normalizado 0..1, cada pierna desfasada 0.5 */
-      cycle: 0,
+      /* Ciclo de paso: un reloj normalizado 0..1, cada pierna desfasada 0.5.
+         `duty`, `stride` y `stepFreq` se DERIVAN de la velocidad real en cada
+         actualización; los valores iniciales sólo cubren el primer fotograma. */
+      cycle: 0, duty: cfg.dutyFactor, stride: cfg.strideLength,
+      stepFreq: cfg.stepFrequency, gait: 0,
       legs: [makeLeg(0.0), makeLeg(0.5)],
 
       /* Centro de masa */
@@ -157,14 +160,54 @@ Arena.define('render/anim/locomotion',
     /* --- 2. Máquina de estados -------------------------------------------- */
     Loco._updateState(st, entity, dt);
 
-    /* --- 3. Reloj del ciclo de paso --------------------------------------- */
-    // La frecuencia sigue a la velocidad REAL, no a un valor fijo: si la
-    // zancada no casa con el desplazamiento, el pie patina por definición.
-    var dirScale = 1;
-    if (st.moveForward < -0.2) dirScale = 1 / Math.max(0.3, cfg.backwardRatio);
-    else if (Math.abs(st.moveRight) > 0.5) dirScale = 1 / Math.max(0.3, cfg.strafeRatio);
+    /* --- 3. Reloj del ciclo de paso ---------------------------------------
+     *
+     * AQUÍ ESTÁ LA RELACIÓN QUE IMPIDE EL PATINAJE, y conviene entenderla antes
+     * de tocar un número.
+     *
+     * En un ciclo de duración T el cuerpo avanza D = v·T. Cada pie planta una
+     * vez por ciclo, así que mientras está apoyado —una fracción `duty` del
+     * ciclo— retrocede respecto al cuerpo exactamente `duty·D`. Ese recorrido es
+     * lo único que la pierna tiene que ser capaz de cubrir, y es lo que
+     * configuramos como `strideLength`.
+     *
+     * De ahí sale la cadencia, no al revés:
+     *
+     *     zancada útil  s = strideLength ajustada por velocidad y dirección
+     *     cadencia      f = v · duty / s
+     *
+     * Si la cadencia se fijara a mano, cualquier cambio de velocidad rompería la
+     * correspondencia y el pie resbalaría, por muy bien anclado que estuviera.
+     *
+     * Y por eso el `duty` BAJA con la velocidad: corriendo aparece fase de vuelo
+     * y el cuerpo cubre más terreno del que da la longitud de la pierna. Sin esa
+     * fase, correr rápido obliga a estirar la zancada más allá de lo que la
+     * cadera alcanza, y la pierna se queda clavada apuntando al horizonte.
+     */
+    var gait = smooth((st.moveSpeed - 0.25) / 0.55);      // 0 = andar · 1 = correr
+    var dutyRun = cfg.dutyFactorRun === undefined ? cfg.dutyFactor : cfg.dutyFactorRun;
+    st.duty = cfg.dutyFactor + (dutyRun - cfg.dutyFactor) * gait;
+    st.gait = gait;
 
-    var freq = cfg.stepFrequency * (0.55 + st.moveSpeed * 0.85) * dirScale;
+    // Retroceder y desplazarse de lado acortan el paso: eso es lo que los hace
+    // verse distintos, no reproducir el mismo ciclo a otra velocidad.
+    var dirRatio = 1;
+    if (st.moveForward < -0.2) dirRatio = cfg.backwardRatio;
+    else if (Math.abs(st.moveRight) > 0.5) dirRatio = cfg.strafeRatio;
+
+    var gain = cfg.strideSpeedGain === undefined ? 0.45 : cfg.strideSpeedGain;
+    st.stride = cfg.strideLength * ((1 - gain) + gain * clamp(st.moveSpeed, 0, 1.2)) * dirRatio;
+
+    var speedU = st.moveSpeed * Math.max(0.001, entity.moveSpeedBase);
+    var freq = speedU * st.duty / Math.max(0.05, st.stride);
+    // Topes de cadencia: ni una máquina de coser ni un paso de procesión. Si la
+    // velocidad los desborda, se alarga la zancada, que es lo que hace un
+    // corredor de verdad.
+    var maxFreq = cfg.stepFrequency * 2.1, minFreq = cfg.stepFrequency * 0.45;
+    if (freq > maxFreq) { freq = maxFreq; st.stride = speedU * st.duty / freq; }
+    else if (freq < minFreq && speedU > 0.05) { freq = minFreq; st.stride = speedU * st.duty / freq; }
+    st.stepFreq = freq;
+
     if (st.isMoving) st.cycle = (st.cycle + dt * freq) % 1;
 
     /* --- 4. Pies: fases, plantado y foot locking -------------------------- */
@@ -248,14 +291,17 @@ Arena.define('render/anim/locomotion',
 
   Loco._updateLegs = function (st, entity, dt) {
     var cfg = st.cfg;
-    var duty = cfg.dutyFactor;
+    var duty = st.duty;
     var yaw = entity.yaw;
     var sy = Math.sin(yaw), cy = Math.cos(yaw);
 
     // Dirección de avance en espacio mundo, para colocar el pie por delante.
     var fwdX = st.moveForward * sy + st.moveRight * cy;
     var fwdZ = st.moveForward * cy - st.moveRight * sy;
-    var stride = cfg.strideLength * clamp(st.moveSpeed, 0, 1.1);
+    // `stride` es el recorrido del pie RESPECTO AL CUERPO, ya derivado en
+    // Loco.update junto con la cadencia. Aquí sólo se reparte: medio por delante
+    // al plantar, medio por detrás al despegar.
+    var stride = st.stride * clamp(st.moveSpeed / 0.25, 0, 1);
 
     for (var i = 0; i < 2; i++) {
       var leg = st.legs[i];

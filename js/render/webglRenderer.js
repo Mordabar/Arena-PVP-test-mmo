@@ -11,7 +11,8 @@
  *   4. presente  → tonemap ACES, viñeta y pulso de daño hacia el canvas
  * ========================================================================== */
 Arena.define('render/webglRenderer',
-  ['render/shaders', 'render/primitives', 'render/camera3d', 'render/characterVisual'],
+  ['render/shaders', 'render/primitives', 'render/camera3d', 'render/characterBackend',
+   'render/animDebug'],
   function (Arena) {
   'use strict';
 
@@ -19,9 +20,13 @@ Arena.define('render/webglRenderer',
   var P = Arena.Render.primitives;
   var M = Arena.Math.Mat4;
   var V = Arena.Math.Vec3;
-  var CV = Arena.Render.CharacterVisual;
+  // El renderer no conoce el humanoide procedural: conoce un BACKEND. El día que
+  // entre una malla con skinning se sustituye el backend y este fichero no cambia.
+  var Backend = Arena.Render.CharacterBackend;
+  function CB() { return Backend.current; }
 
   var SHADOW_SIZE = 2048;
+  var DEFAULT_MATERIAL = { roughness: 0.55, metallic: 0.25, rimPower: 2.6 };
 
   /* --- Paleta de escena --------------------------------------------------- */
   var THEME = {
@@ -163,7 +168,7 @@ Arena.define('render/webglRenderer',
   };
 
   Renderer.prototype._buildMeshes = function () {
-    var chars = CV.buildMeshes();
+    var chars = CB().buildMeshes();
     for (var k in chars) {
       if (Object.prototype.hasOwnProperty.call(chars, k)) this._uploadMesh(k, chars[k]);
     }
@@ -403,9 +408,9 @@ Arena.define('render/webglRenderer',
 
       var pos = V.lerp(V.create(), e.prevPos, e.pos, alpha);
       var yaw = e.prevYaw + V.angleDelta(e.prevYaw, e.yaw) * alpha;
-      var palette = CV.paletteFor(e, friendly);
+      var palette = CB().paletteFor(e, friendly);
 
-      CV.buildPose(this._pose, st, e, pos, yaw, palette);
+      CB().buildPose(this._pose, st, e, pos, yaw, palette);
       var fade = stealthed ? 0.35 : 1.0;
       var deadFade = e.alive ? 1.0 : Math.max(0.15, 1 - st.deadTime * 0.35);
       var hurtTint = st.hurt;
@@ -416,18 +421,32 @@ Arena.define('render/webglRenderer',
         if (hurtTint > 0.01) {
           col = [col[0] + hurtTint * 0.55, col[1] * (1 - hurtTint * 0.35), col[2] * (1 - hurtTint * 0.35)];
         }
+        // Cada pieza trae su material: piel, tela, cuero, metal, madera o magia.
+        // Con una rugosidad única para todo el cuerpo, el personaje se lee como
+        // una figura de plástico por bien animado que esté.
+        var pm = part.material || DEFAULT_MATERIAL;
+        // El contorno de bando identifica al equipo, no repinta al personaje:
+        // se mantiene bajo y estrecho para que un peto de acero siga siendo de
+        // acero y una túnica roja siga siendo roja.
+        var rk = 0.16 * (pm.rim === undefined ? 1 : pm.rim);
         solids.push({
           mesh: part.mesh, matrix: part.matrix, castShadow: !stealthed && e.alive,
           mat: {
             color: col,
             emissive: part.emissive,
-            roughness: 0.55, metallic: 0.25,
+            roughness: pm.roughness, metallic: pm.metallic,
             alpha: fade * deadFade,
-            rimPower: 2.6,
-            rimColor: [palette.team[0] * 0.30, palette.team[1] * 0.30, palette.team[2] * 0.30]
+            rimPower: pm.rimPower,
+            rimColor: [palette.team[0] * rk, palette.team[1] * rk, palette.team[2] * rk]
           },
           transparent: (fade * deadFade) < 0.999
         });
+      }
+
+      // Overlay de depuración de animación (F3). Sólo LEE el estado; apagarlo
+      // deja el juego exactamente igual.
+      if (Arena.Render.AnimDebug.enabled) {
+        Arena.Render.AnimDebug.build(solids, st, e, pos, yaw);
       }
     }
 
@@ -703,11 +722,13 @@ Arena.define('render/webglRenderer',
     for (var i = 0; i < world.entities.length; i++) {
       var e = world.entities[i];
       seen[e.id] = true;
-      if (!this.visuals[e.id]) this.visuals[e.id] = CV.createState();
-      CV.update(this.visuals[e.id], e, dt, world);
+      if (!this.visuals[e.id]) this.visuals[e.id] = CB().createCharacter(e);
+      CB().updateCharacter(this.visuals[e.id], e, dt, world);
     }
     for (var id in this.visuals) {
-      if (!seen[id]) delete this.visuals[id];
+      if (seen[id]) continue;
+      CB().destroyCharacter(this.visuals[id]);
+      delete this.visuals[id];
     }
   };
 

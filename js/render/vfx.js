@@ -102,14 +102,31 @@ Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
           r: 1.0, g: p.school === 'magical' ? 0.45 : 0.72, b: p.school === 'magical' ? 0.95 : 0.28,
           speed: big ? 5.5 : 3.4, life: 0.42, size: big ? 0.14 : 0.10
         });
+        /* SACUDIDA POR NIVELES. Que todo tiemble igual es lo mismo que nada
+           tiemble: el ataque normal no mueve la cámara, un poder la mueve un
+           poco, un golpe grande más, y un crítico es el único que se nota de
+           verdad. Un tic periódico nunca sacude: sería un temblor constante. */
         if (renderer && p.targetId === renderer.playerId) {
           renderer.hurtFlash = Math.min(1, renderer.hurtFlash + p.applied / 260);
-          renderer.camera.shake(Math.min(0.5, p.applied / 320));
-        } else if (renderer && p.sourceId === renderer.playerId && big) {
-          renderer.camera.shake(0.12);
+          if (!p.periodic) {
+            renderer.camera.shakeTier(
+              p.crit ? 'critical' : (big ? 'heavy' : (p.abilityId ? 'moderate' : 'light')));
+          }
+        } else if (renderer && p.sourceId === renderer.playerId && !p.periodic) {
+          // Golpear se siente menos que recibir: sólo el impacto propio grande
+          // o crítico llega a la cámara.
+          renderer.camera.shakeTier(p.crit ? 'moderate' : (big ? 'light' : 'none'));
         }
+        // La reacción es DIRECCIONAL: se pasa la posición del atacante para
+        // que el torso se sacuda hacia donde toca. Un impacto que siempre
+        // empuja igual delata que nadie mira de dónde vino el golpe.
         var vis = renderer && renderer.visuals[p.targetId];
-        if (vis) Arena.Render.CharacterVisual.triggerHurt(vis);
+        var victim = world.getEntity(p.targetId);
+        var attacker = p.sourceId ? world.getEntity(p.sourceId) : null;
+        if (vis && victim) {
+          Arena.Render.CharacterBackend.current.triggerHurt(
+            vis, victim, attacker ? attacker.pos : null);
+        }
       }
     });
 
@@ -144,8 +161,8 @@ Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
       var vis = renderer && renderer.visuals[p.casterId];
       if (vis && caster) {
         // Poder, no ataque normal: la animación es la variación amplia.
-        Arena.Render.CharacterVisual.triggerAttack(
-          vis, Arena.Render.CharacterVisual.archetypeOf(caster.classId), true);
+        var CB = Arena.Render.CharacterBackend.current;
+        CB.triggerAttack(vis, CB.archetypeOf(caster.classId), true);
       }
     });
 
@@ -153,8 +170,8 @@ Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
       var caster = world.getEntity(p.casterId);
       var vis = renderer && renderer.visuals[p.casterId];
       if (vis && caster) {
-        Arena.Render.CharacterVisual.triggerAttack(
-          vis, Arena.Render.CharacterVisual.archetypeOf(caster.classId), false);
+        var CBa = Arena.Render.CharacterBackend.current;
+        CBa.triggerAttack(vis, CBa.archetypeOf(caster.classId), false);
       }
     });
 
@@ -162,14 +179,14 @@ Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
       var pos = posOf(p.targetId, 1.0);
       if (!pos) return;
       VFX.burst(pos, 14, { r: 1.0, g: 0.85, b: 0.4, speed: 4.5, life: 0.45, size: 0.11 });
-      if (renderer) renderer.camera.shake(0.16);
+      if (renderer) renderer.camera.shakeTier('moderate');
     });
 
     bus.on('AbilityReflected', function (p) {
       var pos = posOf(p.targetId, 1.0);
       if (!pos) return;
       VFX.burst(pos, 20, { r: 0.78, g: 0.60, b: 1.0, speed: 5.5, life: 0.55, size: 0.12, gravity: -2 });
-      if (renderer) renderer.camera.shake(0.2);
+      if (renderer) renderer.camera.shakeTier('heavy');
     });
 
     bus.on('AbilityNullified', function (p) {
@@ -198,7 +215,7 @@ Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
       var pos = posOf(p.entityId, 0.9);
       if (!pos) return;
       VFX.burst(pos, 34, { r: 0.9, g: 0.35, b: 0.25, speed: 6.5, life: 1.0, size: 0.15 });
-      if (renderer) renderer.camera.shake(0.35);
+      if (renderer) renderer.camera.shakeTier('critical');
     });
 
     bus.on('ProjectileHit', function (p) {

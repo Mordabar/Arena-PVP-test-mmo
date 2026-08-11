@@ -293,7 +293,31 @@ Arena.define('main',
       case ' ':
         e.preventDefault();
         break;
+      case 'f3':
+        // Depuración de animación: esqueleto, pies anclados, centro de masa y
+        // vectores. Sólo lee estado, así que apagarlo no cambia nada.
+        Arena.Render.AnimDebug.enabled = !Arena.Render.AnimDebug.enabled;
+        e.preventDefault();
+        break;
     }
+  };
+
+  /** Vuelca el estado de animación del personaje observado al panel de F3. */
+  Game._updateAnimDebug = function (player) {
+    var D = Arena.Render.AnimDebug;
+    var panel = document.getElementById('animDebug');
+    if (!panel) return;
+    if (!D.enabled) { panel.hidden = true; return; }
+    panel.hidden = false;
+
+    // Se depura el objetivo si lo hay: es más útil ver el bicho que se mueve
+    // delante que el propio personaje, que casi siempre está de espaldas.
+    var subject = (player && player.targetId && player.targetId !== player.id)
+      ? this.world.getEntity(player.targetId) : player;
+    if (!subject) { panel.querySelector('pre').textContent = 'sin entidad'; return; }
+    var handle = this.renderer.visuals[subject.id];
+    if (!handle) { panel.querySelector('pre').textContent = 'sin estado visual'; return; }
+    panel.querySelector('pre').textContent = D.lines(handle, subject).join('\n');
   };
 
   Game._onKeyUp = function (e) {
@@ -413,6 +437,12 @@ Arena.define('main',
     if (player) {
       var ipos = V.lerp(V.create(), player.prevPos, player.pos, alpha);
       this.renderer.camera.setFocus(ipos.x, ipos.y, ipos.z);
+      // Look-ahead: la velocidad se deduce del paso fijo ya simulado, no del
+      // input. Así el encuadre se adelanta a lo que el personaje ESTÁ haciendo
+      // y no a lo que se le acaba de pedir.
+      var vx = (player.pos.x - player.prevPos.x) * world.clock.rate;
+      var vz = (player.pos.z - player.prevPos.z) * world.clock.rate;
+      this.renderer.camera.setLookAhead(vx, vz, player.moveSpeedBase);
       this.renderer.selectedId = player.targetId;
 
       // Anillo de rango de la habilidad bajo el cursor del ratón.
@@ -424,6 +454,7 @@ Arena.define('main',
     this.renderer.render(alpha, realDt);
     this.hud.update(realDt, alpha);
     this.lab.update(realDt, realDt);
+    this._updateAnimDebug(player);
 
     requestAnimationFrame(function (t) { self._frame(t); });
   };

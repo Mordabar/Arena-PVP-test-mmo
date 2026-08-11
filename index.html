@@ -27,10 +27,13 @@
       <b>Objetivo</b> clic · <kbd>Tab</kbd> enemigos · <kbd>⇧Tab</kbd> aliados<br>
       <b>Uno mismo</b> <kbd>F</kbd><br>
       <b>Habilidades</b> <kbd>1</kbd>…<kbd>6</kbd> · <b>Ataque normal</b> <kbd>T</kbd><br>
-      <b>Cancelar casteo</b> <kbd>Esc</kbd> · <b>Reiniciar</b> <kbd>R</kbd>
+      <b>Cancelar casteo</b> <kbd>Esc</kbd> · <b>Reiniciar</b> <kbd>R</kbd><br>
+      <b>Depurar animación</b> <kbd>F3</kbd>
     </div>
   </div>
 </div>
+
+<div id="animDebug" hidden><pre></pre></div>
 
 <div id="fatal">
   <div class="box">
@@ -84,7 +87,10 @@
 <script src="js/render/camera3d.js"></script>
 <script src="js/render/anim/skeleton.js"></script>
 <script src="js/render/anim/locomotion.js"></script>
+<script src="js/render/anim/actions.js"></script>
 <script src="js/render/characterVisual.js"></script>
+<script src="js/render/characterBackend.js"></script>
+<script src="js/render/animDebug.js"></script>
 <script src="js/render/webglRenderer.js"></script>
 <script src="js/render/vfx.js"></script>
 <script src="js/render/picking.js"></script>

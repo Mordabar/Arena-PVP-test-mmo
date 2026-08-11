@@ -26,11 +26,30 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     backwardRatio: 0.72,
     strafeRatio: 0.90,
 
-    /* Ciclo de paso ------------------------------------------------------- */
-    strideLength: 0.62,      // avance del pie por zancada, en unidades
+    /* Ciclo de paso -------------------------------------------------------
+     *
+     * `strideLength` es el RECORRIDO DEL PIE DURANTE EL APOYO: cuánto retrocede
+     * el pie respecto al cuerpo desde que planta hasta que despega. NO es el
+     * avance por ciclo, que se deduce de él y del duty factor.
+     *
+     * Esa distinción es la que impide el patinaje. El pie apoyado está clavado
+     * en el mundo, así que este número es exactamente cuánto tiene que estirarse
+     * la pierna, y por tanto está acotado por la anatomía: con una pierna de
+     * ~0.93 y la cadera a ~0.92 del suelo, el pie no puede separarse más de
+     * ~0.44 de la vertical de la cadera. De ahí que el máximo razonable ronde
+     * 0.88 y no se toque sin mirar antes solveTwoBoneIK.
+     *
+     * La CADENCIA no se configura: se deriva de la velocidad real. Si se fijara
+     * a mano, cualquier cambio de velocidad rompería la correspondencia entre
+     * zancada y desplazamiento, y el pie resbalaría por definición.
+     */
+    strideLength: 0.80,      // recorrido del pie durante el apoyo, en unidades
+    strideSpeedGain: 0.45,   // cuánto crece la zancada con la velocidad
     stepHeight: 0.16,        // altura del pie en vuelo
-    stepFrequency: 1.55,     // pasos por segundo a velocidad 1
-    dutyFactor: 0.58,        // fracción del ciclo con el pie apoyado
+    stepFrequency: 1.55,     // cadencia de referencia (sólo para los topes)
+    dutyFactor: 0.60,        // fracción del ciclo con el pie apoyado, andando
+    dutyFactorRun: 0.36,     // corriendo aparece fase de vuelo: así se cubre
+                             // más terreno del que da la longitud de la pierna
     stanceWidth: 0.115,      // separación lateral de los pies
     footPlantBlend: 0.10,    // suavizado al enganchar y soltar el pie
 
@@ -90,8 +109,8 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
   var ARCHETYPES = {
     melee: {
       // Pesado y plantado: pasos cortos, base ancha, centro de masa bajo.
-      strideLength: 0.58, stepHeight: 0.15, stepFrequency: 1.50,
-      dutyFactor: 0.60, stanceWidth: 0.135,
+      strideLength: 0.76, strideSpeedGain: 0.42, stepHeight: 0.15, stepFrequency: 1.50,
+      dutyFactor: 0.62, dutyFactorRun: 0.40, stanceWidth: 0.135,
       hipShiftAmount: 0.042, accelLean: 0.18,
       armSwing: 0.48, elbowBaseBend: 0.38,
       idle: {
@@ -101,8 +120,8 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     },
     archer: {
       // Ligero y ágil: zancada larga, pies más altos, base estrecha.
-      strideLength: 0.68, stepHeight: 0.19, stepFrequency: 1.68,
-      dutyFactor: 0.54, stanceWidth: 0.100,
+      strideLength: 0.86, strideSpeedGain: 0.50, stepHeight: 0.19, stepFrequency: 1.68,
+      dutyFactor: 0.56, dutyFactorRun: 0.32, stanceWidth: 0.100,
       hipShiftAmount: 0.032, accelLean: 0.15,
       armSwing: 0.42, elbowBaseBend: 0.32,
       idle: {
@@ -112,8 +131,8 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     },
     caster: {
       // Erguido y contenido: pasos cortos, poco balanceo, torso vertical.
-      strideLength: 0.52, stepHeight: 0.13, stepFrequency: 1.45,
-      dutyFactor: 0.62, stanceWidth: 0.095,
+      strideLength: 0.70, strideSpeedGain: 0.38, stepHeight: 0.13, stepFrequency: 1.45,
+      dutyFactor: 0.64, dutyFactorRun: 0.42, stanceWidth: 0.095,
       hipShiftAmount: 0.026, accelLean: 0.11,
       armSwing: 0.30, elbowBaseBend: 0.30,
       torsoTwist: 0.09,
@@ -126,9 +145,9 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
 
   /* --- Overrides por clase ------------------------------------------------- */
   var CLASSES = {
-    guardian: { strideLength: 0.54, stepFrequency: 1.42, stanceWidth: 0.145 },
+    guardian: { strideLength: 0.72, stepFrequency: 1.42, stanceWidth: 0.145 },
     devastador: { accelLean: 0.20, armSwing: 0.54 },
-    centinela: { strideLength: 0.70 },
+    centinela: { strideLength: 0.90 },
     vinculador: { stepFrequency: 1.40 }
   };
 

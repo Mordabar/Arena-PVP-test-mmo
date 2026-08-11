@@ -554,6 +554,31 @@ select.lab-select {
 #help .head { cursor: pointer; color: var(--text); font-weight: 600; }
 
 /* =============================================================================
+ * Depuración de animación (F3)
+ *
+ * Monoespaciado y alineado a la izquierda a propósito: se lee columna a columna
+ * mientras el personaje se mueve, y cualquier salto de anchura haría imposible
+ * seguir un número que cambia sesenta veces por segundo.
+ * ========================================================================== */
+#animDebug {
+  position: absolute; left: 16px; bottom: 16px; z-index: 20;
+  padding: 10px 13px;
+  background: rgba(6, 9, 16, .82);
+  border: 1px solid rgba(90, 200, 255, .28);
+  border-left: 2px solid rgba(90, 200, 255, .70);
+  border-radius: var(--radius);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+#animDebug[hidden] { display: none; }
+#animDebug pre {
+  margin: 0;
+  font: 11px/1.55 var(--num-font);
+  color: rgba(196, 226, 255, .92);
+  white-space: pre;
+}
+
+/* =============================================================================
  * Pantalla de error
  * ========================================================================== */
 #fatal {

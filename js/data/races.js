@@ -57,7 +57,7 @@ Arena.define('data/races', ['data/balance'], function (Arena) {
 
       /* --- Paleta ---------------------------------------------------------- */
       palette: {
-        skin: [0.38, 0.36, 0.56],       // azul-lila frío, saturado
+        skin: [0.295, 0.270, 0.415],       // azul-lila frío, saturado
         skinShadow: [0.30, 0.31, 0.48],
         hair: [0.93, 0.94, 0.97],       // blanco
         eye: [1.00, 0.26, 0.22],        // rojo luminoso
@@ -66,10 +66,10 @@ Arena.define('data/races', ['data/balance'], function (Arena) {
 
       /* --- Variantes de aspecto para el creador de personaje --------------- */
       skinTones: [
-        { name: 'Ceniza', color: [0.38, 0.36, 0.56] },
-        { name: 'Índigo', color: [0.36, 0.37, 0.60] },
-        { name: 'Lila pálido', color: [0.58, 0.55, 0.72] },
-        { name: 'Basalto', color: [0.29, 0.30, 0.42] }
+        { name: 'Ceniza', color: [0.295, 0.270, 0.415] },
+        { name: 'Índigo', color: [0.265, 0.275, 0.455] },
+        { name: 'Lila pálido', color: [0.420, 0.395, 0.545] },
+        { name: 'Basalto', color: [0.215, 0.225, 0.310] }
       ],
       hairColors: [
         { name: 'Blanco', color: [0.93, 0.94, 0.97] },

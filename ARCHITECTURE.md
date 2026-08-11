@@ -55,6 +55,9 @@ js/data/                   TODO lo ajustable por un diseñador.
   classes.js               Las seis subclases.
   abilities.js             Los 36 poderes activos, como datos puros.
   passives.js              Las seis pasivas, con ganchos explícitos.
+  races.js                 Razas jugables: proporciones, rasgos y paleta.
+  animConfig.js            Peso, zancada, timings. Ni un número de animación
+                           vive dentro de render/**.
 
 js/combat/                 Las reglas. Aquí vive el documento hecho código.
   statusSystem.js          Aplicación, apilado, DR, cleanse, purga, periódicos.
@@ -72,8 +75,15 @@ js/ai/dummyAI.js           Perfiles de dummy y bots de clase.
 js/render/                 WebGL2 nativo. Sólo lectura.
   shaders.js               GLSL embebido como cadenas (no hay fetch en file://).
   primitives.js            Geometría procedural.
-  camera3d.js              Tercera persona orbital con colisión.
-  characterVisual.js       Humanoide procedural y animación.
+  camera3d.js              Tercera persona orbital, look-ahead y sacudida por
+                           niveles.
+  anim/skeleton.js         Contrato de huesos y sockets + IK de dos huesos.
+  anim/locomotion.js       Máquina de estados, ciclo de contacto, foot locking.
+  anim/actions.js          Acciones de combate, reacción aditiva y control.
+  characterVisual.js       Humanoide procedural: mallas, atuendo y pose.
+  characterBackend.js      Frontera renderer ↔ animación. Hoy procedural,
+                           mañana malla con skinning, sin tocar el renderer.
+  animDebug.js             Overlay de depuración de animación (F3).
   webglRenderer.js         Pipeline de cuatro pases.
   vfx.js                   Partículas dirigidas por eventos.
   picking.js               Selección, ciclo de objetivos y proyección a pantalla.
@@ -81,7 +91,7 @@ js/render/                 WebGL2 nativo. Sólo lectura.
 js/ui/                     DOM sobre el canvas.
   hud.js, combatLog.js, labPanel.js, tooltips.js
 
-js/tests/                  Runner propio + batería obligatoria + balance.
+js/tests/                  Runner propio + batería obligatoria + balance + animación.
 js/main.js                 Arranque, entrada, escenarios, bucle.
 tools/run-tests.js         Runner headless (Node) sobre los mismos ficheros.
 tools/browser.js           Driver CDP para ejecutar el juego de verdad.
@@ -94,6 +104,50 @@ falta una dependencia, en vez de romperse a mitad de partida.
 `tests.html` declara el mismo bloque de simulación que `index.html`, y
 `tools/run-tests.js` lee ese orden del propio HTML: el runner headless no puede
 divergir de lo que se ejecuta en el navegador.
+
+---
+
+## 2.b La capa de animación
+
+Tres capas que se **componen**, no se pisan:
+
+| Capa | Quién la calcula | Qué controla |
+|---|---|---|
+| LOWER BODY | `anim/locomotion.js` | piernas, cadera, centro de masa |
+| UPPER BODY | `anim/actions.js` | brazos, arma, rotación de pecho |
+| ADITIVA | `anim/actions.js` | reacción al daño, micro-ruido |
+
+Por eso un arquero dispara mientras se desplaza de lado, y un golpe recibido sin
+control sacude el torso sin congelar las piernas. El control duro es lo único
+que sustituye la pose entera, y lo hace porque **las reglas de combate lo dicen**
+—`entity.hasStatus(...)`—, nunca porque el renderer lo decida.
+
+### La relación que impide el patinaje
+
+El pie apoyado está **clavado en el mundo** (foot locking) y la pierna se
+resuelve por IK para alcanzarlo. Eso solo no basta: si el ciclo de paso no
+avanza lo que avanza el cuerpo, el pie se queda atrás y la pierna se estira
+hasta saturar la cadena. La cadencia por tanto **no se configura, se deriva**:
+
+```
+zancada útil  s = strideLength · (velocidad, dirección)   ← acotada por anatomía
+duty          d = dutyFactor → dutyFactorRun según velocidad
+cadencia      f = v · d / s
+```
+
+Y el `duty` baja al correr: aparece **fase de vuelo**, que es como un cuerpo
+cubre más terreno del que da la longitud de su pierna. Sin ella, correr a 6 u/s
+exigiría una zancada mayor que el alcance de la cadera.
+
+La altura de la cadera tampoco es un número suelto: sale de la longitud de la
+pierna (`hipRestFor`). Cuando se fijó a mano, la IK resolvía la única pose
+posible —123° de rodilla— y el personaje se pasaba la partida en cuclillas.
+
+### Depuración
+
+`F3` dibuja articulaciones, objetivo de cada pie, pies anclados, centro de masa,
+vector de movimiento, vector de frente y dirección al objetivo, más el estado de
+locomoción, de acción y de control. Sólo lee: apagarlo deja el juego idéntico.
 
 ---
 

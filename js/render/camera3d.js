@@ -46,7 +46,17 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
     this.followLerp = 14.0;
     this._shake = 0;
     this._shakeSeed = 0;
+    this._shakeFreq = 1.0;
     this.aspect = 16 / 9;
+
+    /* Look-ahead: el encuadre se adelanta hacia donde va el personaje, no se
+       queda centrado en él. Con la cámara clavada en el pecho, correr hacia
+       delante no enseña nada nuevo y esquivar se hace a ciegas. Es un
+       desplazamiento del PUNTO DE MIRA, nunca de la posición simulada. */
+    this.lookAhead = V.create(0, 0, 0);
+    this.lookAheadTarget = V.create(0, 0, 0);
+    this.lookAheadAmount = 1.55;      // unidades a velocidad plena
+    this.lookAheadRate = 2.6;         // lento a propósito: rápido produce vaivén
   }
 
   Camera3D.prototype.orbit = function (dx, dy) {
@@ -64,13 +74,47 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
     if (this.targetDistance > this.maxDistance) this.targetDistance = this.maxDistance;
   };
 
+  /* Niveles de sacudida. Si todo sacude igual, nada comunica nada: el ataque
+     normal no debe mover la cámara, un golpe pesado sí y un crítico más, con
+     una frecuencia más baja para que se lea como un golpe y no como ruido. */
+  Camera3D.SHAKE = {
+    none:     { amount: 0.00, freq: 1.0 },
+    light:    { amount: 0.05, freq: 1.5 },
+    moderate: { amount: 0.14, freq: 1.1 },
+    heavy:    { amount: 0.26, freq: 0.85 },
+    critical: { amount: 0.42, freq: 0.70 }
+  };
+
   /** Sacudida por impacto. `amount` en unidades de intensidad (0.2–1.0). */
-  Camera3D.prototype.shake = function (amount) {
+  Camera3D.prototype.shake = function (amount, freq) {
     this._shake = Math.min(1.2, this._shake + amount);
+    if (freq) this._shakeFreq = freq;
+  };
+
+  /** Sacudida por nivel: 'none' | 'light' | 'moderate' | 'heavy' | 'critical'. */
+  Camera3D.prototype.shakeTier = function (tier) {
+    var t = Camera3D.SHAKE[tier];
+    if (!t || t.amount <= 0) return;
+    this.shake(t.amount, t.freq);
   };
 
   Camera3D.prototype.setFocus = function (x, y, z) {
     V.set(this.focus, x, y + this.heightOffset, z);
+  };
+
+  /**
+   * Adelanta el encuadre en la dirección de desplazamiento.
+   * @param vx,vz velocidad del personaje en unidades/segundo
+   * @param maxSpeed velocidad base, para normalizar
+   */
+  Camera3D.prototype.setLookAhead = function (vx, vz, maxSpeed) {
+    var sp = Math.sqrt(vx * vx + vz * vz);
+    if (sp < 0.05 || maxSpeed <= 0) {
+      V.set(this.lookAheadTarget, 0, 0, 0);
+      return;
+    }
+    var k = Math.min(1, sp / maxSpeed) * this.lookAheadAmount;
+    V.set(this.lookAheadTarget, (vx / sp) * k, 0, (vz / sp) * k);
   };
 
   /**
@@ -80,8 +124,18 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
   Camera3D.prototype.update = function (dt, world, aspect) {
     this.aspect = aspect || this.aspect;
 
+    // El look-ahead entra y sale despacio: si siguiera al input al instante,
+    // cada corrección de rumbo balancearía la cámara y marearía.
+    var la = 1 - Math.exp(-this.lookAheadRate * dt);
+    V.lerp(this.lookAhead, this.lookAhead, this.lookAheadTarget, la);
+
     var k = 1 - Math.exp(-this.followLerp * dt);
-    V.lerp(this.smoothFocus, this.smoothFocus, this.focus, k);
+    var aim = {
+      x: this.focus.x + this.lookAhead.x,
+      y: this.focus.y,
+      z: this.focus.z + this.lookAhead.z
+    };
+    V.lerp(this.smoothFocus, this.smoothFocus, aim, k);
     this.distance += (this.targetDistance - this.distance) * (1 - Math.exp(-10 * dt));
 
     var cp = Math.cos(this.pitch), sp = Math.sin(this.pitch);
@@ -117,7 +171,7 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
     }
 
     if (this._shake > 0.001) {
-      this._shakeSeed += dt * 47.0;
+      this._shakeSeed += dt * 47.0 * this._shakeFreq;
       var s = this._shake * 0.16;
       desired.x += Math.sin(this._shakeSeed * 2.7) * s;
       desired.y += Math.cos(this._shakeSeed * 3.9) * s;
