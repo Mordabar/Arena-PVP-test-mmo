@@ -62,6 +62,9 @@ Arena.define('render/characterBackend', ['render/characterVisual'], function (Ar
       if (handle) { handle.loco = null; handle.action = null; }
     },
 
+    /** La intención de animación del personaje. Contrato neutral de motor. */
+    intentOf: function (handle) { return handle ? handle.intent : null; },
+
     paletteFor: function (entity, isFriendly) { return CV.paletteFor(entity, isFriendly); },
     archetypeOf: function (classId) { return CV.archetypeOf(classId); },
     materialOf: function (mesh) { return CV.materialOf(mesh); },
@@ -79,7 +82,8 @@ Arena.define('render/characterBackend', ['render/characterVisual'], function (Ar
       if (!handle || !handle.loco) return null;
       return {
         loco: handle.loco, action: handle.action, cc: handle.cc, ccBlend: handle.ccBlend,
-        cast: handle.cast, casting: handle.casting, castMovable: handle.castMovable
+        cast: handle.cast, casting: handle.casting, castMovable: handle.castMovable,
+        intent: handle.intent
       };
     }
   };

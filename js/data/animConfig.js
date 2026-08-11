@@ -137,6 +137,27 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     }
   };
 
+  /* =========================================================================
+   * Arquetipo y arma por clase
+   *
+   * Vive en data/ y no en render/ porque no es una decisión de dibujo: es un
+   * hecho de la clase. La capa neutral de animación (anim/animationIntent.js)
+   * lo necesita, y esa capa no puede depender de nada de presentación si algún
+   * día tiene que alimentar a Three.js o a Unity.
+   * ====================================================================== */
+  var ARCHETYPE = {
+    devastador: 'melee', guardian: 'melee',
+    centinela: 'archer', rastreador: 'archer',
+    arcanista: 'caster', vinculador: 'caster'
+  };
+  var WEAPON = {
+    devastador: 'sword', guardian: 'sword',
+    centinela: 'bow', rastreador: 'bow',
+    arcanista: 'staff', vinculador: 'staff'
+  };
+  Arena.Data.archetypeOf = function (classId) { return ARCHETYPE[classId] || 'melee'; };
+  Arena.Data.weaponOf = function (classId) { return WEAPON[classId] || 'sword'; };
+
   /* --- Perfiles por arquetipo --------------------------------------------- */
   var ARCHETYPES = {
     melee: {
@@ -222,5 +243,8 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     return cfg;
   };
 
-  Arena.Data.animConfig = { BASE: BASE, ARCHETYPES: ARCHETYPES, CLASSES: CLASSES };
+  Arena.Data.animConfig = {
+    BASE: BASE, ARCHETYPES: ARCHETYPES, CLASSES: CLASSES,
+    ARCHETYPE: ARCHETYPE, WEAPON: WEAPON
+  };
 });

@@ -199,7 +199,7 @@ Arena.define('render/animDebug',
         : entity.hasStatus('disarm') ? 'DISARM' : 'BLENDING_OUT';
     }
 
-    return [
+    var lines = [
       'ENTIDAD    ' + entity.id + '  ' + entity.classId,
       'LOCOMOCIÓN ' + lc.state + '  mezcla ' + lc.stateBlend.toFixed(2),
       'VELOCIDAD  ' + n(lc.moveSpeed) + '   fwd' + n(lc.moveForward) + '  right' + n(lc.moveRight),
@@ -214,6 +214,12 @@ Arena.define('render/animDebug',
       'REACCIÓN   ' + (dbg.action ? dbg.action.react.amount.toFixed(2) : '0'),
       'CONTROL    ' + ccName + '  mezcla ' + (dbg.ccBlend || 0).toFixed(2)
     ];
+    // La intención de animación: lo que consumiría un backend con malla real.
+    // Verla aquí es la forma de comprobar que el contrato neutral dice la
+    // verdad antes de que exista un segundo backend que dependa de él.
+    var AI = Arena.Anim && Arena.Anim.AnimationIntent;
+    if (AI && dbg.intent) lines = lines.concat(AI.describe(dbg.intent));
+    return lines;
   };
 
   Arena.Render.AnimDebug = D;

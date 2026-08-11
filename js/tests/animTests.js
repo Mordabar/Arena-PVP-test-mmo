@@ -20,7 +20,8 @@
  * exactamente la razón por la que se puede testear.
  * ========================================================================== */
 Arena.define('tests/animTests',
-  ['tests/testRunner', 'render/anim/locomotion', 'render/anim/actions'], function (Arena) {
+  ['tests/testRunner', 'render/anim/locomotion', 'render/anim/actions',
+   'anim/animationIntent', 'data/castFamilies'], function (Arena) {
   'use strict';
 
   var T = Arena.Tests;
@@ -28,6 +29,7 @@ Arena.define('tests/animTests',
   var Loco = Arena.Render.Locomotion;
   var Act = Arena.Render.Actions;
   var cfgFor = Arena.Data.animConfigFor;
+  var AI = Arena.Anim.AnimationIntent;
 
   /* =========================================================================
    * Utilidades
@@ -593,6 +595,183 @@ Arena.define('tests/animTests',
     T.test('la muerte tiene prioridad sobre cualquier control', function () {
       var p = Act.ccPose(fakeEntity({ alive: false, statuses: ['stun', 'root'] }), 1);
       T.assert(p.rootPitch > 1.0, 'muerto va al suelo pase lo que pase');
+    });
+  });
+
+  /* =========================================================================
+   * Familias de hechizo — la traducción vive en data/, no en el renderer
+   * ====================================================================== */
+  T.suite('Animación · familias de hechizo', function () {
+
+    T.test('cada hechizo del catálogo recibe una familia válida', function () {
+      var valid = [];
+      for (var k in Arena.Data.CAST_FAMILY) {
+        if (Object.prototype.hasOwnProperty.call(Arena.Data.CAST_FAMILY, k)) {
+          valid.push(Arena.Data.CAST_FAMILY[k]);
+        }
+      }
+      var n = 0;
+      for (var id in Arena.Data.abilities) {
+        if (!Object.prototype.hasOwnProperty.call(Arena.Data.abilities, id)) continue;
+        var fam = Arena.Data.castFamilyOf(id);
+        T.assert(valid.indexOf(fam) >= 0, id + ' recibió familia inválida: ' + fam);
+        n++;
+      }
+      T.assert(n >= 30, 'debería haber clasificado el catálogo entero, vio ' + n);
+    });
+
+    T.test('la clasificación es determinista', function () {
+      var a = Arena.Data.castFamilyOf('arcanista_descarga');
+      var b = Arena.Data.castFamilyOf('arcanista_descarga');
+      T.assertEqual(a, b, 'misma habilidad, misma familia');
+    });
+
+    T.test('un hechizo instantáneo no finge una animación larga', function () {
+      // Sin tiempo de casteo no hay nada que telegrafiar, y fingirlo mentiría al
+      // enemigo sobre cuándo llega el golpe.
+      T.assertEqual(Arena.Data.castFamilyOf('vinculador_enlace'),
+        Arena.Data.CAST_FAMILY.INSTANT, 'castTime 0 → instantáneo');
+    });
+
+    T.test('curar, controlar y lanzar no comparten familia', function () {
+      var heal = Arena.Data.castFamilyOf('vinculador_pulso_vital');
+      var ctrl = Arena.Data.castFamilyOf('arcanista_prision');
+      var proj = Arena.Data.castFamilyOf('arcanista_descarga');
+      T.assertEqual(heal, Arena.Data.CAST_FAMILY.HEAL, 'pulso vital cura');
+      T.assertEqual(ctrl, Arena.Data.CAST_FAMILY.CONTROL, 'prisión etérea controla');
+      T.assertEqual(proj, Arena.Data.CAST_FAMILY.PROJECTILE, 'descarga es proyectil');
+    });
+
+    T.test('un casteo muy largo se lee como canalización', function () {
+      // Impacto celeste castea 1.7 s: a esa duración el cuerpo lleva tanto
+      // tiempo en tensión que ESO es lo que el espectador ve.
+      T.assertEqual(Arena.Data.castFamilyOf('arcanista_impacto_celeste'),
+        Arena.Data.CAST_FAMILY.CHANNEL, 'casteo largo → canalización');
+    });
+  });
+
+  /* =========================================================================
+   * AnimationIntent — el contrato que sobrevive al cambio de motor
+   * ====================================================================== */
+  T.suite('Animación · contrato neutral (AnimationIntent)', function () {
+
+    function intentFor(e, opts) {
+      opts = opts || {};
+      var arche = Arena.Data.archetypeOf(e.classId);
+      var cfg = cfgFor(e.classId, arche);
+      var loco = Loco.createState(cfg);
+      var act = Act.createState(7);
+      var world = { time: opts.time || 0, getEntity: function () { return null; } };
+      var it = AI.create();
+      if (opts.prime) opts.prime(loco, act, e, cfg);
+      AI.build(it, e, world, loco, act);
+      return { intent: it, loco: loco, action: act, cfg: cfg, world: world };
+    }
+
+    T.test('construir la intención NO escribe en la entidad', function () {
+      var e = fakeEntity({ classId: 'arcanista' });
+      e.cast = { startTime: 0, duration: 1, movable: false };
+      var before = JSON.stringify({
+        pos: e.pos, yaw: e.yaw, alive: e.alive, cast: e.cast
+      });
+      intentFor(e);
+      T.assertEqual(JSON.stringify({
+        pos: e.pos, yaw: e.yaw, alive: e.alive, cast: e.cast
+      }), before, 'la entidad debe quedar byte a byte igual');
+    });
+
+    T.test('la intención no depende de WebGL ni de geometría', function () {
+      // Si esta capa tocara el renderer dejaría de servir para alimentar a
+      // Three.js o a Unity, que es su única razón de existir.
+      var src = String(AI.build) + String(AI.create) + String(AI.describe) +
+                String(AI.crowdControlOf) + String(AI.actionPhaseOf);
+      var forbidden = ['gl.', 'WebGL', 'canvas', 'Mat4', 'matrix', 'mesh', 'THREE'];
+      for (var i = 0; i < forbidden.length; i++) {
+        T.assertFalse(src.indexOf(forbidden[i]) >= 0,
+          'AnimationIntent no puede mencionar "' + forbidden[i] + '"');
+      }
+    });
+
+    T.test('el caster conserva su familia de locomoción en la intención', function () {
+      var e = fakeEntity({ classId: 'arcanista' });
+      var r = intentFor(e, {
+        prime: function (loco) { walk(loco, e, 60, 1 / 60, 4.8, 0); }
+      });
+      T.assertEqual(r.intent.archetype, 'caster', 'arquetipo');
+      T.assertEqual(r.intent.weaponType, 'staff', 'arma');
+      T.assertEqual(r.intent.locomotion, Loco.STATE.STRAFE_R,
+        'la locomoción sobrevive al viaje por la capa neutral');
+      T.assert(r.intent.speedNormalized > 0.6, 'y también la velocidad');
+    });
+
+    T.test('la intención transporta si la habilidad permite moverse', function () {
+      var e = fakeEntity({ classId: 'arcanista' });
+      e.cast = { startTime: 0, duration: 2, movable: false };
+      var fixed = intentFor(e, { time: 1 });
+      T.assert(fixed.intent.casting, 'debe reflejar que está casteando');
+      T.assertFalse(fixed.intent.allowMovementDuringAction,
+        'un casteo anclado NO permite moverse — lo decide la simulación');
+
+      e.cast = { startTime: 0, duration: 2, movable: true };
+      var free = intentFor(e, { time: 1 });
+      T.assert(free.intent.allowMovementDuringAction, 'un casteo móvil sí');
+    });
+
+    T.test('el progreso de casteo lo dicta la simulación', function () {
+      var e = fakeEntity({ classId: 'arcanista' });
+      e.cast = { startTime: 2, duration: 4, movable: false };
+      var r = intentFor(e, { time: 5 });   // 3 de 4 segundos
+      T.assertNear(r.intent.castProgress, 0.75, 1e-6, 'progreso');
+      T.assertEqual(r.intent.castPhase, 'CHANNEL', 'fase deducida del progreso');
+    });
+
+    T.test('la muerte tiene prioridad sobre cualquier control', function () {
+      var e = fakeEntity({ alive: false, statuses: ['stun', 'root', 'knockdown'] });
+      T.assertEqual(AI.crowdControlOf(e), AI.CC.DEATH, 'muerto manda');
+    });
+
+    T.test('el orden de prioridad del control se respeta', function () {
+      T.assertEqual(AI.crowdControlOf(fakeEntity({ statuses: ['stasis', 'stun'] })),
+        AI.CC.STASIS, 'estasis por encima de aturdir');
+      T.assertEqual(AI.crowdControlOf(fakeEntity({ statuses: ['knockdown', 'root'] })),
+        AI.CC.KNOCKDOWN, 'derribo por encima de raíz');
+      T.assertEqual(AI.crowdControlOf(fakeEntity({ statuses: ['root'] })),
+        AI.CC.ROOT, 'raíz no se convierte en aturdimiento');
+      T.assertEqual(AI.crowdControlOf(fakeEntity()), null, 'sin control, nada');
+    });
+
+    T.test('el enraizado NO se comunica como aturdimiento', function () {
+      // Confundirlos es un error de lectura que cuesta la pelea: enraizado
+      // sigue pudiendo atacar y castear.
+      var root = Act.ccPose(fakeEntity({ statuses: ['root'] }), 1);
+      var stun = Act.ccPose(fakeEntity({ statuses: ['stun'] }), 1);
+      T.assert(root.armDrop < stun.armDrop,
+        'el enraizado conserva los brazos, el aturdido no');
+    });
+
+    T.test('un slow no detiene la locomoción', function () {
+      // Un slow reduce la velocidad en la SIMULACIÓN. La animación no debe
+      // añadir nada: sigue siendo desplazamiento, sólo que más lento.
+      var e = fakeEntity({ classId: 'arcanista', statuses: ['slow'] });
+      var r = intentFor(e, {
+        prime: function (loco) { walk(loco, e, 60, 1 / 60, 0, 3.0); }
+      });
+      T.assertEqual(r.intent.crowdControl, null,
+        'un slow no es un estado de control para la animación');
+      T.assertEqual(r.intent.locomotion, Loco.STATE.FORWARD, 'sigue avanzando');
+      T.assert(r.intent.speedNormalized > 0.3, 'y con velocidad real');
+    });
+
+    T.test('la reacción al daño viaja como aditiva, no como estado', function () {
+      var e = fakeEntity({ classId: 'devastador' });
+      var r = intentFor(e, {
+        prime: function (loco, act) { Act.react(act, 1, 0); }
+      });
+      T.assert(r.intent.hitReaction.amount > 0, 'la reacción llega a la intención');
+      T.assertEqual(r.intent.crowdControl, null,
+        'recibir daño sin CC no es un estado de control');
+      T.assertEqual(r.intent.locomotion, Loco.STATE.IDLE,
+        'y no cambia la locomoción');
     });
   });
 

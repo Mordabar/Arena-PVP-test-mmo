@@ -31,7 +31,8 @@
  * ========================================================================== */
 Arena.define('render/characterVisual',
   ['render/primitives', 'math/mat4', 'data/races',
-   'render/anim/skeleton', 'render/anim/locomotion', 'render/anim/actions'],
+   'render/anim/skeleton', 'render/anim/locomotion', 'render/anim/actions',
+   'anim/animationIntent'],
   function (Arena) {
   'use strict';
 
@@ -41,6 +42,7 @@ Arena.define('render/characterVisual',
   var SK = Arena.Render.Skeleton;
   var Loco = Arena.Render.Locomotion;
   var Act = Arena.Render.Actions;
+  var AI = Arena.Anim.AnimationIntent;
 
   var CV = {};
 
@@ -267,21 +269,26 @@ Arena.define('render/characterVisual',
   /* =========================================================================
    * Arquetipo y atuendo
    * ====================================================================== */
-  var ARCHETYPE = {
-    devastador: 'melee', guardian: 'melee',
-    centinela: 'archer', rastreador: 'archer',
-    arcanista: 'caster', vinculador: 'caster'
-  };
-  CV.archetypeOf = function (classId) { return ARCHETYPE[classId] || 'melee'; };
+  // Arquetipo y arma son hechos de la clase, no decisiones de dibujo: viven en
+  // data/animConfig.js para que la capa neutral de animación pueda leerlos sin
+  // arrastrar consigo nada de presentación.
+  CV.archetypeOf = function (classId) { return Arena.Data.archetypeOf(classId); };
 
+  /* El arma la fija data/; aquí sólo se decide cómo se VISTE cada clase. */
   var LOADOUT = {
-    devastador: { right: 'sword', left: null, outfit: 'plate', scale: 1.05 },
-    guardian:   { right: 'sword', left: 'shield', outfit: 'plate', scale: 0.92 },
-    centinela:  { right: 'bow', left: null, outfit: 'leather', scale: 1.08 },
-    rastreador: { right: 'bow', left: null, outfit: 'leather', scale: 0.94, cape: true },
-    arcanista:  { right: 'staff', left: null, outfit: 'robe', scale: 1.00, hood: true },
-    vinculador: { right: 'staff', left: 'orb', outfit: 'robe', scale: 0.95, hood: true }
+    devastador: { left: null, outfit: 'plate', scale: 1.05 },
+    guardian:   { left: 'shield', outfit: 'plate', scale: 0.92 },
+    centinela:  { left: null, outfit: 'leather', scale: 1.08 },
+    rastreador: { left: null, outfit: 'leather', scale: 0.94, cape: true },
+    arcanista:  { left: null, outfit: 'robe', scale: 1.00, hood: true },
+    vinculador: { left: 'orb', outfit: 'robe', scale: 0.95, hood: true }
   };
+  for (var _cid in LOADOUT) {
+    if (Object.prototype.hasOwnProperty.call(LOADOUT, _cid)) {
+      LOADOUT[_cid].classId = _cid;
+      LOADOUT[_cid].right = Arena.Data.weaponOf(_cid);
+    }
+  }
 
   /* =========================================================================
    * Materiales
@@ -365,6 +372,9 @@ Arena.define('render/characterVisual',
       // El controlador de locomoción se crea perezosamente en el primer update,
       // cuando ya se conoce la clase y por tanto su configuración.
       loco: null, cfg: null, seed: n,
+      /* Intención de animación: la descripción NEUTRAL de qué está haciendo el
+         personaje. Es lo que consumiría un backend con malla real. */
+      intent: AI.create(),
       // Capa UPPER BODY: acciones de combate, reacción aditiva y CC.
       action: Act.createState(n),
       cast: 0, casting: false, castMovable: false,
@@ -428,6 +438,12 @@ Arena.define('render/characterVisual',
       st.cast += (0 - st.cast) * Math.min(1, dt * 9);
     }
     if (!entity.alive) st.deadTime += dt; else st.deadTime = 0;
+
+    /* La INTENCIÓN se construye al final, cuando locomoción y acción ya han
+       avanzado: describe el fotograma que se va a pintar, no el anterior. Un
+       backend con malla con skinning leería sólo esto. */
+    AI.build(st.intent, entity, world, st.loco, st.action);
+    st.intent.crowdControlBlend = st.ccBlend;
   };
 
   /**

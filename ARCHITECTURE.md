@@ -56,8 +56,15 @@ js/data/                   TODO lo ajustable por un diseñador.
   abilities.js             Los 36 poderes activos, como datos puros.
   passives.js              Las seis pasivas, con ganchos explícitos.
   races.js                 Razas jugables: proporciones, rasgos y paleta.
-  animConfig.js            Peso, zancada, timings. Ni un número de animación
-                           vive dentro de render/**.
+  animConfig.js            Peso, zancada, timings, arquetipo y arma por clase.
+                           Ni un número de animación vive dentro de render/**.
+  castFamilies.js          De qué VA cada hechizo, deducido de sus datos. Aquí y
+                           no en render/** porque la presentación no puede
+                           conocer el catálogo de habilidades.
+
+js/anim/                   Capa NEUTRAL de motor. Sin WebGL, sin geometría.
+  animationIntent.js       QUÉ quiere representar el personaje. El contrato que
+                           sobrevive al cambio a Three.js o Unity.
 
 js/combat/                 Las reglas. Aquí vive el documento hecho código.
   statusSystem.js          Aplicación, apilado, DR, cleanse, purga, periódicos.
@@ -117,6 +124,43 @@ Tres capas que se **componen**, no se pisan:
 | UPPER BODY | `anim/actions.js` | brazos, arma, rotación de pecho |
 | ADITIVA | `anim/actions.js` | reacción al daño, micro-ruido |
 
+### El mago
+
+El caster tiene dos gestos distintos, no uno con variación:
+
+* **Pulso arcano** (ataque normal) — `GUARD → PREP → PULSE → FOLLOW → RECOVER`.
+  El cuerpo participa poco y el arma mucho: canaliza, no apuñala.
+* **Hechizo** — `PREPARE → GATHER → CHANNEL` gobernados por el progreso que
+  dicta la simulación, y `RELEASE → RECOVERY` por el reloj de la acción.
+
+La liberación tiene **cadena cinética**: torso, hombro, codo y báculo entran con
+retardos escalonados. Si todos arrancan en el mismo fotograma, el gesto se lee
+como cuatro huesos girando a la vez, no como un acto físico.
+
+Cada hechizo recibe una **familia visual** —proyectil, control, buff, curación,
+área, canalización, instantáneo— deducida en `data/castFamilies.js` de los datos
+que la habilidad ya tiene. La presentación conoce esas siete categorías y nada
+más: una habilidad nueva se clasifica sola y el renderer no se entera.
+
+### AnimationIntent
+
+`js/anim/animationIntent.js` describe **qué** quiere representar el personaje,
+nunca **cómo** dibujarlo. Está fuera de `render/**` a propósito y un test
+verifica que no menciona WebGL, matrices ni mallas:
+
+```
+SIMULACIÓN → AnimationIntent → ProceduralCharacterVisual     (hoy)
+SIMULACIÓN → AnimationIntent → ThreeSkinnedCharacterVisual   (mañana)
+SIMULACIÓN → AnimationIntent → UnityAnimatorBridge           (opcional)
+```
+
+Los tres consumen el mismo contrato y ninguno toca el combate. Ver
+`docs/RENDERER_MIGRATION.md`.
+
+Los puntos de anclaje de los pies **no** forman parte de la intención: son la
+solución concreta de un controlador procedural, no una descripción de qué está
+haciendo el personaje.
+
 Por eso un arquero dispara mientras se desplaza de lado, y un golpe recibido sin
 control sacude el torso sin congelar las piernas. El control duro es lo único
 que sustituye la pose entera, y lo hace porque **las reglas de combate lo dicen**
@@ -143,11 +187,17 @@ La altura de la cadera tampoco es un número suelto: sale de la longitud de la
 pierna (`hipRestFor`). Cuando se fijó a mano, la IK resolvía la única pose
 posible —123° de rodilla— y el personaje se pasaba la partida en cuclillas.
 
+### Inercia de arma
+
+El arma persigue con retardo el ángulo que le pide la pose, en vez de ir soldada
+al antebrazo. El retardo **es** la masa: báculo 7.5 · espada 20 · arco 22 (1/s).
+
 ### Depuración
 
 `F3` dibuja articulaciones, objetivo de cada pie, pies anclados, centro de masa,
 vector de movimiento, vector de frente y dirección al objetivo, más el estado de
-locomoción, de acción y de control. Sólo lee: apagarlo deja el juego idéntico.
+locomoción, de acción y de control, más el `AnimationIntent` completo. Sólo
+lee: apagarlo deja el juego idéntico.
 
 ---
 
