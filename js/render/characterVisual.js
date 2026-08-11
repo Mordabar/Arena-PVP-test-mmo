@@ -367,7 +367,7 @@ Arena.define('render/characterVisual',
       loco: null, cfg: null, seed: n,
       // Capa UPPER BODY: acciones de combate, reacción aditiva y CC.
       action: Act.createState(n),
-      cast: 0, casting: false,
+      cast: 0, casting: false, castMovable: false,
       hurt: 0, downed: 0, deadTime: 0,
       // Mezcla de la pose de control: 0 = normal, 1 = pose de CC completa.
       ccBlend: 0, cc: null,
@@ -417,10 +417,14 @@ Arena.define('render/characterVisual',
 
     if (entity.cast) {
       st.casting = true;
-      var cc = entity.cast;
-      st.cast = Math.min(1, (world.time - cc.startTime) / Math.max(cc.duration, 1e-3));
+      var c = entity.cast;
+      // El progreso lo dicta la simulación: si el cuerpo usara su propio reloj,
+      // la barra de casteo y el personaje contarían cosas distintas.
+      st.cast = Math.min(1, (world.time - c.startTime) / Math.max(c.duration, 1e-3));
+      st.castMovable = !!c.movable;
     } else {
       st.casting = false;
+      st.castMovable = false;
       st.cast += (0 - st.cast) * Math.min(1, dt * 9);
     }
     if (!entity.alive) st.deadTime += dt; else st.deadTime = 0;
@@ -431,9 +435,18 @@ Arena.define('render/characterVisual',
    * elección de familia vive en render/anim/actions.js, que es quien conoce
    * las fases.
    */
-  CV.triggerAttack = function (st, kind, isPower) {
+  CV.triggerAttack = function (st, kind, isPower, castFamily) {
     if (!st.cfg) return;   // aún no ha corrido el primer update
-    Act.trigger(st.action, Act.familyFor(kind || 'melee', isPower), st.cfg, isPower);
+    Act.trigger(st.action, Act.familyFor(kind || 'melee', isPower), st.cfg, isPower, castFamily);
+  };
+
+  /**
+   * La simulación ha empezado un casteo. `castFamily` viene de
+   * data/castFamilies.js: la presentación conoce siete categorías visuales, no
+   * el catálogo de habilidades.
+   */
+  CV.beginCast = function (st, castFamily) {
+    if (st.action) Act.beginCast(st.action, castFamily);
   };
 
   /**
@@ -748,7 +761,7 @@ Arena.define('render/characterVisual',
     /* --- Armas ------------------------------------------------------------ */
     var sc = loadout.scale;
     if (loadout.right === 'sword') {
-      draw(node(handR, 0, -0.045, 0.015, A.weaponPitch, 0, A.weaponRoll, sc, sc, sc), 'sword', steel);
+      draw(node(handR, 0, -0.045, 0.015, A.weaponPitch, A.weaponYaw || 0, A.weaponRoll, sc, sc, sc), 'sword', steel);
 
     } else if (loadout.right === 'bow') {
       // Al soltar, el arco vibra un instante: sin ese retroceso el disparo no
@@ -764,7 +777,7 @@ Arena.define('render/characterVisual',
       }
 
     } else if (loadout.right === 'staff') {
-      var staffM = node(handR, 0, -0.045, 0.01, A.weaponPitch, 0, A.weaponRoll, sc, sc, sc);
+      var staffM = node(handR, 0, -0.045, 0.01, A.weaponPitch, A.weaponYaw || 0, A.weaponRoll, sc, sc, sc);
       draw(staffM, 'staff', palette.wood);
       var glow = 0.5 + st.cast * 2.6 + A.gemFlash * 2.2;
       draw(node(staffM, 0, 0.90, 0), 'gem', accent,

@@ -83,11 +83,36 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     turnInPlaceThreshold: 0.55,  // rad de desfase que dispara un paso de pivote
     turnStepThreshold: 1.20,     // por encima de esto, paso real en vez de torsión
 
-    /* Idle ---------------------------------------------------------------- */
+    /* Idle -----------------------------------------------------------------
+     *
+     * TRES OSCILADORES, NO UNO. Una única sinusoide se reconoce a simple vista:
+     * el personaje sube y baja con un periodo perfecto y el ojo lo lee como
+     * maquinaria, no como respiración. Combinando frecuencias inconmensurables
+     * (1.00 / 0.41 / 0.23 no comparten periodo común corto) el ciclo aparente
+     * dura decenas de segundos y deja de reconocerse.
+     */
     breathRate: 1.45,
     breathAmount: 0.011,
+    breathHarmonic2: 0.41,   // múltiplo de la frecuencia base, no entero
+    breathHarmonic3: 0.23,
+    breathMix2: 0.42,        // peso relativo de cada armónico
+    breathMix3: 0.24,
     weightShiftRate: 0.55,
     weightShiftAmount: 0.030,
+    idleSwayRate: 0.37,      // deriva lentísima del torso, sin periodo audible
+    idleSwayAmount: 0.016,
+    idleHeadRate: 0.29,
+    idleHeadAmount: 0.030,
+
+    /* Inercia del arma -----------------------------------------------------
+     *
+     * Un arma clavada al antebrazo no pesa nada. Estos valores son la tasa de
+     * seguimiento (1/s) del arma respecto al ángulo que le pide la pose: más
+     * bajo = más masa aparente. No es física, es un retardo — pero es lo que
+     * separa "sostiene un bastón" de "tiene un bastón pegado a la mano".
+     */
+    weaponLagRate: 16.0,
+    weaponLagAmount: 1.0,    // 0 = rígido, 1 = todo el retardo configurado
 
     /* Reacción al daño ----------------------------------------------------- */
     hitReactAmount: 0.22,
@@ -95,13 +120,20 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
 
     /* Acciones: los tiempos son fracciones de la duración total de la acción,
        no segundos. La duración la fija actionTime. */
-    actionTime: { light: 0.42, heavy: 0.68, thrust: 0.46, ranged: 0.58, cast: 0.34 },
+    actionTime: {
+      light: 0.42, heavy: 0.68, thrust: 0.46, ranged: 0.58,
+      pulse: 0.40,   // ataque normal del mago
+      cast: 0.44     // liberación del hechizo: recuperación corta, esto es PvP
+    },
     phases: {
       light:  { anticipation: 0.00, active: 0.30, impact: 0.42, recovery: 0.55, end: 1.0 },
       heavy:  { anticipation: 0.00, active: 0.44, impact: 0.58, recovery: 0.68, end: 1.0 },
       thrust: { anticipation: 0.00, active: 0.34, impact: 0.46, recovery: 0.58, end: 1.0 },
       ranged: { anticipation: 0.00, active: 0.22, impact: 0.58, recovery: 0.68, end: 1.0 },
-      cast:   { anticipation: 0.00, active: 0.18, impact: 0.45, recovery: 0.60, end: 1.0 }
+      pulse:  { anticipation: 0.00, active: 0.30, impact: 0.46, recovery: 0.62, end: 1.0 },
+      // `active` bajo a propósito: la cadena cinética arranca casi al instante
+      // y se escalona sola con los retardos por eslabón.
+      cast:   { anticipation: 0.00, active: 0.14, impact: 0.52, recovery: 0.66, end: 1.0 }
     }
   };
 
@@ -113,6 +145,7 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
       dutyFactor: 0.62, dutyFactorRun: 0.40, stanceWidth: 0.135,
       hipShiftAmount: 0.042, accelLean: 0.18,
       armSwing: 0.48, elbowBaseBend: 0.38,
+      weaponLagRate: 20.0,
       idle: {
         stanceWidth: 0.16, kneeBend: 0.20, chestLean: 0.10,
         pelvisDrop: 0.030, guardHeight: 0.42
@@ -124,20 +157,34 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
       dutyFactor: 0.56, dutyFactorRun: 0.32, stanceWidth: 0.100,
       hipShiftAmount: 0.032, accelLean: 0.15,
       armSwing: 0.42, elbowBaseBend: 0.32,
+      weaponLagRate: 22.0,
       idle: {
         stanceWidth: 0.115, kneeBend: 0.14, chestLean: 0.05,
         pelvisDrop: 0.014, guardHeight: 0.30, weightOnLeg: 0.4
       }
     },
     caster: {
-      // Erguido y contenido: pasos cortos, poco balanceo, torso vertical.
-      strideLength: 0.70, strideSpeedGain: 0.38, stepHeight: 0.13, stepFrequency: 1.45,
-      dutyFactor: 0.64, dutyFactorRun: 0.42, stanceWidth: 0.095,
-      hipShiftAmount: 0.026, accelLean: 0.11,
-      armSwing: 0.30, elbowBaseBend: 0.30,
-      torsoTwist: 0.09,
+      /* El mago NO es "un humanoide con los brazos más quietos". Es alguien que
+         protege el equilibrio de su báculo y conserva una postura lista para
+         reaccionar: base algo más ancha de lo que pide su peso, pasos cortos,
+         torso vertical, y un arma larga que pesa y se retrasa. */
+      strideLength: 0.68, strideSpeedGain: 0.36, stepHeight: 0.125, stepFrequency: 1.45,
+      dutyFactor: 0.66, dutyFactorRun: 0.44, stanceWidth: 0.112,
+      hipShiftAmount: 0.030, hipRollAmount: 0.042, accelLean: 0.13, decelLean: 0.16,
+      armSwing: 0.22,          // el brazo del báculo casi no balancea
+      armSwingRun: 0.18,
+      elbowBaseBend: 0.30,
+      torsoTwist: 0.075,       // el tronco se mantiene: el báculo no puede bailar
+      torsoCounterRate: 0.62,
+      chestTrackRatio: 0.42,   // el pecho asume más seguimiento: postura de duelo
+      // El báculo es largo y pesado: se retrasa mucho más que una espada.
+      weaponLagRate: 7.5,
+      weaponLagAmount: 1.0,
+      // Respiración algo más marcada: el mago está quieto casi todo el tiempo y
+      // sin ella se lee como una estatua.
+      breathAmount: 0.014, idleSwayAmount: 0.020, idleHeadAmount: 0.038,
       idle: {
-        stanceWidth: 0.10, kneeBend: 0.09, chestLean: -0.02,
+        stanceWidth: 0.112, kneeBend: 0.09, chestLean: -0.02,
         pelvisDrop: 0.008, guardHeight: 0.24
       }
     }

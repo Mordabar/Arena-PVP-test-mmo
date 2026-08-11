@@ -9,7 +9,7 @@
  * objetos por impacto provocaría microtirones de recolección de basura justo
  * en el peor momento posible, el burst.
  * ========================================================================== */
-Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
+Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], function (Arena) {
   'use strict';
 
   var V = Arena.Math.Vec3;
@@ -148,6 +148,21 @@ Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
       });
     });
 
+    /* El comienzo del casteo es un evento de presentación de primer orden: es
+       cuando PREPARE tiene que responder. Antes nadie lo escuchaba y el cuerpo
+       se enteraba del hechizo sólo al terminarlo, así que los siete tipos de
+       conjuro se veían exactamente igual mientras se canalizaban. */
+    bus.on('AbilityCastStarted', function (p) {
+      var vis = renderer && renderer.visuals[p.casterId];
+      if (!vis) return;
+      Arena.Render.CharacterBackend.current.beginCast(vis, Arena.Data.castFamilyOf(p.abilityId));
+    });
+
+    bus.on('AbilityCastInterrupted', function (p) {
+      var vis = renderer && renderer.visuals[p.casterId];
+      if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, null);
+    });
+
     bus.on('AbilityCastCompleted', function (p) {
       var pos = posOf(p.casterId, 1.15);
       if (!pos) return;
@@ -160,9 +175,12 @@ Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
       var caster = world.getEntity(p.casterId);
       var vis = renderer && renderer.visuals[p.casterId];
       if (vis && caster) {
-        // Poder, no ataque normal: la animación es la variación amplia.
+        // Poder, no ataque normal. La FAMILIA VISUAL del hechizo se deduce en
+        // data/castFamilies.js: aquí sólo se transporta la etiqueta, para que la
+        // presentación nunca tenga que conocer el catálogo de habilidades.
         var CB = Arena.Render.CharacterBackend.current;
-        CB.triggerAttack(vis, CB.archetypeOf(caster.classId), true);
+        CB.triggerAttack(vis, CB.archetypeOf(caster.classId), true,
+          Arena.Data.castFamilyOf(p.abilityId));
       }
     });
 

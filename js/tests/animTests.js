@@ -330,8 +330,12 @@ Arena.define('tests/animTests',
     T.test('cada arquetipo usa su familia de acción', function () {
       T.assertEqual(Act.familyFor('melee', false), Act.FAMILY.LIGHT_SWING, 'melee normal');
       T.assertEqual(Act.familyFor('melee', true), Act.FAMILY.HEAVY_SWING, 'melee poder');
-      T.assertEqual(Act.familyFor('archer', false), Act.FAMILY.ARCHER_SHOT, 'arquero');
-      T.assertEqual(Act.familyFor('caster', false), Act.FAMILY.CAST, 'mago');
+      T.assertEqual(Act.familyFor('archer', false), Act.FAMILY.ARCHER_SHOT, 'arquero normal');
+      T.assertEqual(Act.familyFor('archer', true), Act.FAMILY.ARCHER_SHOT, 'arquero poder');
+      // El mago tiene DOS gestos, no uno con variación: el ataque normal
+      // canaliza por el báculo, el poder libera un hechizo.
+      T.assertEqual(Act.familyFor('caster', false), Act.FAMILY.ARCANE_PULSE, 'mago normal');
+      T.assertEqual(Act.familyFor('caster', true), Act.FAMILY.CAST, 'mago poder');
     });
 
     T.test('una acción recorre sus fases y termina volviendo a la guardia', function () {
@@ -423,11 +427,93 @@ Arena.define('tests/animTests',
       T.assert(Math.abs(casting.right.pitch - guard.right.pitch) > 1.0,
         'canalizar debe alzar el báculo de forma inconfundible');
 
-      Act.trigger(st, Act.FAMILY.CAST, cfg, false);
-      for (var i = 0; i < 12; i++) Act.update(st, cfg, 1 / 60);
-      var release = Act.upperBodyPose(st, cfg, 'caster', loadout, 0, false, 0);
-      T.assert(Math.abs(release.right.pitch - casting.right.pitch) > 0.5,
-        'liberar no puede verse igual que canalizar');
+      // La liberación se mide por el RECORRIDO del gesto, no por un ángulo
+      // suelto: la pose pasa por la posición de canalización mientras baja, así
+      // que comparar un instante contra otro no dice nada.
+      Act.trigger(st, Act.FAMILY.CAST, cfg, true, 'projectile');
+      var reach = 0;
+      for (var i = 0; i < 90 && st.family; i++) {
+        Act.update(st, cfg, 1 / 60);
+        var r = Act.upperBodyPose(st, cfg, 'caster', loadout, 0, false, 0);
+        var d = Math.abs(r.right.pitch - casting.right.pitch);
+        if (d > reach) reach = d;
+      }
+      T.assert(reach > 0.7,
+        'el brazo debe recorrer un trecho claro al liberar — máximo ' + reach.toFixed(2));
+    });
+
+    T.test('el ataque normal del mago no es la liberación de un hechizo', function () {
+      var cfg = cfgFor('arcanista', 'caster');
+      var loadout = { right: 'staff', left: null };
+
+      function peakOf(family, castFamily) {
+        var st = Act.createState(11);
+        Act.trigger(st, family, cfg, true, castFamily);
+        var best = { pitch: 0, weapon: 0 };
+        for (var i = 0; i < 90 && st.family; i++) {
+          Act.update(st, cfg, 1 / 60);
+          var A = Act.upperBodyPose(st, cfg, 'caster', loadout, 0, false, 0);
+          if (Math.abs(A.right.pitch) > Math.abs(best.pitch)) best.pitch = A.right.pitch;
+          if (Math.abs(A.weaponPitch) > Math.abs(best.weapon)) best.weapon = A.weaponPitch;
+        }
+        return best;
+      }
+      var pulse = peakOf(Act.FAMILY.ARCANE_PULSE, null);
+      var cast = peakOf(Act.FAMILY.CAST, 'projectile');
+      // El pulso es un gesto contenido; la liberación levanta el brazo entero.
+      T.assert(Math.abs(cast.pitch) > Math.abs(pulse.pitch) * 1.5,
+        'liberar debe mover mucho más el brazo que el ataque normal — ' +
+        pulse.pitch.toFixed(2) + ' vs ' + cast.pitch.toFixed(2));
+    });
+
+    T.test('la liberación gana a la canalización que se disuelve', function () {
+      // castProgress decae suavemente al terminar el casteo. Si la pose de
+      // canalización tuviera prioridad, seguiría ganando justo durante el medio
+      // segundo en el que hay que ver la liberación.
+      var cfg = cfgFor('arcanista', 'caster');
+      var loadout = { right: 'staff', left: null };
+      var st = Act.createState(12);
+      Act.trigger(st, Act.FAMILY.CAST, cfg, true, 'projectile');
+      Act.update(st, cfg, 1 / 60);
+
+      var withDecay = Act.upperBodyPose(st, cfg, 'caster', loadout, 0.9, false, 0);
+      var clean = Act.upperBodyPose(st, cfg, 'caster', loadout, 0, false, 0);
+      T.assertNear(withDecay.right.pitch, clean.right.pitch, 1e-9,
+        'con una acción en curso, el resto de castProgress no puede mandar');
+    });
+
+    T.test('cada familia de hechizo se ve distinta', function () {
+      var cfg = cfgFor('arcanista', 'caster');
+      var loadout = { right: 'staff', left: null };
+      var fams = ['projectile', 'control', 'buff', 'heal', 'aoe', 'channel', 'instant'];
+
+      function signature(fam) {
+        var st = Act.createState(13);
+        var A = Act.upperBodyPose(st, cfg, 'caster', loadout, 0.75, true, 0);
+        return [A.left.pitch, A.left.roll, A.left.yaw, A.right.pitch,
+                A.weaponPitch, A.chestPitch, A.chestYaw];
+        function unused() { return fam; }
+      }
+      // Se compara la pose de CANALIZACIÓN, que es donde el jugador enemigo
+      // tiene que leer qué le viene encima y decidir si interrumpe.
+      var seen = [];
+      for (var i = 0; i < fams.length; i++) {
+        var st2 = Act.createState(13);
+        Act.beginCast(st2, fams[i]);
+        var A2 = Act.upperBodyPose(st2, cfg, 'caster', loadout, 0.75, true, 0);
+        seen.push([A2.left.pitch, A2.left.roll, A2.left.yaw, A2.right.pitch,
+                   A2.weaponPitch, A2.chestPitch, A2.chestYaw]);
+      }
+      for (var a = 0; a < seen.length; a++) {
+        for (var b = a + 1; b < seen.length; b++) {
+          var d = 0;
+          for (var k = 0; k < seen[a].length; k++) d += Math.abs(seen[a][k] - seen[b][k]);
+          T.assert(d > 0.10,
+            'las familias ' + fams[a] + ' y ' + fams[b] +
+            ' se ven casi igual (distancia ' + d.toFixed(3) + ')');
+        }
+      }
+      T.assert(signature('projectile').length === 7, 'firma completa');
     });
 
     T.test('la reacción al daño es aditiva y se disuelve sola', function () {

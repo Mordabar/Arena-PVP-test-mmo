@@ -34,13 +34,29 @@ Arena.define('render/anim/actions',
     HEAVY_SWING: 'heavy',
     THRUST: 'thrust',
     ARCHER_SHOT: 'ranged',
-    CAST: 'cast'
+    ARCANE_PULSE: 'pulse',   // ataque normal del mago: NO es una estocada
+    CAST: 'cast'             // liberación de hechizo
+  };
+
+  /* Fases del CASTEO, gobernadas por el progreso que dicta la simulación —no
+     por un reloj propio, o la barra de casteo y el cuerpo contarían cosas
+     distintas. Son fracciones de castProgress. */
+  Act.CAST_PHASE = { PREPARE: 'PREPARE', GATHER: 'GATHER', CHANNEL: 'CHANNEL' };
+  var CAST_PREPARE_END = 0.20, CAST_GATHER_END = 0.52;
+
+  /** En qué fase del casteo está un progreso dado. */
+  Act.castPhaseOf = function (c) {
+    if (c < CAST_PREPARE_END) return Act.CAST_PHASE.PREPARE;
+    if (c < CAST_GATHER_END) return Act.CAST_PHASE.GATHER;
+    return Act.CAST_PHASE.CHANNEL;
   };
 
   /** Qué familia usa cada arquetipo según sea ataque normal o poder. */
   Act.familyFor = function (archetype, isPower) {
     if (archetype === 'archer') return Act.FAMILY.ARCHER_SHOT;
-    if (archetype === 'caster') return Act.FAMILY.CAST;
+    // El mago tiene DOS gestos distintos, no uno con variación: el ataque
+    // normal canaliza energía por el báculo, el poder libera un hechizo.
+    if (archetype === 'caster') return isPower ? Act.FAMILY.CAST : Act.FAMILY.ARCANE_PULSE;
     return isPower ? Act.FAMILY.HEAVY_SWING : Act.FAMILY.LIGHT_SWING;
   };
 
@@ -58,19 +74,33 @@ Arena.define('render/anim/actions',
     return {
       family: null, t: 0, duration: 0, isPower: false,
       weight: 0,             // 0..1 — cuánto pesa la acción sobre la guardia
+      /* Familia VISUAL del hechizo en curso (data/castFamilies.js). La fija la
+         simulación al empezar el casteo y sobrevive hasta la recuperación: es
+         lo que hace que curar y enraizar no se vean igual. */
+      castFamily: null,
       // Reacción al daño: aditiva y direccional.
       react: { amount: 0, front: 0, side: 0 },
       // Ruido de respiración de las manos en reposo.
-      idleNoise: (s < 0 ? -s : s) / 1000
+      idleNoise: (s < 0 ? -s : s) / 1000,
+      /* INERCIA DEL ARMA. `target` es lo que la pose pide este fotograma;
+         `lag` es dónde está el arma de verdad, persiguiéndolo con retardo. Un
+         arma que obedece al instante no pesa nada: el retardo ES la masa. */
+      weaponTarget: { pitch: 0, roll: 0, yaw: 0 },
+      weaponLag: { pitch: 0, roll: 0, yaw: 0 },
+      weaponInit: false
     };
   };
 
-  Act.trigger = function (st, family, cfg, isPower) {
+  Act.trigger = function (st, family, cfg, isPower, castFamily) {
     st.family = family;
     st.duration = (cfg.actionTime[family] || 0.42);
     st.t = 0;
     st.isPower = !!isPower;
+    if (castFamily !== undefined && castFamily !== null) st.castFamily = castFamily;
   };
+
+  /** La simulación ha empezado un casteo: fija la familia visual del gesto. */
+  Act.beginCast = function (st, castFamily) { st.castFamily = castFamily || null; };
 
   Act.update = function (st, cfg, dt) {
     st.idleNoise += dt * 0.9;
@@ -89,6 +119,38 @@ Arena.define('render/anim/actions',
     if (st.react.amount > 0) {
       st.react.amount = Math.max(0, st.react.amount - dt * cfg.hitReactDecay);
     }
+
+    /* El arma persigue el objetivo que dejó la pose del fotograma anterior. Un
+       fotograma de latencia en un filtro de retardo es irrelevante, y a cambio
+       `upperBodyPose` no necesita conocer dt ni el reloj del frame. */
+    var rate = cfg.weaponLagRate === undefined ? 16 : cfg.weaponLagRate;
+    if (!st.weaponInit) {
+      st.weaponLag.pitch = st.weaponTarget.pitch;
+      st.weaponLag.roll = st.weaponTarget.roll;
+      st.weaponLag.yaw = st.weaponTarget.yaw;
+      st.weaponInit = true;
+    } else {
+      st.weaponLag.pitch = damp(st.weaponLag.pitch, st.weaponTarget.pitch, rate, dt);
+      st.weaponLag.roll = damp(st.weaponLag.roll, st.weaponTarget.roll, rate, dt);
+      st.weaponLag.yaw = damp(st.weaponLag.yaw, st.weaponTarget.yaw, rate, dt);
+    }
+  };
+
+  /**
+   * Sustituye los ángulos del arma por su versión retardada.
+   * Se llama al final de cada pose: la pose dice adónde DEBERÍA apuntar el arma
+   * y esto dice dónde está realmente, que no es lo mismo cuando el arma pesa.
+   */
+  Act._applyWeaponInertia = function (A, st, cfg) {
+    st.weaponTarget.pitch = A.weaponPitch;
+    st.weaponTarget.roll = A.weaponRoll;
+    st.weaponTarget.yaw = A.weaponYaw || 0;
+    var k = cfg.weaponLagAmount === undefined ? 1 : cfg.weaponLagAmount;
+    if (k <= 0 || !st.weaponInit) return A;
+    A.weaponPitch += (st.weaponLag.pitch - A.weaponPitch) * k;
+    A.weaponRoll += (st.weaponLag.roll - A.weaponRoll) * k;
+    A.weaponYaw = (A.weaponYaw || 0) + (st.weaponLag.yaw - (A.weaponYaw || 0)) * k;
+    return A;
   };
 
   /** Nombre legible del estado de acción, para el overlay de depuración. */
@@ -96,7 +158,8 @@ Arena.define('render/anim/actions',
     if (!st || !st.family) return 'IDLE';
     var ph = st.t < 0.30 ? 'ANTICIPATION' : (st.t < 0.52 ? 'ACTIVE'
            : (st.t < 0.70 ? 'IMPACT' : 'RECOVERY'));
-    return 'ACTION_' + st.family.toUpperCase() + (st.isPower ? '_POWER' : '') + ':' + ph;
+    var fam = st.family.toUpperCase() + (st.castFamily ? '/' + st.castFamily.toUpperCase() : '');
+    return 'ACTION_' + fam + (st.isPower ? '_POWER' : '') + ':' + ph;
   };
 
   /** Reacción direccional al daño. front/side en espacio local del receptor. */
@@ -116,7 +179,7 @@ Arena.define('render/anim/actions',
     return {
       left:  { pitch: armSwing, yaw: 0, roll: 0.16, elbow: cfg.elbowBaseBend },
       right: { pitch: -armSwing, yaw: 0, roll: -0.16, elbow: cfg.elbowBaseBend },
-      weaponPitch: 0.40, weaponRoll: 0,
+      weaponPitch: 0.40, weaponRoll: 0, weaponYaw: 0,
       draw: 0, gemFlash: 0, bowPitch: 1.0, bowYaw: 0,
       chestPitch: 0, chestYaw: 0, chestRoll: 0,
       kneeAbsorb: 0, bowShake: 0
@@ -124,7 +187,7 @@ Arena.define('render/anim/actions',
   }
 
   var ARM_KEYS = ['pitch', 'yaw', 'roll', 'elbow'];
-  var TOP_KEYS = ['weaponPitch', 'weaponRoll', 'draw', 'gemFlash', 'bowPitch',
+  var TOP_KEYS = ['weaponPitch', 'weaponRoll', 'weaponYaw', 'draw', 'gemFlash', 'bowPitch',
                   'bowYaw', 'chestPitch', 'chestYaw', 'chestRoll',
                   'kneeAbsorb', 'bowShake'];
 
@@ -156,15 +219,25 @@ Arena.define('render/anim/actions',
     // ataque en curso, porque la simulación no permite ambos a la vez.
     // `castProgress` ya entra y sale de forma continua, así que la propia curva
     // hace de mezcla.
-    if (casting || castProgress > 0.02) {
+    var acting = st.family && st.weight > 0.001;
+
+    /* ORDEN IMPORTANTE. `castProgress` decae suavemente tras completar el
+       casteo, así que si la pose de canalización se comprobara primero seguiría
+       ganando durante casi medio segundo — justo el medio segundo en el que
+       debe verse la LIBERACIÓN. Ese era el motivo real de que soltar un hechizo
+       no se viera: la pose de release existía y nunca llegaba a pintarse. */
+    if (!acting && (casting || castProgress > 0.02)) {
       var C = blankPose(cfg, armSwing);
       Act._guard(C, cfg, archetype, loadout, st);
-      Act._castPose(C, cfg, castProgress);
-      blendPose(A, C, smooth(castProgress / 0.35));
+      Act._castPose(C, cfg, castProgress, st.castFamily, st);
+      // PREPARE tiene que sentirse INMEDIATO: el jugador ha pulsado y el cuerpo
+      // debe responder ya. Por eso la mezcla se completa en el primer 12 % del
+      // casteo, no gradualmente a lo largo de todo él.
+      blendPose(A, C, smooth(castProgress / 0.12));
       return Act._applyReaction(A, st, cfg);
     }
 
-    if (st.family && st.weight > 0.001) {
+    if (acting) {
       // La acción se calcula sobre una copia de la guardia y luego se mezcla:
       // así el arranque y el final de cada golpe son continuos por construcción.
       var B = blankPose(cfg, armSwing);
@@ -175,7 +248,8 @@ Arena.define('render/anim/actions',
         case Act.FAMILY.HEAVY_SWING: Act._heavySwing(B, st.t, ph); break;
         case Act.FAMILY.THRUST: Act._thrust(B, st.t, ph); break;
         case Act.FAMILY.ARCHER_SHOT: Act._archerShot(B, st.t, ph, st.isPower); break;
-        case Act.FAMILY.CAST: Act._castRelease(B, st.t, ph); break;
+        case Act.FAMILY.ARCANE_PULSE: Act._arcanePulse(B, st.t, ph); break;
+        case Act.FAMILY.CAST: Act._castRelease(B, st.t, ph, st.castFamily); break;
       }
       blendPose(A, B, st.weight);
     }
@@ -313,35 +387,189 @@ Arena.define('render/anim/actions',
     A.bowShake = Math.max(0, rel - follow) * 0.06;
   };
 
-  /* --- MAGO: canalización ---------------------------------------------------
-   * Pies afirmados, torso abierto, báculo en alto y mano libre recogiendo
-   * energía. Postura estática y distinta de todo lo demás: telegrafía el cast. */
-  Act._castPose = function (A, cfg, c) {
-    var e = smooth(c);
-    A.right.pitch = -0.30 - 1.90 * e;
-    A.right.elbow = 0.30 + 0.55 * e;
-    A.right.roll = -0.10;
-    A.weaponPitch = -0.28 - 0.50 * e;
-    A.left.pitch = -1.20 - 0.30 * e;
-    A.left.elbow = 0.95 + 0.30 * e;
-    A.left.roll = 0.20;
-    // El pecho se expande al canalizar, como quien toma aire.
-    A.chestPitch = -0.10 * e;
-    A.chestYaw = 0.06 * Math.sin(c * 9.0) * e;
+  /* =========================================================================
+   * EL MAGO
+   *
+   * Antes de esto el caster tenía dos poses: una interpolación lineal de cinco
+   * ángulos sobre castProgress, y una estocada de báculo. De ahí salían todos
+   * sus problemas: sin fases, el cuerpo recorría el casteo entero a velocidad
+   * constante; sin familias, curar y enraizar eran el mismo gesto; y sin cadena
+   * cinética, torso, hombro y arma arrancaban en el mismo fotograma.
+   *
+   * El pipeline es ahora:
+   *
+   *   PREPARE → GATHER → CHANNEL   ← gobernados por castProgress (simulación)
+   *   RELEASE → RECOVERY           ← gobernados por el reloj de la acción
+   *
+   * La simulación sigue decidiendo cuánto dura el casteo, si es interrumpible y
+   * si permite moverse. Esto sólo decide cómo se ve cada tramo.
+   * ====================================================================== */
+
+  /* --- Modificadores por familia -------------------------------------------
+   * Un solo eje por familia, deliberadamente pequeño. Siete poses
+   * independientes serían siete cosas que mantener; siete DESVIACIONES sobre
+   * una base común se leen distintas y siguen siendo el mismo personaje.      */
+  var CAST_MOD = {
+    //            báculo↔frente  mano libre  torso  apertura  base baja  golpe suelo  arranque
+    projectile: { staffFwd: 0.30, freeHand: 0.55, chest: 0.10, open: 0.00, stanceLow: 0.00, staffDown: 0.00, startRaise: 1.00 },
+    control:    { staffFwd: 0.05, freeHand: 1.00, chest: 0.22, open: 0.10, stanceLow: 0.05, staffDown: 0.00, startRaise: 1.00 },
+    buff:       { staffFwd: -0.20, freeHand: 0.70, chest: -0.06, open: -0.15, stanceLow: 0.00, staffDown: 0.00, startRaise: 0.85 },
+    heal:       { staffFwd: -0.10, freeHand: 0.95, chest: -0.16, open: 0.45, stanceLow: 0.00, staffDown: 0.00, startRaise: 0.90 },
+    aoe:        { staffFwd: 0.10, freeHand: 0.40, chest: 0.18, open: 0.20, stanceLow: 0.30, staffDown: 0.60, startRaise: 1.00 },
+    channel:    { staffFwd: 0.15, freeHand: 0.85, chest: 0.06, open: 0.25, stanceLow: 0.12, staffDown: 0.00, startRaise: 1.00 },
+    /* INSTANT no viene precedido de canalización: no hay pose alta desde la que
+       continuar, así que arranca casi desde la guardia. Fingir el arranque alto
+       produciría un salto de brazo de 130° en tres fotogramas. */
+    instant:    { staffFwd: 0.25, freeHand: 0.45, chest: 0.08, open: 0.00, stanceLow: 0.00, staffDown: 0.00, startRaise: 0.22 }
+  };
+  function modOf(family) { return CAST_MOD[family] || CAST_MOD.projectile; }
+
+  /* --- PREPARE → GATHER → CHANNEL ------------------------------------------
+   *
+   * PREPARE  el cuerpo se afirma y reorienta el báculo. Corto y con respuesta
+   *          inmediata: es lo que confirma al jugador que su pulsación entró.
+   * GATHER   la mano libre empieza a recoger energía, el báculo se eleva.
+   * CHANNEL  tensión mantenida. NO congelada: hay respiración contenida y
+   *          microcompensaciones, porque un mago inmóvil parece un maniquí y
+   *          además hace imposible saber si el casteo sigue vivo.
+   */
+  Act._castPose = function (A, cfg, c, family, st) {
+    var m = modOf(family);
+    var prep = smooth(c / CAST_PREPARE_END);
+    var gath = smooth((c - CAST_PREPARE_END * 0.6) / (CAST_GATHER_END - CAST_PREPARE_END * 0.6));
+    var chan = smooth((c - CAST_GATHER_END) / (1 - CAST_GATHER_END));
+
+    // Microtemblor de canalización: dos frecuencias, no una. Con una sola se
+    // reconoce el seno y la tensión pasa a parecer vibración mecánica.
+    var n = st ? st.idleNoise : 0;
+    var tremor = (Math.sin(n * 5.3) * 0.6 + Math.sin(n * 8.9 + 1.1) * 0.4) * 0.020 * chan;
+    var breath = Math.sin(n * 2.1) * 0.014 * chan;
+
+    /* Brazo del báculo: se afirma, luego se eleva, y en canal queda sostenido. */
+    A.right.pitch = -0.30 - 0.55 * prep - (1.05 + m.staffFwd) * gath - 0.10 * chan + tremor;
+    A.right.elbow = 0.30 + 0.22 * prep + 0.42 * gath - 0.06 * chan;
+    A.right.roll = -0.22 - 0.10 * gath;
+    A.weaponPitch = -0.18 - 0.30 * prep - (0.34 - m.staffDown * 0.9) * gath + tremor * 1.4;
+    A.weaponRoll = -0.08 * gath;
+    A.weaponYaw = tremor * 0.8;
+
+    /* Mano libre: es la que domina el gesto y la que cambia entre familias. */
+    A.left.pitch = -0.35 * prep - (0.95 * m.freeHand) * gath - 0.12 * chan + breath;
+    A.left.yaw = -0.22 * m.open * gath;
+    A.left.roll = 0.20 + 0.28 * m.open * gath;
+    A.left.elbow = 0.40 + 0.35 * prep + (0.55 - 0.30 * m.open) * gath;
+
+    /* Tronco: se abre al tomar aire y sostiene la tensión. */
+    A.chestPitch = -0.05 * prep - (0.14 + m.chest * 0.5) * gath + breath * 1.6;
+    A.chestYaw = m.chest * 0.5 * gath + tremor * 1.2;
+    A.chestRoll = tremor * 0.6;
+
+    // Rodillas: afirmar los pies es lo primero que hace alguien que va a soltar
+    // algo pesado. Lo consume la capa de piernas, no lo decide ella.
+    A.kneeAbsorb = (0.030 + m.stanceLow * 0.055) * prep;
+    A.gemFlash = 0.35 * gath + 0.55 * chan;    // la gema anuncia el hechizo
   };
 
-  /* --- MAGO: liberación / estocada de báculo -------------------------------- */
-  Act._castRelease = function (A, t, ph) {
-    var jab = smooth((t - ph.active) / (ph.impact - ph.active));
-    var back = smooth((t - ph.impact) / (ph.end - ph.impact));
-    // El torso dirige, el brazo termina y el báculo acompaña.
-    A.chestPitch = -0.14 * jab + 0.10 * back;
-    A.right.pitch = 0.30 - 1.70 * jab + 1.15 * back;
-    A.right.elbow = 0.95 - 0.80 * jab + 0.60 * back;
-    A.weaponPitch = 0.28 - 1.05 * jab + 0.78 * back;
-    A.left.pitch = -0.42 * jab + 0.30 * back;
-    A.left.elbow = 0.60 + 0.35 * jab;
-    A.gemFlash = Math.max(0, jab - back);
+  /* --- RELEASE → RECOVERY --------------------------------------------------
+   *
+   * CADENA CINÉTICA. El torso arranca, el hombro le sigue, después el codo y
+   * por último el báculo. Cada eslabón entra con un retardo propio: es esa
+   * secuencia, y no la amplitud, lo que hace que una descarga parezca un acto
+   * físico en vez de una rotación simultánea de cuatro huesos.
+   *
+   * RECOVERY es corto a propósito. Esto es PvP: quedarse admirando la pose es
+   * tiempo en el que el jugador no puede reaccionar.
+   */
+  Act._castRelease = function (A, t, ph, family) {
+    var m = modOf(family);
+    var raise = m.startRaise === undefined ? 1 : m.startRaise;
+    var a = ph.active;                       // instante de disparo del gesto
+    var span = Math.max(0.08, ph.impact - ph.active);
+
+    function link(delay) { return smooth((t - a - delay) / span); }
+    var torso = link(0.000);
+    var shoulder = link(0.035);
+    var elbow = link(0.070);
+    var weapon = link(0.105);
+    var back = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
+
+    /* El brazo arranca donde lo dejó la canalización —arriba y atrás— y BAJA
+       hacia el objetivo. La versión anterior lo subía todavía más, así que la
+       liberación acababa en el mismo sitio donde había empezado y el gesto no
+       se leía.
+       
+       El instantáneo no viene de ninguna canalización: arranca casi en guardia
+       y hace lo contrario, un golpe corto hacia ARRIBA y adelante. Por eso el
+       destino depende de `raise`: sin esto, un instantáneo salía de un punto
+       que ya estaba pasado el objetivo y el brazo no se movía en absoluto. */
+    var startPitch = -2.25 * raise - 0.10;
+    var aimPitch = -1.15 - (1 - raise) * 0.50   // instantáneo apunta más alto
+                 + m.staffDown * 0.75;          // el área baja el brazo al suelo
+
+    A.chestPitch = -0.24 * raise - 0.14 * torso + 0.36 * back;
+    A.chestYaw = (0.24 + m.chest) * torso - 0.34 * back;
+    A.chestRoll = 0;
+
+    A.right.pitch = startPitch + (aimPitch - startPitch) * shoulder * (1 + m.staffFwd * 0.4);
+    A.right.pitch += (0.08 - aimPitch) * back;
+    A.right.elbow = (0.88 * raise + 0.34 * (1 - raise)) - 0.58 * elbow + 0.18 * back;
+    A.right.roll = -0.26 + 0.12 * shoulder;
+
+    // El báculo se adelanta un instante más que la mano: es el último eslabón.
+    // El báculo NO se voltea hacia atrás en las áreas: se clava hacia delante y
+    // abajo. Quien marca el suelo es el brazo, no un giro de muñeca imposible.
+    A.weaponPitch = -0.82 * raise - (0.52 + m.staffDown * 0.35) * weapon
+                  + (0.42 + 0.82 * raise) * back;
+    A.weaponRoll = -0.26 * weapon + 0.20 * back;
+    A.weaponYaw = 0.14 * m.open * weapon;
+
+    /* La mano libre empuja o se abre según la familia: es la lectura más rápida
+       de qué clase de hechizo acaba de salir. */
+    var lStart = -0.35 - 0.95 * m.freeHand * raise - 0.12 * raise;
+    A.left.pitch = lStart - 0.42 * m.freeHand * shoulder + (-0.18 - lStart) * back;
+    A.left.yaw = -0.34 * m.open * shoulder;
+    A.left.roll = 0.22 + 0.44 * m.open * shoulder;
+    A.left.elbow = (0.90 * raise + 0.55 * (1 - raise)) - 0.42 * elbow + 0.24 * back;
+
+    A.kneeAbsorb = (0.035 + m.stanceLow * 0.06) * weapon * (1 - back);
+    A.gemFlash = Math.max(0, weapon - back * 1.4);
+  };
+
+  /* --- MAGO: ataque normal — PULSO ARCANO ----------------------------------
+   *
+   * GUARD → PREP → PULSE → FOLLOW → RECOVER.
+   *
+   * NO es una estocada. El mago no apuñala con el báculo: orienta la gema,
+   * deja que se cargue un instante y suelta el pulso, y el arma retrocede
+   * después. La diferencia con un golpe melee está en que aquí el cuerpo
+   * participa poco y el arma participa mucho: el gesto es de canalizar, no de
+   * empujar.
+   */
+  Act._arcanePulse = function (A, t, ph) {
+    var prep = smooth(t / ph.active);
+    var pulse = smooth((t - ph.active) / Math.max(0.08, ph.impact - ph.active));
+    var follow = smooth((t - ph.impact) / Math.max(0.08, ph.recovery - ph.impact));
+    var rec = smooth((t - ph.recovery) / Math.max(0.08, ph.end - ph.recovery));
+
+    // El báculo se orienta y la gema se adelanta; el codo se cierra cargando.
+    A.right.pitch = 0.08 - 0.62 * prep - 0.45 * pulse + 0.85 * rec;
+    A.right.elbow = 0.34 + 0.55 * prep - 0.40 * pulse + 0.30 * rec;
+    A.right.roll = -0.26 - 0.10 * prep;
+    A.weaponPitch = -0.42 - 0.34 * prep - 0.30 * pulse + 0.62 * rec;
+    // Retroceso del arma tras el pulso: sin él, el proyectil sale de la nada.
+    A.weaponPitch += 0.26 * follow * (1 - rec);
+    A.weaponYaw = -0.12 * pulse + 0.08 * follow;
+
+    // La mano libre estabiliza el báculo durante la carga: es lo que comunica
+    // que el arma está haciendo algo, no simplemente moviéndose.
+    A.left.pitch = -0.18 - 0.68 * prep + 0.30 * follow + 0.50 * rec;
+    A.left.elbow = 0.42 + 0.50 * prep - 0.20 * follow;
+    A.left.roll = 0.22 + 0.10 * prep;
+
+    A.chestPitch = -0.04 - 0.09 * prep + 0.07 * follow;
+    A.chestYaw = 0.10 + 0.12 * prep - 0.16 * pulse + 0.08 * rec;
+
+    A.gemFlash = Math.max(0, prep * 0.55 + pulse - follow * 1.3);
   };
 
   /* --- Reacción al daño: ADITIVA -------------------------------------------
@@ -350,14 +578,14 @@ Arena.define('render/anim/actions',
    * en una estatua es lo que hace que un combate se sienta a trompicones.     */
   Act._applyReaction = function (A, st, cfg) {
     var r = st.react.amount;
-    if (r <= 0.001) return A;
+    if (r <= 0.001) return Act._applyWeaponInertia(A, st, cfg);
     var k = r * r * cfg.hitReactAmount;    // decae rápido
     A.chestPitch += st.react.front * k * 1.4;
     A.chestRoll = (A.chestRoll || 0) + st.react.side * k * 1.1;
     A.chestYaw += -st.react.side * k * 0.6;
     A.left.pitch += st.react.front * k * 0.5;
     A.right.pitch += st.react.front * k * 0.5;
-    return A;
+    return Act._applyWeaponInertia(A, st, cfg);
   };
 
   /* =========================================================================

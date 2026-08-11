@@ -66,9 +66,10 @@ Arena.define('render/characterBackend', ['render/characterVisual'], function (Ar
     archetypeOf: function (classId) { return CV.archetypeOf(classId); },
     materialOf: function (mesh) { return CV.materialOf(mesh); },
 
-    triggerAttack: function (handle, archetype, isPower) {
-      CV.triggerAttack(handle, archetype, isPower);
+    triggerAttack: function (handle, archetype, isPower, castFamily) {
+      CV.triggerAttack(handle, archetype, isPower, castFamily);
     },
+    beginCast: function (handle, castFamily) { CV.beginCast(handle, castFamily); },
     triggerHurt: function (handle, entity, fromPos) {
       CV.triggerHurt(handle, entity, fromPos);
     },
@@ -76,7 +77,10 @@ Arena.define('render/characterBackend', ['render/characterVisual'], function (Ar
     /** Datos de depuración. Un backend sin locomoción propia devolvería null. */
     debugOf: function (handle) {
       if (!handle || !handle.loco) return null;
-      return { loco: handle.loco, action: handle.action, cc: handle.cc, ccBlend: handle.ccBlend };
+      return {
+        loco: handle.loco, action: handle.action, cc: handle.cc, ccBlend: handle.ccBlend,
+        cast: handle.cast, casting: handle.casting, castMovable: handle.castMovable
+      };
     }
   };
 

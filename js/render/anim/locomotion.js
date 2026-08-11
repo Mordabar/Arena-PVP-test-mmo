@@ -83,8 +83,11 @@ Arena.define('render/anim/locomotion',
       startTimer: 0, stopTimer: 0,
       turnAccum: 0, turnStepTimer: 0, turnStepSide: 1,
 
-      /* Idle */
-      breathe: 0, weightShift: 0,
+      /* Idle: tres relojes independientes. Con uno solo, el ciclo se reconoce
+         a simple vista y el personaje parece maquinaria respirando. */
+      breathe: 0, weightShift: 0, idleSway: 0, idleHead: 0,
+      idleAmount: 0,          // 0..1 — cuánto pesa el idle, según quietud
+      breathValue: 0, swayValue: 0, headIdleValue: 0,
 
       /* Reacción al daño */
       hitDir: { x: 0, z: 0 }, hitAmount: 0,
@@ -153,8 +156,7 @@ Arena.define('render/anim/locomotion',
     st.lastYaw = entity.yaw;
     st.turnRate = damp(st.turnRate, clamp((dyaw / Math.max(dt, 1e-4)) / 4, -1, 1), cfg.turnBlendRate, dt);
 
-    st.breathe += dt * cfg.breathRate;
-    st.weightShift += dt * cfg.weightShiftRate;
+    Loco._updateIdle(st, dt);
     if (st.hitAmount > 0) st.hitAmount = Math.max(0, st.hitAmount - dt * cfg.hitReactDecay);
 
     /* --- 2. Máquina de estados -------------------------------------------- */
@@ -373,7 +375,7 @@ Arena.define('render/anim/locomotion',
     // Caída de cadera en el doble apoyo: el cuerpo baja dos veces por zancada.
     var drop = st.isMoving
       ? Math.abs(Math.sin(st.cycle * Math.PI * 2)) * cfg.hipDropAmount * st.moveSpeed
-      : Math.sin(st.breathe) * cfg.breathAmount;
+      : st.breathValue * cfg.breathAmount;
     // Al parar, las rodillas absorben: la cadera baja un poco más.
     if (st.isStopping) drop += cfg.hipDropAmount * 1.4 * clamp(st.stopTimer / cfg.stopAbsorb, 0, 1);
     st.hipHeight = damp(st.hipHeight, -drop, 14, dt);
@@ -405,9 +407,44 @@ Arena.define('render/anim/locomotion',
     var twist = st.isMoving
       ? Math.sin(st.cycle * Math.PI * 2) * cfg.torsoTwist * st.moveSpeed * Math.max(0, st.moveForward)
       : 0;
-    st.torsoYaw = damp(st.torsoYaw, twist - st.hipYaw * 0.5 + st.turnRate * 0.22, 9, dt);
+    // Parado, una deriva lentísima del tronco. No es un ciclo: son dos relojes
+    // desfasados cuyo periodo aparente dura decenas de segundos.
+    var sway = st.swayValue * cfg.idleSwayAmount * st.idleAmount;
+    st.torsoYaw = damp(st.torsoYaw, twist - st.hipYaw * 0.5 + st.turnRate * 0.22 + sway, 9, dt);
     st.torsoPitch = damp(st.torsoPitch, st.leanF, 11, dt);
-    st.torsoRoll = damp(st.torsoRoll, st.leanR, 10, dt);
+    st.torsoRoll = damp(st.torsoRoll, st.leanR + sway * 0.45, 10, dt);
+  };
+
+  /* =========================================================================
+   * Idle orgánico
+   *
+   * Un solo Math.sin() se reconoce: el ojo detecta el periodo perfecto y lo lee
+   * como maquinaria. Tres osciladores de frecuencias inconmensurables y pesos
+   * distintos producen una señal que no se repite de forma audible, sin coste
+   * ni aleatoriedad — sigue siendo perfectamente determinista.
+   * ====================================================================== */
+  Loco._updateIdle = function (st, dt) {
+    var cfg = st.cfg;
+    st.breathe += dt * cfg.breathRate;
+    st.weightShift += dt * cfg.weightShiftRate;
+    st.idleSway += dt * cfg.idleSwayRate;
+    st.idleHead += dt * cfg.idleHeadRate;
+
+    var h2 = cfg.breathHarmonic2 === undefined ? 0.41 : cfg.breathHarmonic2;
+    var h3 = cfg.breathHarmonic3 === undefined ? 0.23 : cfg.breathHarmonic3;
+    var m2 = cfg.breathMix2 === undefined ? 0.42 : cfg.breathMix2;
+    var m3 = cfg.breathMix3 === undefined ? 0.24 : cfg.breathMix3;
+    var norm = 1 / (1 + m2 + m3);
+    st.breathValue = (Math.sin(st.breathe)
+                    + Math.sin(st.breathe * h2 + 1.7) * m2
+                    + Math.sin(st.breathe * h3 + 4.1) * m3) * norm;
+
+    st.swayValue = Math.sin(st.idleSway) * 0.62 + Math.sin(st.idleSway * 0.47 + 2.3) * 0.38;
+    st.headIdleValue = Math.sin(st.idleHead) * 0.58 + Math.sin(st.idleHead * 0.61 + 0.9) * 0.42;
+
+    // El idle sólo pesa cuando el personaje está realmente quieto, y entra y
+    // sale despacio: aparecer de golpe al soltar la tecla se nota.
+    st.idleAmount = damp(st.idleAmount, st.isMoving ? 0 : 1, 2.6, dt);
   };
 
   /**
@@ -425,8 +462,11 @@ Arena.define('render/anim/locomotion',
       var dxz = Math.max(0.5, V.distXZ(entity.pos, targetPos));
       pitchTo = clamp(Math.atan2(dy, dxz), -cfg.headTrackMaxPitch, cfg.headTrackMaxPitch);
     }
-    st.headYaw = damp(st.headYaw, yawTo, 7, dt);
-    st.headPitch = damp(st.headPitch, pitchTo, 7, dt);
+    // Estar quieto no es estar congelado: la cabeza deriva mínimamente incluso
+    // fijando un objetivo. Sin esto, el seguimiento parece una torreta.
+    var idleYaw = st.headIdleValue * cfg.idleHeadAmount * st.idleAmount;
+    st.headYaw = damp(st.headYaw, yawTo + idleYaw, 7, dt);
+    st.headPitch = damp(st.headPitch, pitchTo + idleYaw * 0.35, 7, dt);
   };
 
   /** Reacción direccional al daño, aditiva: no interrumpe la locomoción. */
