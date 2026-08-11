@@ -40,13 +40,17 @@ Arena.define('render/animDebug',
     stride:   [0.55, 0.55, 0.65]
   };
 
+  /* El overlay tiene que LEERSE, no deslumbrar. Con emisión por encima de 1 el
+     bloom lo convertía en una columna blanca que tapaba justo al personaje que
+     se está depurando. */
   function push(out, mesh, matrix, color, glow) {
+    var g = (glow === undefined ? 1 : glow) * 0.34;
     out.push({
       mesh: mesh, matrix: matrix, castShadow: false,
       mat: {
-        color: color,
-        emissive: [color[0] * (glow || 2.2), color[1] * (glow || 2.2), color[2] * (glow || 2.2)],
-        roughness: 0.4, metallic: 0, alpha: 1, rimPower: 1.0, rimColor: color
+        color: [color[0] * 0.35, color[1] * 0.35, color[2] * 0.35],
+        emissive: [color[0] * g, color[1] * g, color[2] * g],
+        roughness: 0.6, metallic: 0, alpha: 1, rimPower: 3.0, rimColor: [0, 0, 0]
       }
     });
   }
@@ -71,7 +75,7 @@ Arena.define('render/animDebug',
     var pitch = Math.atan2(horiz, dy);
     var m = M.create();
     M.composeFull(m, p0, yaw, pitch, 0, { x: w, y: len, z: w });
-    push(out, 'unitBoxY', m, color, 2.6);
+    push(out, 'unitBoxY', m, color, 1.1);
   }
 
   /* =========================================================================
@@ -100,7 +104,7 @@ Arena.define('render/animDebug',
       var leg = lc.legs[i];
       var locked = leg.hasLock && leg.plantWeight > 0.5;
       var col = locked ? COLOR.footLock : COLOR.footFree;
-      marker(out, leg.footPos.x, baseY + leg.footPos.y + 0.02, leg.footPos.z, 0.055, col, 3.0);
+      marker(out, leg.footPos.x, baseY + leg.footPos.y + 0.02, leg.footPos.z, 0.042, col, 1.6);
 
       // Cruz en el suelo bajo el objetivo: deja ver el deslizamiento de un
       // vistazo. Si un pie anclado se desplaza, la cruz se arrastra.
@@ -111,7 +115,7 @@ Arena.define('render/animDebug',
 
       // Punto de anclaje real, si lo hay: debe coincidir con el objetivo.
       if (leg.hasLock) {
-        marker(out, leg.lock.x, baseY + 0.030, leg.lock.z, 0.032, COLOR.footLock, 4.0);
+        marker(out, leg.lock.x, baseY + 0.030, leg.lock.z, 0.026, COLOR.footLock, 2.0);
       }
     }
 
@@ -125,7 +129,7 @@ Arena.define('render/animDebug',
     var comX = pos.x + cy * lc.hipShiftX;
     var comZ = pos.z - sy * lc.hipShiftX;
     var comY = baseY + (0.96 + lc.hipHeight) * 1.0;
-    marker(out, comX, comY, comZ, 0.055, COLOR.com, 3.2);
+    marker(out, comX, comY, comZ, 0.045, COLOR.com, 1.6);
     // Plomada: dónde cae el peso respecto a la base de apoyo.
     segment(out, { x: comX, y: baseY + 0.01, z: comZ }, { x: comX, y: comY, z: comZ },
       0.008, COLOR.com);

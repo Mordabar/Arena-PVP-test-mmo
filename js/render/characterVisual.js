@@ -128,7 +128,12 @@ Arena.define('render/characterVisual',
         P.translate(P.scale(P.box(0.045, 0.170, 0.080), 1, 1, 1), -0.108, -0.030, 0.028),
         P.translate(P.scale(P.box(0.045, 0.170, 0.080), 1, 1, 1), 0.108, -0.030, 0.028)
       ]),
-      hairTail: P.translate(P.scale(P.cone(0.072, 0.34, 7), 1, -1, 1), 0, 0.03, -0.150),
+      // Coleta con volumen: un cono de 7 caras a esta escala se lee como una
+      // cartulina blanca pegada a la nuca.
+      hairTail: P.merge([
+        P.translate(P.scale(P.sphere(0.5, 7, 10), 0.135, 0.115, 0.135), 0, -0.020, -0.155),
+        P.translate(P.scale(P.cone(0.070, 0.30, 10), 1, -1, 0.92), 0, -0.060, -0.170)
+      ]),
 
       /* --- Extremidades: dos segmentos + articulación -------------------- */
       upperArm: bone(0.064, 0.050, UPPER_ARM, 9),
@@ -179,7 +184,17 @@ Arena.define('render/characterVisual',
       ]),
       strap: P.translate(P.scale(P.box(0.062, 0.44, 0.030), 1, 1, 1), 0, -0.02, 0),
       sash: P.translate(P.scale(P.cylinder(0.255, 0.085, 14, 1.0), 1, 1, 0.86), 0, -0.04, 0),
-      stole: P.translate(P.scale(P.box(0.085, 0.52, 0.040), 1, 1, 1), 0, -0.24, 0),
+      stole: P.translate(P.scale(P.box(0.062, 0.46, 0.034), 1, 1, 1), 0, -0.21, 0),
+      // Cuerpo de la túnica: cubre el tronco y enlaza con la falda. Sin él, la
+      // caja torácica quedaba a la vista como un panel plano encima de la
+      // campana de tela, y el mago parecía dos objetos apilados.
+      // Se ensancha HACIA ARRIBA, de la cintura a los hombros, y termina ahí:
+      // la malla se construye de y=0 a y=h, así que el radio base es el de la
+      // cintura y `taper` es cuánto abre en el pecho.
+      robeBodice: P.merge([
+        P.scale(P.cylinder(0.150, 0.40, 14, 1.42), 1, 1, 0.86),
+        P.translate(P.scale(P.sphere(0.5, 8, 11), 0.40, 0.20, 0.30), 0, 0.375, 0)
+      ]),
       // El cinturón ciñe la cadera: su radio sale del ancho de la pelvis (0.35
       // de diámetro), no de un número al azar. Con 0.285 era un disco más ancho
       // que el propio cuerpo y se leía como un tutú.
@@ -199,8 +214,8 @@ Arena.define('render/characterVisual',
       bracer: P.translate(P.cylinder(0.060, 0.15, 8, 1), 0, -LOWER_ARM * 0.85, 0),
       /* La túnica llega al SUELO. Flotando a 17 cm, el mago se leía como una
          pieza de ajedrez sobre un pedestal invisible. */
-      robe: P.translate(P.cylinder(0.335, 1.12, 18, 0.42), 0, -1.12, 0),
-      robeTrim: P.translate(P.cylinder(0.342, 0.055, 18, 1), 0, -1.12, 0),
+      robe: P.translate(P.cylinder(0.290, 1.10, 18, 0.50), 0, -1.10, 0),
+      robeTrim: P.translate(P.cylinder(0.297, 0.050, 18, 1), 0, -1.10, 0),
       /* Capucha: pico caído hacia ATRÁS, no un cucurucho vertical. El cono
          apuntando al cielo convertía al arcanista en un sombrero de bruja. */
       hood: P.merge([
@@ -301,7 +316,7 @@ Arena.define('render/characterVisual',
 
     belt: 'LEATHER', skirtPanel: 'LEATHER', bracer: 'LEATHER', foot: 'LEATHER',
     bowString: 'LEATHER', strap: 'LEATHER', quiver: 'LEATHER', shoulderCap: 'LEATHER',
-    sash: 'CLOTH', stole: 'CLOTH', quiverArrows: 'WOOD',
+    sash: 'CLOTH', stole: 'CLOTH', robeBodice: 'CLOTH', quiverArrows: 'WOOD',
 
     pauldron: 'METAL', collar: 'METAL', chestPlate: 'METAL', buckle: 'METAL',
     thighGuard: 'METAL', kneeGuard: 'METAL', bootCuff: 'METAL', robeTrim: 'METAL',
@@ -325,7 +340,7 @@ Arena.define('render/characterVisual',
       trim: [0.66, 0.53, 0.28], leather: [0.185, 0.135, 0.090], wood: [0.30, 0.22, 0.14]
     },
     robe: {
-      cloth: [0.285, 0.042, 0.062], metal: [0.275, 0.225, 0.170],
+      cloth: [0.205, 0.034, 0.052], metal: [0.275, 0.225, 0.170],
       trim: [0.90, 0.74, 0.34], leather: [0.155, 0.115, 0.095], wood: [0.28, 0.22, 0.18]
     }
   };
@@ -467,6 +482,10 @@ Arena.define('render/characterVisual',
     var ccW = st.ccBlend;
     var cc = st.cc;
     var ccPitch = 0, ccRoll = 0, ccLift = 0, ccKnee = 0, ccArm = 0, ccHead = 0;
+    // Un cuerpo TENDIDO estira las piernas a lo largo del suelo. Si siguen
+    // persiguiendo el punto donde estaban los pies de pie, el personaje se
+    // pliega sobre sí mismo y el derribo parece un ovillo, no una caída.
+    var ccProne = (cc && cc.rootPitch > 0.8) ? ccW : 0;
     if (cc && ccW > 0.001) {
       // El tambaleo del aturdimiento es un ciclo lento propio, no ruido.
       var sway = cc.sway ? Math.sin(st.ccTime * 4.3) * 0.09 * cc.sway : 0;
@@ -584,7 +603,8 @@ Arena.define('render/characterVisual',
       draw(quiverM, 'quiver', palette.leather);
       draw(node(quiverM, 0, 0.02, 0), 'quiverArrows', [0.58, 0.47, 0.32]);
     } else {
-      draw(node(chest, 0, 0.28, 0.020), 'stole', teamCol);
+      draw(node(chest, 0, -0.16, 0), 'robeBodice', cloth);
+      draw(node(chest, 0, 0.24, 0.098), 'stole', teamCol);
     }
 
     /* --- Cabeza ----------------------------------------------------------- */
@@ -603,7 +623,7 @@ Arena.define('render/characterVisual',
 
     if (!loadout.hood) {
       draw(node(head, 0, 0.012, -0.005), 'hairCap', hair);
-      draw(node(head, 0, 0.02, 0, 0.20, 0, 0), 'hairTail', hair);
+      draw(node(head, 0, 0.010, 0, 0.42, 0, 0), 'hairTail', hair);
     }
 
     var el = feat.earLength;
@@ -620,12 +640,14 @@ Arena.define('render/characterVisual',
     if (loadout.hood) draw(node(head, 0, -0.01, -0.02, 0.10, 0, 0), 'hood', cloth);
 
     /* --- Piernas con rodilla y tobillo ------------------------------------ */
-    if (loadout.outfit === 'robe') {
+    var robed = loadout.outfit === 'robe';
+    if (robed) {
       var swayR = lc.leanF * 0.3 + Math.sin(lc.cycle * Math.PI * 2) * 0.09 * lc.moveSpeed;
       var robeM = node(hips, 0, 0.06, 0, swayR, 0, lc.torsoRoll * 0.5);
       draw(robeM, 'robe', cloth);
       draw(robeM, 'robeTrim', trim);
-    } else {
+    }
+    {
       /* PIERNAS POR CINEMÁTICA INVERSA.
        *
        * El controlador ya decidió DÓNDE está cada pie en el mundo, y mientras
@@ -652,9 +674,30 @@ Arena.define('render/characterVisual',
         var hipOrigin = { x: hipLocalX, y: hipY - HIP_SOCKET, z: 0 };
         var footTarget = { x: lx, y: leg.footPos.y + ANKLE_HEIGHT, z: lz };
 
+        if (ccProne > 0) {
+          // Objetivo "tendido": pierna extendida en la prolongación del cuerpo.
+          // Como la raíz ya está girada hacia el suelo, extender hacia abajo en
+          // espacio local ES tumbarse cuan largo es.
+          var flatY = hipOrigin.y - (thighLen + shinLen) * 0.97;
+          footTarget.x += (hipLocalX * 1.35 - footTarget.x) * ccProne;
+          footTarget.y += (flatY - footTarget.y) * ccProne;
+          footTarget.z += (0 - footTarget.z) * ccProne;
+        }
+
         var ik = SK.solveTwoBoneIK(hipOrigin, footTarget, thighLen, shinLen, st._ik);
 
         var thighM = node(hips, hipLocalX - hipX, -HIP_SOCKET, 0, ik.pitch, 0, ik.roll, 1, lb, 1);
+        var kneeM, ankleM, toe;
+        if (robed) {
+          /* Bajo la túnica no se ve la pierna, pero los PIES SÍ asoman, y por
+             eso siguen resolviéndose por IK. Sin ellos el mago se desplaza como
+             un cono deslizándose: no hay ni un fotograma que diga que camina. */
+          kneeM = node(thighM, 0, -THIGH, 0, ik.bend, 0, 0);
+          toe = (1 - leg.plantWeight) * 0.35;
+          ankleM = node(kneeM, 0, -SHIN, 0, -ik.pitch - ik.bend + toe, 0, -ik.roll);
+          draw(ankleM, 'foot', palette.leather);
+          continue;
+        }
         draw(thighM, 'thigh', cloth);
         // Faldón partido: cada mitad sigue a su muslo, así el paso lo abre en
         // vez de atravesarlo. Un faldón rígido delata la pieza como decorado.
@@ -663,14 +706,14 @@ Arena.define('render/characterVisual',
             'skirtPanel', palette.leather);
           draw(node(thighM, 0, -0.10, 0.012, 0, 0, 0), 'thighGuard', metal);
         }
-        var kneeM = node(thighM, 0, -THIGH, 0, ik.bend, 0, 0);
+        kneeM = node(thighM, 0, -THIGH, 0, ik.bend, 0, 0);
         draw(kneeM, 'knee', cloth);
         draw(kneeM, 'shin', cloth);
         if (loadout.outfit === 'plate') draw(node(kneeM, 0, -0.02, 0.028), 'kneeGuard', metal);
         // El tobillo cancela cadera y rodilla: el pie queda plano en el suelo
         // durante el apoyo y sólo se inclina en el vuelo.
-        var toe = (1 - leg.plantWeight) * 0.35;
-        var ankleM = node(kneeM, 0, -SHIN, 0, -ik.pitch - ik.bend + toe, 0, -ik.roll);
+        toe = (1 - leg.plantWeight) * 0.35;
+        ankleM = node(kneeM, 0, -SHIN, 0, -ik.pitch - ik.bend + toe, 0, -ik.roll);
         draw(ankleM, 'foot', palette.leather);
         draw(node(ankleM, 0, 0.012, -0.03), 'bootCuff',
           loadout.outfit === 'plate' ? steel : palette.leather);
