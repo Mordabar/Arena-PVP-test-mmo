@@ -140,16 +140,22 @@ Arena.define('render/vfx', ['render/webglRenderer'], function (Arena) {
         r: magic ? 0.72 : 1.0, g: magic ? 0.45 : 0.82, b: magic ? 1.0 : 0.42,
         speed: 3.0, life: 0.4, size: 0.1, gravity: -1
       });
+      var caster = world.getEntity(p.casterId);
       var vis = renderer && renderer.visuals[p.casterId];
-      if (vis && ab) {
-        Arena.Render.CharacterVisual.triggerSwing(vis,
-          (ab.flags && ab.flags.projectile) ? 'ranged' : 'melee');
+      if (vis && caster) {
+        // Poder, no ataque normal: la animación es la variación amplia.
+        Arena.Render.CharacterVisual.triggerAttack(
+          vis, Arena.Render.CharacterVisual.archetypeOf(caster.classId), true);
       }
     });
 
     bus.on('AutoAttack', function (p) {
+      var caster = world.getEntity(p.casterId);
       var vis = renderer && renderer.visuals[p.casterId];
-      if (vis) Arena.Render.CharacterVisual.triggerSwing(vis, p.ranged ? 'ranged' : 'melee');
+      if (vis && caster) {
+        Arena.Render.CharacterVisual.triggerAttack(
+          vis, Arena.Render.CharacterVisual.archetypeOf(caster.classId), false);
+      }
     });
 
     bus.on('AbilityBlocked', function (p) {

@@ -20,6 +20,10 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
     this.id = cfg.id || ('e' + (nextId++));
     this.name = cfg.name || 'Combatiente';
     this.classId = cfg.classId || 'devastador';
+    // Identidad visual: no afecta a ninguna regla de combate.
+    this.raceId = cfg.raceId || 'darkElf';
+    this.skinTone = cfg.skinTone || null;
+    this.hairColor = cfg.hairColor || null;
     this.team = cfg.team === undefined ? 0 : cfg.team;
     this.isPlayer = !!cfg.isPlayer;
     this.profile = cfg.profile || null;    // perfil de dummy de laboratorio

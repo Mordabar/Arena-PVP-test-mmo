@@ -172,7 +172,7 @@ void main() {
   // funde en negro justo cuando hay que leer quién es y qué está haciendo.
   vec3 fillDir = normalize(vec3(-L.x, 0.35, -L.z));
   float ndf = saturate(dot(N, fillDir));
-  vec3 fill = uSkyColor * ndf * 1.45;
+  vec3 fill = uSkyColor * ndf * 0.95;
 
   float gloss = mix(64.0, 4.0, saturate(uRoughness));
   float spec = pow(saturate(dot(N, H)), gloss) * (1.0 - uRoughness) * shadow * ndl;
