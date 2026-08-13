@@ -14,6 +14,16 @@ Revisión final independiente del checklist de implementación, orientada a enco
 
 El Chromium administrado del entorno bloquea `127.0.0.1` y la IP interna del contenedor antes de cargar JavaScript. Por tanto el smoke visual-runtime debe repetirse fuera de este entorno. No se atribuye como aprobación del build ni se inventan FPS.
 
+> **NOTA POSTERIOR (v0.9).** Este bloqueo **ya no aplica**. `tools/browser.js`
+> levanta un servidor estático en un puerto efímero y carga la página por HTTP,
+> igual que hará el hosting real. El gate observable se ejecuta y se ejecutó:
+> `node tools/run-gates.js`. Y en cuanto se ejecutó apareció un P0 que ninguna
+> revisión estática podía ver: en la presentación de Three.js no se disparaba ni
+> una sola animación de combate. Está documentado en `BUILD_LEDGER.md`.
+>
+> La conclusión de abajo —«sin críticos abiertos»— era correcta **para lo que
+> esa revisión podía mirar**, y justamente por eso no bastaba.
+
 ## Resultado
 
 Sin críticos estáticos/arquitectónicos abiertos tras la Fix Wave. Pendiente únicamente el gate observable externo de navegador/playtest por la política descrita.

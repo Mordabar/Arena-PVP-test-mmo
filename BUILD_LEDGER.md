@@ -237,12 +237,50 @@ forma. Se añadieron 10 glifos (`rend`, `aegis`, `bond`, `stance`, `rain`,
 
 | Defecto | Sev | Estado |
 |---|---|---|
+| **En Three.js no se veía ni un ataque, ni un casteo, ni una reacción** | **P0** | **CERRADO** — ver abajo |
 | Reloj de producto ligado a fps por el tope de `realDt` | P2 | ABIERTO, documentado |
 | Panel de Combat Lab superpuesto al HUD de partida | P1 | **CERRADO** — ver abajo |
 | Roster de equipo pisando el marco del jugador en partida | P1 | **CERRADO** — hallado por el propio audit |
 | Roster reconstruido con `innerHTML` cada frame | P2 | **CERRADO** — se reestructura sólo al cambiar composición |
 | `favicon.ico` 404 en cada carga | P3 | **CERRADO** — icono SVG embebido |
 | Entrypoint por defecto es el renderer nativo, no el de Three.js | — | RESUELTO: `index.html` es Three.js |
+
+### P0 · el entrypoint del producto no animaba ningún combate
+
+El defecto más caro de esta sesión, y el que ninguna prueba unitaria podía ver.
+
+`visuals[id]` estaba en el contrato del renderer. Lo que **contiene**, no. El
+renderer nativo guardaba ahí el handle del backend de personaje; el de Three.js
+guardaba un envoltorio de escena con el handle dentro. `vfx.js` pasaba
+`visuals[id]` directo a `triggerAttack`, que empieza así:
+
+```js
+CV.triggerAttack = function (st, kind, isPower, castFamily, visualAction) {
+  if (!st.cfg) return;   // aún no ha corrido el primer update
+```
+
+El envoltorio no tiene `cfg`. Return silencioso. En la presentación de Three.js
+—que desde el commit anterior es **el entrypoint del producto**— se descartaban
+todas las acciones de combate, todos los casteos y todas las reacciones al daño.
+
+No saltó a la vista porque **la locomoción va por otro camino**: los personajes
+andaban, corrían, giraban y frenaban con normalidad. Sólo que no atacaban nunca.
+
+Medido con la misma sonda antes y después, `Embestida brutal`:
+
+| | familia de acción en los siete muestreos |
+|---|---|
+| antes | `null`, `null`, `null`, `null`, `null`, `null`, `null` |
+| después | `charge` · fase IMPACT → RECOVERY · peso 1 → 0.81 → 0.07 → 0 |
+
+Y el barrido completo tras la corrección: **36/36 habilidades de las seis clases
+producen gesto en la presentación real**, con 3 a 10 gestos distintos por clase.
+
+La corrección no es `vis.handle || vis`. Un contrato que declara un contenedor
+sin declarar su contenido no es un contrato: `characterHandleOf(id)` entra en la
+lista de métodos obligatorios, lo implementan los dos renderers, y quien
+necesite el handle lo pide. El panel de depuración de animación (F3) tenía el
+mismo fallo.
 
 ### D1 cerrado, y era mayor de lo reportado
 
