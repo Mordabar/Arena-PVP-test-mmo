@@ -143,6 +143,50 @@ Arena.define('tests/testRunner', [], function (Arena) {
     return e;
   };
 
+  /* -------------------------------------------------------------------------
+   * Fixtures atados a la geometría REAL, no a coordenadas mágicas
+   *
+   * Un test que dice `x: 4.5` porque ahí había una columna deja de probar lo que
+   * dice en cuanto alguien rediseña el nivel: sigue verde y ya no comprueba
+   * nada. Peor: una posición que cae dentro de un muro convierte una prueba de
+   * balance en una prueba de un bot atascado, y el número que devuelve parece
+   * un problema de balance.
+   *
+   * Estos ayudantes leen la arena que hay y fallan en voz alta si lo que el
+   * test necesita ya no existe.
+   * ---------------------------------------------------------------------- */
+
+  /** ¿Cabe una entidad de pie en este punto de la arena? */
+  T.isFreeSpot = function (world, x, z, radius) {
+    return Arena.Sim.ArenaMetrics.walkable(world.arena, x, z,
+      radius === undefined ? 0.5 : radius);
+  };
+
+  /** Exige que un punto esté libre. Mensaje explícito cuando el mapa cambia. */
+  T.requireFreeSpot = function (world, x, z, what) {
+    T.assert(T.isFreeSpot(world, x, z),
+      (what || 'el fixture') + ' nace dentro de geometría en (' + x + ', ' + z + '): ' +
+      'el mapa cambió y esta prueba ya no mide lo que dice');
+  };
+
+  /** Una columna real de la arena y dos puntos enfrentados a través de ella. */
+  T.pillarFixture = function (world, gap) {
+    gap = gap === undefined ? 3.0 : gap;
+    var obs = world.arena.obstacles;
+    for (var i = 0; i < obs.length; i++) {
+      if (obs[i].kind !== 'pillar') continue;
+      var cx = (obs[i].min.x + obs[i].max.x) / 2;
+      var cz = (obs[i].min.z + obs[i].max.z) / 2;
+      var a = { x: cx - gap, z: cz }, b = { x: cx + gap, z: cz };
+      if (!T.isFreeSpot(world, a.x, a.z) || !T.isFreeSpot(world, b.x, b.z)) continue;
+      var eyeA = { x: a.x, y: 1.2, z: a.z }, eyeB = { x: b.x, y: 1.2, z: b.z };
+      if (world.hasLineOfSight(eyeA, eyeB)) continue;      // no llega a taparlos
+      return { pillar: obs[i], center: { x: cx, z: cz }, a: a, b: b };
+    }
+    T.assert(false, 'la arena no tiene ninguna columna que corte la visión entre dos puntos libres');
+    return null;
+  };
+
   /** Lanza una habilidad saltándose GCD y cooldown: los tests miden reglas de
    *  resolución, no la disponibilidad del botón. */
   T.forceCast = function (world, caster, abilityId, target) {

@@ -26,6 +26,8 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
     w.settings.rngEnabled = false;
     w.start();
 
+    T.requireFreeSpot(w, -10, 3, classA);
+    T.requireFreeSpot(w, 10, 3, classB);
     var a = Arena.Data.makeEntity(classA, { team: 0, x: -10, z: 3, name: 'A' });
     var b = Arena.Data.makeEntity(classB, { team: 1, x: 10, z: 3, name: 'B' });
     a.aiProfile = 'bot'; b.aiProfile = 'bot';
@@ -214,11 +216,16 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
       w.settings.rngEnabled = false;
       w.start();
 
+      /* Todos en el carril central, que es espacio abierto comprobado. Un solo
+         combatiente que nazca dentro de una ruina deja de pelear y convierte
+         esta prueba de balance en una prueba de un bot atascado — con un número
+         que parece un problema de balance y no lo es. */
       var roster = [
-        ['devastador', 0, -8, 3], ['arcanista', 0, -11, 3],
-        ['centinela', 1, 9, 3], [withSupport ? 'vinculador' : 'rastreador', 1, 12, 3]
+        ['devastador', 0, -8, 0], ['arcanista', 0, -11, 0],
+        ['centinela', 1, 9, 0], [withSupport ? 'vinculador' : 'rastreador', 1, 12, 0]
       ];
       var ents = roster.map(function (r) {
+        T.requireFreeSpot(w, r[2], r[3], r[0]);
         var e = Arena.Data.makeEntity(r[0], { team: r[1], x: r[2], z: r[3] });
         e.aiProfile = 'bot';
         w.addEntity(e);

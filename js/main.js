@@ -8,7 +8,8 @@
 Arena.define('main',
   ['sim/world', 'render/webglRenderer', 'render/vfx', 'render/picking',
    'ui/hud', 'ui/combatLog', 'ui/labPanel', 'ui/tooltips', 'ui/gameShell',
-   'product/matchFlow', 'product/ladder', 'ai/dummyAI', 'audio/audio'],
+   'product/matchFlow', 'product/ladder', 'ai/dummyAI', 'audio/audio',
+   'data/scenarios'],
   function (Arena) {
   'use strict';
 
@@ -259,7 +260,6 @@ Arena.define('main',
     player.godMode = !!world.settings.godModePlayer;
 
     var made = [];
-    var self = this;
     function add(classId, cfg) {
       var e = Arena.Data.makeEntity(classId, cfg);
       e.aiProfile = cfg.profile || 'passive';
@@ -269,45 +269,22 @@ Arena.define('main',
       return e;
     }
 
-    switch (id) {
-      case 'dummies':
-        add('guardian', { name: 'Blindado', team: 1, x: 4, z: -3, profile: 'armored' });
-        add('arcanista', { name: 'Resistente', team: 1, x: 4, z: 0, profile: 'warded' });
-        add('centinela', { name: 'Saco de daño', team: 1, x: 4, z: 3, profile: 'passive' });
-        add('vinculador', { name: 'Aliado', team: 0, x: -8, z: 3, profile: 'support' });
-        break;
-
-      case 'duel':
-        var duelClass = this._opponentFor(this.playerClass);
-        add(duelClass, { name: Arena.Data.classes[duelClass].name + ' rival', team: 1, x: spawns.enemy.x, z: spawns.enemy.z, profile: 'sparring' });
-        break;
-
-      case 'team':
-        var allyClass = this._allyFor(this.playerClass);
-        var enemyA = this._opponentFor(this.playerClass);
-        var enemyB = this._allyFor(enemyA);
-        add(allyClass, { name: Arena.Data.classes[allyClass].name + ' aliado', team: 0, x: -12, z: 2, profile: this._aiProfileForClass(allyClass) });
-        add(enemyA, { name: Arena.Data.classes[enemyA].name + ' rival', team: 1, x: 10, z: -2, profile: this._aiProfileForClass(enemyA) });
-        add(enemyB, { name: Arena.Data.classes[enemyB].name + ' rival', team: 1, x: 13, z: 2, profile: this._aiProfileForClass(enemyB) });
-        break;
-
-      case 'counters':
-        add('guardian', { name: 'Guardián (reflejo)', team: 1, x: 5, z: -4, profile: 'passive' });
-        add('vinculador', { name: 'Vinculador (intervención)', team: 1, x: 5, z: 0, profile: 'passive' });
-        add('arcanista', { name: 'Arcanista (velo nulo)', team: 1, x: 5, z: 4, profile: 'passive' });
-        add('vinculador', { name: 'Aliado de pruebas', team: 0, x: -8, z: 3, profile: 'passive' });
-        break;
-
-      case 'timing':
-        // TIMING LAB: blancos pasivos en una zona compacta para practicar las
-        // ventanas que definen el nuevo ritmo táctico sin interferencia de IA.
-        add('guardian',   { name: '1 · STOP-SHOT',    team: 1, x: -3.5, z: -5.0, profile: 'passive' });
-        add('centinela',  { name: '2 · WEAVE',        team: 1, x: -1.5, z: -2.0, profile: 'passive' });
-        add('devastador', { name: '3 · REPLACE',      team: 1, x: -1.5, z:  2.0, profile: 'passive' });
-        add('arcanista',  { name: '4 · CAST CANCEL',  team: 1, x: -3.5, z:  5.0, profile: 'passive' });
-        add('vinculador', { name: '5 · GCD CHAIN',    team: 1, x:  1.0, z: -4.0, profile: 'passive' });
-        add('guardian',   { name: '6 · RELEASE EDGE', team: 1, x:  1.0, z:  4.0, profile: 'passive' });
-        break;
+    /* El layout vive en `data/scenarios` para que las pruebas puedan
+       comprobar que nadie nace dentro de una columna. Aquí sólo se resuelven
+       los roles («la contraclase del jugador») y se instancia. */
+    var scen = Arena.Data.scenarios.get(id);
+    if (scen) {
+      for (var u = 0; u < scen.units.length; u++) {
+        var unit = scen.units[u];
+        var classId = this._resolveScenarioClass(unit.cls);
+        var pos = Arena.Data.scenarios.positionOf(unit, world.arena);
+        add(classId, {
+          name: unit.name || (Arena.Data.classes[classId].name + (unit.nameSuffix || '')),
+          team: unit.team,
+          x: pos.x, z: pos.z, yaw: pos.yaw,
+          profile: unit.profile === 'byClass' ? this._aiProfileForClass(classId) : unit.profile
+        });
+      }
     }
 
     // El primer enemigo queda preseleccionado: nadie quiere empezar buscando
@@ -339,9 +316,16 @@ Arena.define('main',
   };
 
   function scenarioName(id) {
-    return { dummies: 'sacos de daño', duel: 'duelo 1v1', team: 'combate 2v2',
-             counters: 'sala de counters', timing: 'Timing Lab' }[id] || id;
+    return Arena.Data.scenarios.nameOf(id);
   }
+
+  /** Roles del escenario → clase concreta, en función de la del jugador. */
+  Game._resolveScenarioClass = function (cls) {
+    if (cls === 'opponent') return this._opponentFor(this.playerClass);
+    if (cls === 'ally') return this._allyFor(this.playerClass);
+    if (cls === 'enemyMate') return this._allyFor(this._opponentFor(this.playerClass));
+    return cls;
+  };
 
   Game.setPlayerClass = function (classId) {
     if (!Arena.Data.classes[classId]) return;

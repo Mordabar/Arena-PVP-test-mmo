@@ -939,7 +939,9 @@ body.arena-product-match .arena-topbar { display:none; }
 .team-left{left:18px}.team-right{right:18px}.team-unit{padding:8px 10px;background:rgba(8,17,16,.68);border:1px solid rgba(220,232,226,.09);border-radius:5px;backdrop-filter:blur(7px)}
 .team-unit-head{display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:6px}.team-unit-head span{color:#d5bd7b}.team-unit-head b{font-size:10px}.team-unit-head small{font-size:8px;color:#72857c}.team-unit.dead{opacity:.34;filter:grayscale(1)}
 .team-hp,.team-res{height:4px;background:rgba(255,255,255,.05);margin-top:5px;overflow:hidden;border-radius:2px}.team-hp span,.team-res span{display:block;height:100%;background:#53ad72}.team-unit.hostile .team-hp span{background:#b65c52}.team-res span{background:#4d91b8}
-.countdown-overlay { position:absolute;left:50%;top:42%;transform:translate(-50%,-50%) scale(.94);display:grid;place-items:center;opacity:0;transition:opacity .16s ease,transform .16s ease;text-shadow:0 4px 22px #000; }
+/* Arriba, no en el centro: a 42 % el número caía justo sobre la cabeza del
+   personaje y tapaba lo único que hay que mirar durante la cuenta atrás. */
+.countdown-overlay { position:absolute;left:50%;top:26%;transform:translate(-50%,-50%) scale(.94);display:grid;place-items:center;opacity:0;transition:opacity .16s ease,transform .16s ease;text-shadow:0 4px 22px #000; }
 .countdown-overlay.show{opacity:1;transform:translate(-50%,-50%) scale(1)}.countdown-overlay small{font-size:10px;letter-spacing:.22em;color:#dcc17a}.countdown-overlay b{font:500 86px/.95 Georgia,serif;color:#fff4d4}.countdown-overlay span{font-size:10px;color:#a9b8b0;letter-spacing:.08em}
 
 /* Results */

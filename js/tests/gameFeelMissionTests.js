@@ -193,8 +193,9 @@ Arena.define('tests/gameFeelMissionTests', [], function (Arena) {
   T.suite('Misión · bordes adversariales', function () {
     T.test('el normal también exige LoS: una columna bloquea el windup', function () {
       var w=T.makeWorld();
-      var p=T.spawn(w,'centinela',{team:0,x:-6,z:0}); p.isPlayer=true; p.yaw=Math.PI/2;
-      var e=T.spawn(w,'guardian',{team:1,x:-3,z:0});
+      var f=T.pillarFixture(w);                       // columna real de la arena
+      var p=T.spawn(w,'centinela',{team:0,x:f.a.x,z:f.a.z}); p.isPlayer=true; p.yaw=Math.PI/2;
+      var e=T.spawn(w,'guardian',{team:1,x:f.b.x,z:f.b.z});
       p.targetId=e.id; p.autoAttackOn=true; p.combatMode=true;
       T.assertFalse(w.hasLineOfSight(p.eyePos(),e.centerPos(),p,e),'fixture debe estar detrás de columna');
       tick(w,1); T.assertEqual(A._weapon(p).phase,'READY');

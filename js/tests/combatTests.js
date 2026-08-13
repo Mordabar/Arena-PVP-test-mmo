@@ -623,34 +623,83 @@ Arena.define('tests/combatTests', ['tests/testRunner', 'data/passives'], functio
 
     T.test('Una columna corta la línea de visión', function () {
       var w = T.makeWorld();
-      // Columna en (4.5, 0) de 1.5 × 1.5
-      var a = { x: 0, y: 1.2, z: 0 };
-      var b = { x: 10, y: 1.2, z: 0 };
-      T.assertFalse(w.hasLineOfSight(a, b), 'la columna central debe bloquear');
-      T.assert(w.hasLineOfSight({ x: 0, y: 1.2, z: 5 }, { x: 10, y: 1.2, z: 5 }),
-        'desplazado 5 unidades debe haber visión');
+      // La columna se busca en la arena real: si el nivel cambia, el fixture
+      // cambia con él en vez de quedarse verde probando aire.
+      var f = T.pillarFixture(w);
+      var a = { x: f.a.x, y: 1.2, z: f.a.z };
+      var b = { x: f.b.x, y: 1.2, z: f.b.z };
+      T.assertFalse(w.hasLineOfSight(a, b), 'la columna debe bloquear');
+
+      // Y bloquea LA COLUMNA, no un vecino que se cruzara por casualidad: el
+      // rayo se prueba contra esa caja concreta.
+      var dx = b.x - a.x, dz = b.z - a.z;
+      var len = Math.sqrt(dx * dx + dz * dz);
+      var hit = Arena.Math.Ray.rayAABB(a, { x: dx / len, y: 0, z: dz / len }, f.pillar, len);
+      T.assert(hit !== null && hit < len, 'el rayo choca contra esa columna, no contra otra cosa');
+
+      // Elevar la mirada por encima de la columna sí deja ver: la altura cuenta.
+      var top = f.pillar.max.y + 0.5;
+      T.assert(w.hasLineOfSight({ x: a.x, y: top, z: a.z }, { x: b.x, y: top, z: b.z }),
+        'por encima de la columna hay visión: el corte es volumétrico, no de planta');
     });
 
     T.test('El rango se mide en el plano XZ: una rampa no regala alcance', function () {
       var w = T.makeWorld();
-      var a = T.spawn(w, 'centinela', { team: 0, x: -12.5, z: -9 });   // plataforma alta
-      var b = T.spawn(w, 'devastador', { team: 1, x: -12.5, z: 4 });
-      a.pos.y = 1.5;
+      var plat = w.arena.platforms[0];
+      var ab = Arena.Data.abilities.centinela_disparo_tensado;
+
+      /* El arquero encima de la plataforma real. El objetivo se BUSCA: un punto
+         a ras de suelo, libre, con visión y dentro del alcance horizontal. Fijar
+         una coordenada a mano es lo que hace que un rediseño del nivel rompa una
+         prueba que en realidad habla de aritmética de rango, no de este mapa. */
+      var a = T.spawn(w, 'centinela', { team: 0, x: plat.x, z: plat.z });
+      a.pos.y = plat.h;
+
+      /* Justo por dentro del alcance en horizontal. Con la altura de la
+         plataforma sumada, la distancia 3D se sale del alcance: si el rango se
+         midiera en 3D, este tiro sería ilegal. Es el caso que separa las dos
+         aritméticas, no un punto cómodo a media distancia. */
+      var minXZ = Math.sqrt(ab.range * ab.range - plat.h * plat.h);
+      T.assert(minXZ < ab.range, 'la plataforma tiene altura: la ventana existe');
+      var wanted = ab.range - 0.01;                // dentro de (minXZ, range]
+      T.assert(wanted > minXZ, 'la distancia elegida cae en la ventana que separa XZ de 3D');
+      var b = T.spawn(w, 'devastador', { team: 1, x: plat.x, z: plat.z });
+      var placed = false;
+      for (var deg = 0; deg < 360 && !placed; deg += 5) {
+        var rad = deg * Math.PI / 180;
+        b.pos.x = plat.x + Math.cos(rad) * wanted;
+        b.pos.z = plat.z + Math.sin(rad) * wanted;
+        b.pos.y = 0;
+        if (!T.isFreeSpot(w, b.pos.x, b.pos.z)) continue;
+        if (w.hasLineOfSight(a.eyePos(), b.centerPos(), a, b)) placed = true;
+      }
+      T.assert(placed, 'hay un punto libre y visible justo en el borde del alcance');
 
       var dist3d = Arena.Math.Vec3.dist(a.pos, b.pos);
       var distXZ = Arena.Math.Vec3.distXZ(a.pos, b.pos);
-      T.assert(dist3d > distXZ, 'la distancia 3D debe ser mayor por la altura');
+      T.assert(distXZ <= ab.range, 'en horizontal está dentro: ' + distXZ.toFixed(2));
+      T.assert(dist3d > ab.range,
+        'en 3D está fuera: ' + dist3d.toFixed(2) + ' > ' + ab.range +
+        ' — este es el caso que distingue medir en XZ de medir en 3D');
 
-      var check = Ability.canUse(w, a, Arena.Data.abilities.centinela_disparo_tensado,
-        { targetId: b.id, target: b });
+      var check = Ability.canUse(w, a, ab, { targetId: b.id, target: b });
       T.assert(check.ok, 'debe seguir en rango usando XZ: ' + check.reason);
     });
 
     T.test('Nadie atraviesa un muro al moverse', function () {
       var w = T.makeWorld();
-      var e = T.spawn(w, 'devastador', { team: 0, x: 0, z: -6 });
-      for (var i = 0; i < 60; i++) w.moveEntityBy(e, 0, -1, 1 / 30);
-      T.assert(e.pos.z > -8.0, 'el muro central en z=-8.2 debe frenarlo, está en ' + e.pos.z.toFixed(2));
+      // La barrera del foso al norte, buscada en la arena real.
+      var barrier = null, obs = w.arena.obstacles;
+      for (var k = 0; k < obs.length; k++) {
+        var o = obs[k];
+        var cx = (o.min.x + o.max.x) / 2, cz = (o.min.z + o.max.z) / 2;
+        if (o.kind === 'wall' && Math.abs(cx) < 0.01 && cz < -1 && cz > -w.arena.depth / 2) barrier = o;
+      }
+      T.assert(barrier, 'la arena tiene una barrera central al norte');
+      var e = T.spawn(w, 'devastador', { team: 0, x: 0, z: barrier.max.z + 1.5 });
+      for (var i = 0; i < 90; i++) w.moveEntityBy(e, 0, -1, 1 / 30);
+      T.assert(e.pos.z > barrier.max.z,
+        'la barrera en z=' + barrier.max.z.toFixed(2) + ' debe frenarlo, está en ' + e.pos.z.toFixed(2));
     });
 
     T.test('Una carga no atraviesa paredes', function () {
