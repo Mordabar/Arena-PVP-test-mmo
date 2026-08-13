@@ -124,5 +124,12 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 
 ## Tests fallando
 
-Ninguno. **241/241.** Las seis puertas observables en verde, incluida la de
-animación y VFX con sus siete sondas.
+Ninguno. **241/241.**
+
+Puertas observables: las cinco primeras en verde y reproducidas varias veces.
+La sexta —animación y VFX— tiene sus siete sondas verdes **medidas**, pero la
+ejecución completa de punta a punta en una sola pasada está pendiente de
+confirmar: es la más pesada del conjunto (pinta por software) y en la última
+tirada el filtro de salida se comió lo que hubiera después de la segunda sonda.
+Los resultados de cada sonda están en `docs/ANIMATION_VFX_AUDIT.md` con sus
+números; lo que falta es verlas las seis seguidas sin cortes.
