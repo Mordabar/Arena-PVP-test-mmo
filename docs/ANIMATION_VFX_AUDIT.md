@@ -60,11 +60,30 @@ contenido no es un contrato.
 | VFX · emiten y se apagan | ✓ verde | ninguna de 24 habilidades muda; pico 14 partículas → 0 tras 6 s |
 | Locomoción · seis direcciones, seis ciclos | ✓ verde | parado 0.00, las cinco direcciones a pico 1.20, cinco ciclos distintos, 53 piezas de pose sin NaN |
 | Reacción al daño · aditiva | ✓ verde | pico 0.942, se disuelve sola, la velocidad de locomoción no baja de 1.20 durante el impacto |
-| Muerte · gana a cualquier control | ✗ abierto | la sonda lee `alive: true`, `intent.alive: true` y `intent.crowdControl: 'DEATH'` a la vez, con `entityId` de la intención **igual** al esperado. `AI.build` no puede producir eso en una sola llamada: o la intención no se reconstruye ese frame, o algo la escribe fuera de `build`. En investigación |
+| Muerte · gana a cualquier control | ✓ verde | STUN antes, DEATH después, pose íntegra |
 
-**Cinco de seis en verde.** La sexta no se maquilla: es una contradicción real
-en los datos que no tiene explicación todavía, y hasta tenerla no se declara ni
-defecto ni falso positivo.
+### La contradicción que resultó ser una referencia viva
+
+Durante varias iteraciones esta última sonda devolvía algo imposible: la misma
+entidad con `alive: true`, `intent.alive: true` e `intent.crowdControl: 'DEATH'`
+a la vez, y con el `entityId` correcto. `AI.build` escribe los dos campos en la
+misma llamada, así que no puede producir eso.
+
+No podía, y no lo producía. `window.__intent(t)` devuelve **el objeto vivo** del
+handle, no una copia. La sonda lo guardaba en una variable, seguía adelante,
+mataba a la entidad, y al construir el objeto de retorno serializaba
+`antes.crowdControl` — que para entonces ya era `DEATH`, con toda la razón. Los
+campos que sí se veían coherentes (`ccDirecto: 'STUN'`) eran instantáneas
+tomadas antes de matar. Se estaba comparando una foto contra un vídeo.
+
+Tres sondas de diagnóstico descartaron el producto antes de encontrarlo: la
+cadena entidad → intención es correcta en 1v1, lo sigue siendo tras
+`setPlayerClass`, y lo sigue siendo tras apagar la IA, subir la vida, retirar
+estados y asentar 24 frames. Ninguna reprodujo nada. Sólo el sondeo completo lo
+hacía, porque sólo él mataba a la entidad después de guardar la referencia.
+
+**Coste de esto: seis ejecuciones del barrido.** El beneficio: no se publicó un
+defecto inventado. La sonda guarda ahora una instantánea explícita.
 
 Gestos distintos por clase: Devastador 10, Rastreador 7, Arcanista 6,
 Vinculador 6, Centinela 4, Guardián 3. El Guardián es el más pobre y tiene
@@ -86,6 +105,7 @@ Ninguno de estos era un defecto del juego. Todos parecían serlo.
 | «Parado, el ciclo llega a 0.14» | el teletransporte del montaje se lee como arranque. Con 24 frames de asentado: 0.00 |
 | «La estasis no llega a la animación» | la fatiga global de control rechazaba la cuarta aplicación seguida. En aislado: `stasis → STASIS`, `silence → SILENCE`, `disarm → DISARM` |
 | «Las habilidades de aliado fallan por rango» | el arnés colocaba al lanzador junto al enemigo |
+| «La intención dice DEATH sobre una entidad viva» | la sonda guardaba la **referencia viva** a la intención y la serializaba al final, ya muerta la entidad. Foto contra vídeo |
 
 La regla que sale de aquí: **antes de escribir un defecto, demostrar que el
 arnés mide lo que dice medir.** Una sonda que pasa en vacío es peor que una que

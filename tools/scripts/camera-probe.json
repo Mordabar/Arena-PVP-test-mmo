@@ -1,6 +1,0 @@
-[
-  { "wait": 500 },
-  { "eval": "Arena.Game.startMatch('1v1','devastador'),'match'" },
-  { "wait": 4000 },
-  { "eval": "(function(){var g=Arena.Game,c=g.renderer.camera,p=g.world.getPlayer(),a=g.world.arena;var out={hayPlayer:!!p,camPos:c&&c.position,pitch:c&&c.pitch,camYaw:c&&c.yaw,dist:c&&c.distance,bounds:a&&a.bounds,muro:a&&a.wallHeight};if(p)out.player={x:p.x,y:p.y,z:p.z,yaw:p.yaw};if(c&&a&&a.bounds){out.fueraX=c.position.x<a.bounds.minX||c.position.x>a.bounds.maxX;out.fueraZ=c.position.z<a.bounds.minZ||c.position.z>a.bounds.maxZ;}return out;})()" }
-]

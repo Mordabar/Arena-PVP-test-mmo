@@ -34,12 +34,12 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **51** |
-| TESTED (implementado + suite verde, sin barrido observable) | **85** |
+| VERIFIED | **52** |
+| TESTED (implementado + suite verde, sin barrido observable) | **84** |
 | IMPLEMENTED | **4** |
 | TODO / BLOCKED | **6** |
 
-**51 / 146 VERIFIED — este build NO está terminado.**
+**52 / 146 VERIFIED — este build NO está terminado.**
 
 La cuenta, para que sea auditable y no una cifra de confianza:
 
@@ -50,7 +50,7 @@ La cuenta, para que sea auditable y no una cifra de confianza:
 | TARGETING §5 | 10 | 5 | selección por clic, resaltado, rango, facing, LoS |
 | NORMAL · CASTING · CC | 60 | 11 | 4 del ataque normal + 7 puertas de casteo |
 | CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
-| CHARACTERS · ANIM · VFX | 24 | 6 | locomoción, pose, acciones, control, reacción y VFX medidos en ejecución |
+| CHARACTERS · ANIM · VFX | 24 | 7 | locomoción, pose, acciones, control, reacción, VFX y muerte, medidos en ejecución |
 | ARENA | 6 | 6 | diseño de nivel medido |
 | UI · ICONOS | 5 | 4 | iconografía y selector |
 | BOTS · GAME LOOP | 3 | 1 | lobby → partida → resultado |
@@ -198,21 +198,16 @@ subían con la suite.
 | lenguaje corporal del control | VERIFIED | KNOCKDOWN, STUN y ROOT distintos entre sí y presentes en la intención |
 | reacción al daño aditiva | VERIFIED | pico 0.942, se disuelve sola, la locomoción no baja de 1.20 durante el impacto |
 | familias de VFX | VERIFIED | ninguna de 24 habilidades muda; 14 partículas en pico → 0 a los 6 s |
-| muerte con prioridad sobre control | **EN MEDICIÓN** | ver abajo |
+| muerte con prioridad sobre control | VERIFIED | STUN antes, DEATH después, pose íntegra |
 
-**Seis filas suben, la séptima no.** La sonda de muerte leía `alive: true`,
-`intent.alive: true` e `intent.crowdControl: 'DEATH'` a la vez, con el
-`entityId` de la intención igual al esperado — algo que `AI.build` no puede
-producir en una sola llamada.
-
-En contexto limpio la cadena es correcta de punta a punta, comprobado en un 1v1
-aislado: entidad viva → `crowdControlOf: null` → `intent.crowdControl: null`; con
-aturdimiento → `STUN` en los dos. La contradicción sólo aparecía **dentro del
-barrido largo**, tras cinco reconstrucciones de escenario con el bucle
-congelado. Es casi seguro un artefacto del arnés, pero «casi seguro» no es
-«demostrado»: la sonda se ha movido al principio del barrido, donde el montaje
-está limpio, y falla en voz alta con el prefijo `ARNÉS:` si vuelve a llegar
-sucia. Hasta que esa medición esté verde, la fila no sube.
+**La séptima costó seis ejecuciones y no era un defecto.** La sonda devolvía
+`alive: true` junto a `intent.crowdControl: 'DEATH'` sobre la misma entidad, que
+`AI.build` no puede producir en una sola llamada. Tres diagnósticos descartaron
+el producto —la cadena entidad → intención es correcta en 1v1, tras
+`setPlayerClass`, y tras apagar IA, subir vida, retirar estados y asentar 24
+frames— hasta dar con la causa: la sonda guardaba **la referencia viva** a la
+intención y la serializaba al final del sondeo, con la entidad ya muerta.
+Comparaba una foto contra un vídeo. Detalle en `docs/ANIMATION_VFX_AUDIT.md`.
 
 **Sin juicio artístico.** Que la pose no tenga NaN y que cada poder mueva el
 cuerpo no dice que se vea bien. El peso de un mandoble o la legibilidad de un

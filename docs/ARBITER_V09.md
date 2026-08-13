@@ -68,18 +68,27 @@ se deje de leer.
 | «Las instantáneas no cobran recurso» | El arnés muestreaba el recurso después de `tryUse` |
 | «Ninguna habilidad de aliado funciona» | El arnés colocaba al lanzador junto al enemigo, no junto al aliado |
 | «Avanzar no anima» | El arnés medía tras 1.6 s de correr contra una barrera |
+| «La estasis no llega a la animación» | La fatiga global de control rechazaba la cuarta aplicación seguida. En aislado funciona |
+| «La intención dice DEATH sobre una entidad viva» | La sonda guardaba la referencia viva a la intención y la serializaba al final, ya muerta la entidad |
 
-Ocho informes falsos evitados verificando el arnés antes que el juego.
+Diez informes falsos evitados verificando el arnés antes que el juego.
+
+El último costó **seis ejecuciones del barrido** y tres sondas de diagnóstico
+que descartaron el producto una por una. Merecía ese gasto: la alternativa era
+publicar «la animación de muerte se aplica a personajes vivos», que habría
+mandado a alguien a buscar durante días un fallo inexistente en la capa de
+animación.
 
 ---
 
 ## 4. Lo que sigue sin estar verificado
 
-El build **no está terminado** y el ledger lo dice: 45 de 146 filas VERIFIED.
+El build **no está terminado** y el ledger lo dice: 52 de 146 filas VERIFIED.
 
-1. **CHARACTERS · ANIMATION · VFX**: verificado ahora en ejecución, pero **sin
-   juicio artístico**. Que la pose no tenga NaN y que cada poder mueva el cuerpo
-   no dice que se vea bien.
+1. **CHARACTERS · ANIMATION · VFX**: siete filas verificadas en ejecución, pero
+   **sin juicio artístico**. Que la pose no tenga NaN y que cada poder mueva el
+   cuerpo no dice que se vea bien. 17 de las 24 filas del bloque siguen sin
+   barrido.
 2. **Jump / airborne / landing**: TODO.
 3. **Pointer Lock**: BLOCKED, headless no lo concede sin gesto humano.
 4. **La IA no usa las rutas de cobertura** que la arena ahora ofrece.

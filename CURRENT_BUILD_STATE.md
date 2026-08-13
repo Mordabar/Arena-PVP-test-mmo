@@ -7,7 +7,7 @@
 **Wave actual:** WAVE 5 cerrada · barridos observables de clases, casteo y animación
 **Build importado:** Vertical Slice v0.8 (zip del usuario), commit `07339a4`
 **Rama:** `claude/arena-mmo-concept-qeboc7`
-**Ledger:** 51 / 146 VERIFIED — **el build NO está terminado**
+**Ledger:** 52 / 146 VERIFIED — **el build NO está terminado**
 
 ---
 
@@ -98,6 +98,11 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 5. **«La pose está vacía».** `pose` se rellena en `render()`, no en
    `syncVisuals()`. Una sonda que no pinta mide cero piezas y pasa en vacío.
 
+6. **«La intención dice DEATH sobre una entidad viva».** Costó seis ejecuciones
+   del barrido. La sonda guardaba la **referencia viva** a la intención y la
+   serializaba al final, con la entidad ya muerta: comparaba una foto contra un
+   vídeo. El producto nunca estuvo mal.
+
 ---
 
 ## Siguiente tarea inmediata
@@ -119,8 +124,5 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 
 ## Tests fallando
 
-Ninguno. **241/241.**
-
-Puertas observables: cinco en verde. La sexta —el barrido de animación y VFX—
-sube seis de sus siete sondas; la de muerte está en remedición aislada y hasta
-que cierre no se cuenta.
+Ninguno. **241/241.** Las seis puertas observables en verde, incluida la de
+animación y VFX con sus siete sondas.
