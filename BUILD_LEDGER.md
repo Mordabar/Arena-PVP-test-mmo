@@ -34,14 +34,38 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **18** |
-| TESTED (implementado + suite verde, sin barrido observable) | **112** |
-| IMPLEMENTED | **8** |
-| TODO / BLOCKED | **8** |
+| VERIFIED | **45** |
+| TESTED (implementado + suite verde, sin barrido observable) | **91** |
+| IMPLEMENTED | **4** |
+| TODO / BLOCKED | **6** |
 
-**18 / 146 VERIFIED — este build NO está terminado.**
+**45 / 146 VERIFIED — este build NO está terminado.**
 
-Suite: **219/219 verdes**. Puertas observables: `hud-layout-audit` en verde.
+La cuenta, para que sea auditable y no una cifra de confianza:
+
+| Bloque | Filas | VERIFIED | Cuáles |
+|---|---|---|---|
+| MOVEMENT | 16 | 3 | strafe izq./der., giro por ratón |
+| CAMERA | 10 | 3 | seguimiento, colisión, sin lock de objetivo |
+| TARGETING §5 | 10 | 5 | selección por clic, resaltado, rango, facing, LoS |
+| NORMAL · CASTING · CC | 60 | 11 | 4 del ataque normal + 7 puertas de casteo |
+| CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
+| CHARACTERS · ANIM · VFX | 24 | 0 | pendiente del juicio de los árbitros |
+| ARENA | 6 | 6 | diseño de nivel medido |
+| UI · ICONOS | 5 | 4 | iconografía y selector |
+| BOTS · GAME LOOP | 3 | 1 | lobby → partida → resultado |
+
+Suite: **240/240 verdes**. Todas las puertas observables en verde.
+
+### Cómo se reproduce todo esto
+
+```
+node tools/run-gates.js          # batería + arena + HUD + casteo + seis clases
+node tools/run-gates.js --rapido # sólo lo que no necesita navegador
+```
+
+Termina en rojo si falla cualquiera. Es lo que separa «lo he mirado y se veía
+bien» de algo que otra persona puede repetir.
 
 ---
 
@@ -114,11 +138,47 @@ colocarlo en rango y encarado, el daño fluye. Es el juego funcionando —el arc
 frontal y la movilidad reducida hacen que posicionarse importe—, no un defecto.
 Queda escrito para que nadie lo reabra.
 
+### Barrido observable de CASTING
+
+`node tools/browser.js play tools/scripts/casting-sweep.json` — siete puertas,
+todas en verde, ejecutadas por la ruta real del jugador (`Game._useSlot`, la
+misma que usan las teclas 1–6):
+
+| Puerta | Evidencia |
+|---|---|
+| PREPARE | `Impacto celeste` (1.7 s) abre casteo y `#player-cast` se hace visible con la habilidad correcta |
+| RELEASE | se libera en el tick 50 de 51, aplica 167.7 de daño, cobra 23.9 y arranca cooldown |
+| GCD | quedan 0.70 s de GCD, los 6 huecos pintan el barrido y la siguiente se rechaza con motivo `gcd` |
+| QUEUE | pulsar a 0.12 s del final encola y arranca sola al liberarse |
+| CANCEL por movimiento | sin coste y sin cooldown |
+| CANCEL por Esc | ídem, y la barra desaparece |
+| CANCEL por interrupción | un silencio corta el casteo y bloquea la escuela (`silenced`) |
+
+Tres correcciones **del arnés**, no del juego, antes de dar nada por bueno: el
+bucle rAF seguía simulando entre sonda y sonda y contaminaba la siguiente; poner
+`pendingCast = null` a mano dejaba el estado a medias y producía una «liberación
+instantánea» inexistente; y cortar la medición antes del vuelo del proyectil
+hacía parecer que RELEASE no pegaba. Las tres habrían sido informes de defecto
+falsos.
+
 ## CLASSES
 
-Filas 97–108 (seis clases × identidad/pasiva/activas). Estado: **TESTED**.
-Las seis existen con seis activas, pasiva, icono y metadatos de IA.
-Falta jugar cada una y confirmar que ninguna habilidad es un stub.
+Filas 97–108 (seis clases × identidad/pasiva/activas). Estado: **VERIFIED**.
+
+`node tools/browser.js play tools/scripts/class-sweep.json` juega las seis
+clases en un 2v2 real y dispara sus 36 habilidades contra un enemigo y contra un
+aliado, colocando al lanzador en un punto con visión comprobada:
+
+**36/36 aceptadas.** Todas cobran su recurso declarado, arrancan su cooldown
+declarado, abren casteo si y sólo si declaran tiempo de casteo, y aplican los
+estados que prometen: `slow`, `armorBreak`, `damageAmp`+`exposed`, `block`,
+`reflect`, `noOffense`, `damageRedirect`, `sharpshooter`, `stasis`, `stealth`,
+`root`, `dot`+`antiHeal`, `utilityLock`, `revealed`, `silence`, `castHaste`,
+`antiBuff`, `hot`, `barrier`, `intervention`, `protectiveLink`.
+
+Ninguna es un stub. La pasiva del Vinculador se ve funcionando en los números:
+`Pulso vital` cuesta 24 y cobró 12.6 curando a un aliado al 45 % de vida, que es
+exactamente el reembolso del 8 % de «Flujo compartido».
 
 ## CHARACTERS · ANIMATION · VFX
 
@@ -129,10 +189,20 @@ Arbiter sobre cada una.
 
 ## ARENA
 
-Filas 133–138. Estado: **IMPLEMENTED**.
-La arena tiene obstáculos, plataformas, rampas y bloqueadores de LoS. **No** ha
-pasado por el diseño de niveles PvP que pide el brief (¿dónde entra melee?
-¿dónde kitea el arquero? ¿dónde rompe LoS el mago?).
+Filas 133–138. Estado: **VERIFIED**. Detalle completo en
+`docs/ARENA_LEVEL_DESIGN.md`; números con `node tools/arena-analysis.js`.
+
+| Fila | Estado | Evidencia |
+|---|---|---|
+| dónde entra el melee | VERIFIED | carriles con cobertura cada <5 u; foso central 100 % libre y ninguna columna a menos de 6.5 u del centro |
+| dónde kitea el rango | VERIFIED | vuelta de 360° cerrada quitando discos de 5, 7 y 9 u; espacio jugable en una sola pieza |
+| dónde rompe LoS el mago | VERIFIED | cobertura media a 3.13 u, peor rincón a 8.59 |
+| justicia del ladder | VERIFIED | simetría 180° por construcción; los dos spawns miden 11.00 / 2.89 / 12.00 |
+| apertura legible | VERIFIED | los duelistas se ven al empezar; 12 u de espalda libre para la cámara |
+| zonas declaradas | VERIFIED | 7 zonas con rol y nota, comprobadas como espacio jugable |
+
+Antes los spawns eran (−10, 0) y (8, 0): dos metros de ventaja para un bando en
+un modo con rating.
 
 ## UI · ICONOS
 

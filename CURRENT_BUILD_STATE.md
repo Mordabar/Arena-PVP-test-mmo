@@ -4,98 +4,95 @@
 > Si una ejecución se interrumpe, el siguiente agente continúa **desde aquí**
 > sin volver a descubrir el proyecto.
 
-**Wave actual:** WAVE 1 — Barrido observable (en curso)
-**Build importado:** Vertical Slice v0.8 (zip del usuario)
-**Commit de importación:** `07339a4`
+**Wave actual:** WAVE 5 cerrada · barrido observable de clases y casteo cerrado
+**Build importado:** Vertical Slice v0.8 (zip del usuario), commit `07339a4`
 **Rama:** `claude/arena-mmo-concept-qeboc7`
+**Ledger:** 45 / 146 VERIFIED — **el build NO está terminado**
 
 ---
 
-## Qué acaba de ocurrir
+## Reproducir el estado en un comando
 
-El usuario entregó el proyecto como zip. Se comprobó que es **descendiente
-directo** de esta rama (conserva el arreglo de handedness de A/D, `_faceIntent`,
-`MOVE_SPEED_BASE 4.15`, arco frontal del ataque normal) y que añade por encima
-el bucle de producto, el shell de UI, la iconografía y tres suites de test.
+```
+node tools/run-gates.js
+```
 
-Se importó como commit propio, sin mezclar, para que el diff quede aislable.
-
-## Estado verificado en esta sesión
-
-| Comprobación | Resultado | Evidencia |
-|---|---|---|
-| Suite completa | **215/215 verdes** | `node tools/run-tests.js` |
-| Arranque `index.html` | OK, 0 errores | `tools/browser.js smoke` |
-| Lobby renderiza | OK | `docs/shots/vs-01-lobby.png` |
-| Lobby → countdown → ACTIVE | OK | sondeo de `flow.phase` |
-| Combate con bot, daño aplicado | OK (1350 → 1132 HP) | sondeo en navegador |
-| Errores JS durante partida | **0** | `window.onerror` + `unhandledrejection` |
-
-### Desbloqueo importante
-
-`FRESH_REVIEW_V08.md` declaraba el gate observable **pendiente** porque el
-Chromium del entorno bloqueaba `127.0.0.1`. **Ese bloqueo ya no aplica aquí:**
-`tools/browser.js` levanta un servidor estático en un puerto efímero y carga la
-página por HTTP. El gate observable se puede ejecutar y se ejecutó.
+Ejecuta la batería sin navegador, los números de la arena, la composición del
+HUD en las tres fases, el barrido de casteo y el de las seis clases. Termina en
+rojo si algo falla. Ahora mismo: **todo en verde, 240/240 pruebas**.
 
 ---
 
-## Hallazgos de esta sesión
+## Qué se cerró en esta sesión
 
-### Falso positivo descartado (documentado para que no se persiga otra vez)
+### D1 — el HUD y el chrome de producto compartían píxeles
+Reportado como «el panel de laboratorio se superpone al HUD de partida». En
+partida de ladder no ocurría; en el Combat Lab ocurría **seis veces**. Al
+convertir la medición en puerta ejecutable apareció un séptimo, ese sí en la
+partida real: el roster de equipo se colocaba en un `top` fijo mientras el marco
+del jugador crece con los estados activos.
 
-**El reloj de partida NO está roto.** Una primera medición sugería que
-`matchElapsed` se quedaba en 0. La causa real es del entorno de medida: el
-navegador headless corre rAF a ~4 fps y `realDt` está limitado a 0.1 s
-(`Math.min(0.1, …)`, protección anti espiral de la muerte), así que el tiempo de
-producto avanza a ~0.35× del tiempo de pared **sólo en headless**. A 60 fps el
-tope nunca se activa.
+De paso: el roster se reconstruía con `innerHTML` sesenta veces por segundo, y
+la carga emitía un 404 de `favicon.ico`.
 
-Consecuencia real, menor: por debajo de 10 fps el countdown y el cronómetro de
-partida corren más lentos que el reloj de pared. Clasificado **P2**, no
-bloqueante, anotado en el ledger.
+### La cámara se metía dentro del escenario
+La colisión sólo miraba `arena.obstacles`, y las plataformas no están ahí
+—se caminan y no cortan LoS—, así que la cámara las atravesaba y enseñaba el
+reverso del nivel. Además el suelo mínimo del ojo era un absoluto (`y = 0.35`),
+que sobre una plataforma de 1.5 deja el ojo por debajo del suelo pisado.
 
-### Defectos abiertos observados (pendientes de verificar uno a uno)
+### WAVE 5 — la arena pasó de decorado a diseño de nivel
+`docs/ARENA_LEVEL_DESIGN.md` tiene el detalle. Resumen: geometría simétrica por
+construcción, spawns espejo exacto (antes uno estaba 2 u más cerca del centro),
+eje de salida despejado para que los duelistas se vean, foso central limpio,
+vuelta de 360° comprobada y 17 pruebas que son el contrato.
 
-| # | Sev | Descripción | Estado |
-|---|---|---|---|
-| D1 | P2 | Panel del Combat Lab superpuesto al HUD de partida | ABIERTO |
-| D2 | P1 | Iconos repetidos dentro de una misma clase | **CERRADO** — 6 colisiones, 10 glifos nuevos, 4 tests |
-| D3 | P2 | Reloj de producto ligado a fps por el tope de `realDt` | ABIERTO, documentado |
-| D4 | — | Entrypoint por defecto | **RESUELTO** |
-| D5 | — | «El jugador no hace daño» | **DESCARTADO** — era melee parado frente a arquero que kitea |
+Rediseñar destapó cuatro cosas que el mapa anterior tapaba: tres fixtures atados
+a coordenadas mágicas que seguían verdes probando aire, un bot que nacía dentro
+de un muro y hacía parecer un problema de balance, dos maniquíes dentro de
+columnas, y un TTK fuera de banda que se corrigió moviendo el mapa, no la banda.
 
-**D4 resuelto en autónomo.** `index.html` es ahora la presentación de Three.js
-—la que tiene cielo con degradado, sombras de contacto, braseros y jerarquía de
-valores— y el renderer nativo pasa a `index-webgl2.html` como respaldo sin
-dependencias que sigue abriéndose con doble clic. El producto se enseña con su
-mejor cara; el respaldo existe para quien no pueda servir por HTTP.
+### Barrido observable de las seis clases y del casteo
+36/36 habilidades ejecutadas en navegador por la ruta real del jugador: todas
+cobran, enfrían, castean si declaran casteo y aplican sus estados. Siete puertas
+de casteo (prepare, release, GCD, cola, tres cancelaciones) en verde.
+
+---
+
+## Falsos positivos ya descartados — no reabrir
+
+1. **El reloj de partida no está roto.** El navegador headless corre rAF a ~4 fps
+   y `realDt` está topado a 0.1 s, así que el tiempo de producto avanza a ~0.35×
+   del de pared **sólo en headless**. `MatchFlow.update` además topa a 0.25 s por
+   llamada. A 60 fps ningún tope se activa. Sigue siendo P2 documentado: por
+   debajo de 10 fps la cuenta atrás va lenta.
+
+2. **«El jugador no hace daño».** Era un melee parado frente a un arquero que
+   kitea. En rango y encarado: 1100 → 1046 en 6 s.
+
+3. **Tres «defectos» de casteo que eran del arnés.** El bucle rAF simulando entre
+   sondas, `pendingCast = null` a mano dejando el estado a medias, y medir antes
+   de que llegue el proyectil. Los tres habrían sido informes falsos.
 
 ---
 
 ## Siguiente tarea inmediata
 
-1. **D1**: confirmar la superposición del panel de laboratorio sobre el HUD de
-   partida y ocultarlo cuando `flow.phase !== 'LOBBY'`.
-2. Barrido observable de CASTING (prepare/release/GCD/queue/cancel) y de las
-   seis clases jugadas una a una.
-3. WAVE 5 (arena como diseño de nivel PvP) sigue sin empezar: la arena tiene
-   obstáculos pero no responde a «dónde entra melee / dónde kitea el arquero /
-   dónde rompe LoS el mago».
-4. Jump / airborne / landing siguen en TODO.
+1. **WAVES 2–4 y 6–10 del master prompt**, que siguen sin barrido observable:
+   character feel, visuales de personaje, familias de VFX, bots y game loop
+   completos, pulido y asalto final de calidad.
+2. **CHARACTERS · ANIMATION · VFX (filas 109–132): 0 VERIFIED.** Es el bloque más
+   grande sin verificar. Necesita el juicio del Animation Arbiter y del Visual
+   Arbiter sobre cada arquetipo y cada familia.
+3. **Jump / airborne / landing** siguen en TODO (filas 11–13).
+4. **La IA no usa las rutas de cobertura de la arena.** Los carriles existen y un
+   humano puede usarlos; el bot va en línea recta. Carencia de IA, no de nivel.
+5. **Pointer Lock** (fila 22) sigue BLOCKED: headless no lo concede sin gesto
+   humano. Las filas 20–21 (arrastre izquierdo, mirada libre derecha) siguen
+   IMPLEMENTED sin verificación con ratón real.
+6. **Ninguna regla premia la altura.** Las plataformas dan lectura del foso y
+   cuestan tiempo al subir, pero no hay ventaja mecánica de alto.
 
 ## Tests fallando
 
-Ninguno. **219/219.**
-
-## Último resultado de árbitro
-
-`docs/FRESH_REVIEW_V08.md` (agente anterior): sin críticos estáticos abiertos,
-gate observable pendiente. **Ese gate ya no está pendiente** en lo básico
-(arranque, flujo de partida, combate, cero errores); falta el barrido completo
-de la Completion Matrix en ejecución.
-
-## Última revisión visual
-
-Lobby y combate capturados en esta sesión. El lobby tiene calidad de producto
-—selector de clase, perfil de ladder, iconografía—, no de prototipo.
+Ninguno. **240/240.** Todas las puertas observables en verde.
