@@ -101,6 +101,14 @@ export function createThreeRenderer(Arena, canvas, world, opts) {
     }
   };
 
+  /* Aquí `visuals[id]` es un envoltorio de escena de Three.js y el handle del
+     backend de personaje vive dentro. Quien quiera disparar una animación
+     necesita el handle, no el envoltorio. */
+  ThreeRenderer.prototype.characterHandleOf = function (entityId) {
+    var v = this.visuals[entityId];
+    return v ? v.handle : null;
+  };
+
   ThreeRenderer.prototype.render = function (alpha, dt) {
     this.time += dt;
     if (this.hurtFlash > 0) this.hurtFlash = Math.max(0, this.hurtFlash - dt * 2.2);

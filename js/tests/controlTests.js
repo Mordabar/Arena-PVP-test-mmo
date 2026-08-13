@@ -300,10 +300,49 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       // hospedada se rompe en silencio. El test obliga a que añadir algo al
       // contrato sea una decisión consciente.
       var RB = Arena.Render.RendererBackend;
-      T.assertEqual(RB.METHODS.join(','), 'init,syncVisuals,render,resize',
+      T.assertEqual(RB.METHODS.join(','), 'init,syncVisuals,render,resize,characterHandleOf',
         'métodos del contrato');
       T.assertEqual(RB.PROPS.join(','), 'camera,canvas,visuals,playerId,selectedId,hoverId',
         'propiedades del contrato');
+    });
+
+    T.test('el handle de personaje se pide por método, no leyendo visuals[id]', function () {
+      /* Éste es el fallo que costó todas las animaciones de combate en la
+         presentación de Three.js. `visuals` estaba en el contrato; lo que
+         CONTIENE, no. El renderer nativo guardaba ahí el handle del backend y
+         el de Three.js un envoltorio de escena con el handle dentro. `vfx.js`
+         pasaba `visuals[id]` a `triggerAttack`, que empieza con
+         `if (!st.cfg) return;` y descartaba en silencio cada ataque, cada
+         casteo y cada reacción al daño. La locomoción iba por otro camino, así
+         que los personajes se movían y parecía que todo estaba bien.
+
+         La regla que impone este test: quien necesite el handle lo pide por
+         `characterHandleOf(id)`. Nadie deduce el contenido de `visuals`. */
+      var RB = Arena.Render.RendererBackend;
+      T.assert(RB.METHODS.indexOf('characterHandleOf') >= 0,
+        'el contrato obliga a exponerlo');
+
+      var handle = { cfg: {}, action: {}, intent: {}, loco: {} };
+      var comoNativo = {
+        visuals: { e1: handle },
+        characterHandleOf: function (id) { return this.visuals[id] || null; }
+      };
+      var comoThree = {
+        visuals: { e1: { handle: handle, root: {}, pose: [] } },
+        characterHandleOf: function (id) {
+          var v = this.visuals[id]; return v ? v.handle : null;
+        }
+      };
+      T.assertEqual(comoNativo.characterHandleOf('e1'), handle,
+        'el nativo devuelve el handle');
+      T.assertEqual(comoThree.characterHandleOf('e1'), handle,
+        'Three.js devuelve el MISMO handle, no su envoltorio');
+      T.assertEqual(comoThree.characterHandleOf('nadie'), null,
+        'una entidad que no existe da null, no undefined encubierto');
+
+      // Y la razón por la que importa: sin `cfg` el disparo de acción se cae.
+      T.assert(comoThree.characterHandleOf('e1').cfg,
+        'lo devuelto es lo que triggerAttack necesita para no salirse en la primera línea');
     });
   });
 

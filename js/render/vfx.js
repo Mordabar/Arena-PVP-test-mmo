@@ -121,7 +121,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
         // La reacción es DIRECCIONAL: se pasa la posición del atacante para
         // que el torso se sacuda hacia donde toca. Un impacto que siempre
         // empuja igual delata que nadie mira de dónde vino el golpe.
-        var vis = renderer && renderer.visuals[p.targetId];
+        var vis = renderer && renderer.characterHandleOf(p.targetId);
         var victim = world.getEntity(p.targetId);
         var attacker = p.sourceId ? world.getEntity(p.sourceId) : null;
         if (vis && victim) {
@@ -154,7 +154,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
        se enteraba del hechizo sólo al terminarlo, así que los siete tipos de
        conjuro se veían exactamente igual mientras se canalizaban. */
     bus.on('AbilityCastStarted', function (p) {
-      var vis = renderer && renderer.visuals[p.casterId];
+      var vis = renderer && renderer.characterHandleOf(p.casterId);
       var castAb = Arena.Data.abilities[p.abilityId];
       var castVisual = castAb && castAb.combatTiming ? castAb.combatTiming.visualAction : null;
       if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, Arena.Data.castFamilyOf(p.abilityId), castVisual);
@@ -166,7 +166,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
     });
 
     bus.on('AbilityCastInterrupted', function (p) {
-      var vis = renderer && renderer.visuals[p.casterId];
+      var vis = renderer && renderer.characterHandleOf(p.casterId);
       if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, null, null);
     });
 
@@ -180,7 +180,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
         speed: 3.8, life: 0.48, size: 0.11, gravity: -0.4, style: magic ? 'spark' : 'shard'
       });
       var caster = world.getEntity(p.casterId);
-      var vis = renderer && renderer.visuals[p.casterId];
+      var vis = renderer && renderer.characterHandleOf(p.casterId);
       if (vis && caster) {
         // Poder, no ataque normal. La FAMILIA VISUAL del hechizo se deduce en
         // data/castFamilies.js: aquí sólo se transporta la etiqueta, para que la
@@ -202,7 +202,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
        marker semántico sin que la animación decida el impacto. */
     bus.on('WeaponWindupStarted', function (p) {
       var caster = world.getEntity(p.casterId);
-      var vis = renderer && renderer.visuals[p.casterId];
+      var vis = renderer && renderer.characterHandleOf(p.casterId);
       if (vis && caster) {
         var CBa = Arena.Render.CharacterBackend.current;
         CBa.triggerAttack(vis, CBa.archetypeOf(caster.classId), false);

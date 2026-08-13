@@ -106,7 +106,7 @@ class Session {
           this.pending.delete(id);
           reject(new Error(`Timeout en ${method}`));
         }
-      }, 30000);
+      }, Number(process.env.CDP_TIMEOUT_MS || 180000));
     });
   }
 

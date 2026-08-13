@@ -732,6 +732,11 @@ Arena.define('render/webglRenderer',
     }
   };
 
+  /** Aquí `visuals[id]` YA es el handle del backend de personaje. */
+  Renderer.prototype.characterHandleOf = function (entityId) {
+    return this.visuals[entityId] || null;
+  };
+
   Renderer.prototype.render = function (alpha, dt) {
     this.time += dt;
     if (this.hurtFlash > 0) this.hurtFlash = Math.max(0, this.hurtFlash - dt * 2.2);

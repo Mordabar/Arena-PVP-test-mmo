@@ -22,8 +22,20 @@
 Arena.define('render/rendererBackend', [], function (Arena) {
   'use strict';
 
-  /* Métodos que el juego llama por su nombre. */
-  var METHODS = ['init', 'syncVisuals', 'render', 'resize'];
+  /* Métodos que el juego llama por su nombre.
+   *
+   * `characterHandleOf` existe por un fallo real y caro. `visuals[id]` estaba en
+   * el contrato, pero NO qué contiene: el renderer nativo guardaba ahí el handle
+   * del backend de personaje y el de Three.js guardaba un objeto envoltorio con
+   * el handle dentro. `vfx.js` pasaba `visuals[id]` a `triggerAttack`, que
+   * empieza con `if (!st.cfg) return;` — así que en la presentación de Three.js
+   * TODA acción de combate, todo casteo y toda reacción al daño se descartaban
+   * en silencio. La locomoción seguía funcionando porque va por otro camino, y
+   * por eso nadie lo vio: los personajes se movían, sólo que nunca atacaban.
+   *
+   * La lección no es «poner `vis.handle || vis`»: es que un contrato que declara
+   * un contenedor sin declarar su contenido no es un contrato. */
+  var METHODS = ['init', 'syncVisuals', 'render', 'resize', 'characterHandleOf'];
 
   /* Propiedades que el juego y el HUD leen o escriben directamente.
      `camera` y `canvas` los usa el HUD para proyectar nameplates; los tres ids

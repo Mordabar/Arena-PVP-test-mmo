@@ -538,7 +538,7 @@ Arena.define('main',
     var subject = (player && player.targetId && player.targetId !== player.id)
       ? this.world.getEntity(player.targetId) : player;
     if (!subject) { panel.querySelector('pre').textContent = 'sin entidad'; return; }
-    var handle = this.renderer.visuals[subject.id];
+    var handle = this.renderer.characterHandleOf(subject.id);
     if (!handle) { panel.querySelector('pre').textContent = 'sin estado visual'; return; }
     panel.querySelector('pre').textContent = D.lines(handle, subject).join('\n');
   };

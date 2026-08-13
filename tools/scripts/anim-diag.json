@@ -1,0 +1,8 @@
+[
+  { "eval": "Arena.Game.startMatch('1v1','devastador'),'m'" },
+  { "wait": 1500 },
+  { "eval": "(function(){for(var i=0;i<80&&Arena.Game.flow.phase!=='ACTIVE';i++)Arena.Game.flow.update(0.25);return Arena.Game.flow.phase;})()" },
+  { "eval": "(function(){var G=Arena.Game;G._running=false;var W=G.world,p=W.getPlayer();var h=G.renderer.visuals[p.id];return {tieneVisual:!!h,claves:h?Object.keys(h):null,poseLen:h&&h.pose?h.pose.length:null,handleClaves:h&&h.handle?Object.keys(h.handle).slice(0,25):null};})()" },
+  { "eval": "(function(){var G=Arena.Game,W=G.world,p=W.getPlayer(),t=null;for(var i=0;i<W.entities.length;i++)if(W.entities[i].team!==p.team)t=W.entities[i];W.settings.aiEnabled=false;t.aiEnabled=false;t.hpMax=9e5;t.hp=9e5;p.pos.x=t.pos.x;p.pos.z=t.pos.z-2.2;p.prevPos.x=p.pos.x;p.prevPos.z=p.pos.z;p.yaw=0;p.targetId=t.id;p.gcdUntil=0;p.cooldowns=Object.create(null);p.resource=p.resourceMax;var CB=Arena.Render.CharacterBackend;var h=G.renderer.visuals[p.id];var r=Arena.Combat.AbilitySystem.tryUse(W,p,p.abilities[0],{targetId:t.id,target:t});var muestras=[];for(var s=0;s<50;s++){W.stepSeconds(1/60);G.renderer.syncVisuals(1/60);if(s%8===0){var it=CB.current.intentOf(h.handle||h);muestras.push({t:s,loc:it&&it.locomotion,fam:it&&it.actionFamily,fase:it&&it.actionPhase,vis:it&&it.visualAction,cast:it&&it.castFamily,peso:it&&it.actionWeight,poseLen:h.pose?h.pose.length:null});}}return {uso:r&&r.ok,muestras:muestras};})()" },
+  { "eval": "(function(){var G=Arena.Game;var h=G.renderer.visuals[G.world.getPlayer().id];var hh=h.handle||h;return {actionEnHandle:!!hh.action,claves:hh.action?Object.keys(hh.action):null,family:hh.action&&hh.action.family,visualAction:hh.action&&hh.action.visualAction};})()" }
+]
