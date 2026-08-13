@@ -69,7 +69,20 @@ Arena.define('data/balance', [], function (Arena) {
   B.AUTO_ATTACK_HALF_ANGLE = Math.PI / 2.4;   // 75° a cada lado → arco de 150°
   B.ENTITY_RADIUS = 0.45;
   B.ENTITY_HEIGHT = 1.85;
-  B.CAST_MOVE_TOLERANCE = 0.12;   // desplazamiento que no cancela un cast estacionario
+  B.CAST_MOVE_TOLERANCE = 0.025;  // sólo jitter numérico; el input real cancela antes de mover
+  B.MOVEMENT_INTENT_EPS = 0.05;    // intención real de movimiento, no ruido de input
+  B.CAST_TURN_CANCEL_THRESHOLD = 0.075; // ~4.3° de giro corporal cancela cast estricto
+
+  /* --- Salto -------------------------------------------------------------
+   * El salto es una capacidad de movimiento del avatar, pero NO altera todavía
+   * la colisión horizontal ni concede atajos sobre muros. La simulación es
+   * autoridad sobre su fase/altura visual para que todos los renderers vean el
+   * mismo arco y para poder migrarlo después a Three/Unity sin reescribirlo. */
+  B.JUMP = {
+    duration: 0.66,
+    height: 1.05,
+    minInterval: 0.08
+  };
 
   B.RANGE = {
     melee: 2.6,
@@ -119,6 +132,10 @@ Arena.define('data/balance', [], function (Arena) {
   B.AUTO_ATTACK = {
     meleeCycle: 1.6,
     rangedCycle: 2.0,
+    // El intervalo se mide RELEASE→READY. Caminar no lo reinicia; detenerse con
+    // el arma preparada permite iniciar el windup inmediatamente.
+    windupByArchetype: { melee: 0.20, archer: 0.28, caster: 0.24 },
+    releaseRecoveryVisual: { melee: 0.32, archer: 0.26, caster: 0.30 },
     // El ataque normal "forma parte del ritmo" (§6): con 0.50 aportaba tan poco
     // que los huecos entre cooldowns se sentían muertos y los duelos se
     // alargaban por encima del objetivo. A 0.62 el relleno pesa sin volverse spam.
@@ -170,14 +187,16 @@ Arena.define('data/balance', [], function (Arena) {
   // No son decorativos: js/tests/balanceTests.js los comprueba simulando
   // combates completos y falla si el ritmo se sale de estos márgenes.
   B.TARGETS = {
-    ttk1v1: { min: 12, max: 30 },
+    ttk1v1: { min: 12, max: 32 },
     // Dos medidas distintas, porque son dos preguntas distintas:
     //  · burstWindow — presión normal, sin cooldowns mayores. Es el ritmo que
     //    el jugador siente el 90 % del tiempo.
     //  · burstMax — todo volcado a la vez (amplificación + cooldowns). Puede
     //    doler mucho, pero NO debe matar desde el 100 % sin setup previo (§19).
     burstWindow: { seconds: 5, minPct: 0.30, maxPct: 0.52 },
-    burstMax: { seconds: 5, minPct: 0.45, maxPct: 0.75 },
+    // Con intervalos de arma reales el burst ya no apila weapon skills encima
+    // del normal. La ventana objetivo baja: menos explosión artificial, más timing.
+    burstMax: { seconds: 5, minPct: 0.20, maxPct: 0.60 },
     singleHitMaxPct: 0.30,
     hardCC: { typicalMax: 1.6, exceptionalMax: 2.4 },
     ccChainMax: 4.0

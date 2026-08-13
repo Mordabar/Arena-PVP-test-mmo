@@ -337,7 +337,10 @@ Arena.define('sim/world',
       speed: cfg.speed || 34,
       kind: cfg.kind || 'arrow',
       bornAt: this.time,
-      maxLife: cfg.maxLife || 3.0
+      maxLife: cfg.maxLife || 3.0,
+      autoAttack: !!cfg.autoAttack,
+      raw: cfg.raw || 0,
+      school: cfg.school || 'physical'
     };
     this.projectiles.push(p);
     this.bus.emit('ProjectileSpawned', {
@@ -377,16 +380,78 @@ Arena.define('sim/world',
           projectileId: p.id, casterId: p.casterId, targetId: p.targetId,
           abilityId: p.abilityId, x: p.pos.x, y: p.pos.y, z: p.pos.z
         });
-        var ability = Arena.Data.abilities[p.abilityId];
-        if (ability && caster) {
-          Resolver.resolveHit(this, caster, target, ability, { isAoE: false });
-          if (ability.selfEffects && ability.selfEffects.length) {
-            Resolver._applyEffectList(this, caster, caster, ability, ability.selfEffects, { isSelf: true });
+        if (p.autoAttack && caster) {
+          var aa = Dmg.applyDamage(this, {
+            source: caster, target: target, raw: p.raw,
+            school: p.school === 'magical' ? 'magical' : 'physical',
+            abilityId: 'auto_attack', canCrit: true
+          });
+          this.bus.emit('AutoAttackImpact', {
+            casterId: caster.id, targetId: target.id, projectileId: p.id,
+            damage: aa.applied, ranged: true
+          });
+          if (Arena.Data.passives && Arena.Data.passives.onAutoAttack) {
+            Arena.Data.passives.onAutoAttack(this, caster, target, aa);
+          }
+        } else {
+          var ability = Arena.Data.abilities[p.abilityId];
+          if (ability && caster) {
+            Resolver.resolveHit(this, caster, target, ability, { isAoE: false });
+            if (ability.selfEffects && ability.selfEffects.length) {
+              Resolver._applyEffectList(this, caster, caster, ability, ability.selfEffects, { isSelf: true });
+            }
           }
         }
       } else {
         V.addScaled(p.pos, p.pos, V.scale(d, d, 1 / dist), step);
       }
+    }
+  };
+
+
+  /**
+   * Salto visual autoritativo. No permite atravesar colliders: por ahora es
+   * movilidad expresiva/game feel, no una mecánica de traversal. La parábola
+   * vive aquí para que WebGL2, Three.js y un futuro cliente Unity reciban el
+   * mismo estado en vez de inventar arcos distintos en presentación.
+   */
+  World.prototype._tickJump = function (entity, dt) {
+    var req = !!entity._jumpRequested;
+    entity._jumpRequested = false;
+
+    if (req && entity.alive && !entity.jumpActive) {
+      var m = entity.mods();
+      var canStart = m.canMove && (this.time - entity.jumpStartedAt >= B.JUMP.minInterval);
+      if (canStart) {
+        // Saltar es movimiento aunque la altura no participe aún en LoS/rango.
+        // Un casteo estacionario no puede seguir como si el cuerpo siguiera
+        // plantado: se cancela sin lockout, igual que al empezar a caminar.
+        if ((entity.pendingCast || entity.cast) && !(entity.pendingCast || entity.cast).movable) {
+          Ability.cancelCast(this, entity, 'jump');
+        }
+        if (entity.weaponState && entity.weaponState.phase === 'WINDUP') {
+          Ability.cancelWeaponWindup(this, entity, 'jump');
+        }
+        entity.jumpActive = true;
+        entity.jumpElapsed = 0;
+        entity.jumpStartedAt = this.time;
+        this.bus.emit('EntityJumped', { entityId: entity.id, time: this.time });
+      }
+    }
+
+    if (!entity.jumpActive) {
+      entity.jumpOffset = 0;
+      return;
+    }
+
+    entity.jumpElapsed += dt;
+    var t = Math.max(0, Math.min(1, entity.jumpElapsed / B.JUMP.duration));
+    // Parábola 0→1→0. El ápice queda exactamente en mitad del salto.
+    entity.jumpOffset = 4 * B.JUMP.height * t * (1 - t);
+    if (t >= 1) {
+      entity.jumpActive = false;
+      entity.jumpOffset = 0;
+      this.bus.emit('EntityLanded', { entityId: entity.id, time: this.time });
     }
   };
 
@@ -403,6 +468,7 @@ Arena.define('sim/world',
       e = this.entities[i];
       V.copy(e.prevPos, e.pos);
       e.prevYaw = e.yaw;
+      e.prevJumpOffset = e.jumpOffset || 0;
     }
 
     // 1. Estados: expiración y periódicos (pueden matar → antes que las acciones)
@@ -411,12 +477,28 @@ Arena.define('sim/world',
       if (e.alive) Status.tick(this, e, dt);
     }
 
+    // 1.5 Salto: fase autoritativa, independiente de los fps.
+    for (i = 0; i < this.entities.length; i++) {
+      e = this.entities[i];
+      if (e.alive) this._tickJump(e, dt);
+      else { e.jumpActive = false; e.jumpOffset = 0; e._jumpRequested = false; }
+    }
+
     // 2. IA
     if (this.settings.aiEnabled && Arena.AI.update) {
       for (i = 0; i < this.entities.length; i++) {
         e = this.entities[i];
         if (e.alive && !e.isPlayer && e.aiEnabled) Arena.AI.update(this, e, dt);
       }
+    }
+
+    /* 2.5. Las acciones estacionarias reaccionan al INPUT antes de que el
+       desplazamiento o el giro modifiquen la transformada. Así movimiento un
+       tick antes de RELEASE gana de forma determinista y nunca existe un cast
+       que se paga para después descubrir que el cuerpo ya se movió. */
+    for (i = 0; i < this.entities.length; i++) {
+      e = this.entities[i];
+      if (e.alive) Ability.handlePreMovementIntents(this, e, dt);
     }
 
     /* 3. Intención de GIRO y de movimiento del jugador.
@@ -441,6 +523,16 @@ Arena.define('sim/world',
          permitía y la intención se saturaba durante todo el gesto.
          Sigue aplicándola la SIMULACIÓN, no el renderer, y sigue respetando el
          control: un aturdido no gira ni con ratón ni sin él. */
+      /* Ratón en modo STEER: el delta angular de la cámara se aplica 1:1
+         al cuerpo y se consume UNA sola vez. No pasa por TURN_SPEED: el mouse
+         es un dispositivo posicional, no una tecla mantenida. Esto conserva
+         exactamente la velocidad y amplitud de la mano, incluso con 30 Hz de
+         simulación y 144 Hz de presentación. */
+      if (e.alive && e._mouseTurnDelta) {
+        var mm = e.mods();
+        if (mm.canMove || mm.canUseAbility) e.yaw = V.wrapAngle(e.yaw + e._mouseTurnDelta);
+        e._mouseTurnDelta = 0;
+      }
       if (e.alive && e._faceIntent !== null && e._faceIntent !== undefined) {
         var mf = e.mods();
         if (mf.canMove || mf.canUseAbility) e.yaw = V.wrapAngle(e._faceIntent);

@@ -1,7 +1,7 @@
 /* =============================================================================
  * sim/arena.js — Geometría del escenario de pruebas (documento §20).
  *
- * Sala de ~32 × 24 unidades con suelo, muros perimetrales, columnas, un muro
+ * Sala de ~46 × 34 unidades con suelo, muros perimetrales, columnas, un muro
  * central con hueco y dos plataformas con rampa suave. El objetivo no es que
  * sea bonito: es que cada pieza pruebe una regla concreta.
  *
@@ -15,7 +15,7 @@ Arena.define('sim/arena', ['math/ray'], function (Arena) {
 
   var Ray = Arena.Math.Ray;
 
-  var W = 32, D = 24, WALL_H = 4.0;
+  var W = 46, D = 34, WALL_H = 4.0;
 
   function box(cx, cy, cz, sx, sy, sz, kind) {
     var b = Ray.makeBox(cx, cy, cz, sx, sy, sz);
@@ -38,7 +38,11 @@ Arena.define('sim/arena', ['math/ray'], function (Arena) {
     /* Columnas: cortan LoS sin cerrar el espacio */
     var cols = [
       [-9, -6], [9, -6], [-9, 6], [9, 6],
-      [-4.5, 0], [4.5, 0]
+      [-4.5, 0], [4.5, 0],
+      /* Segundo anillo de cobertura. El mapa crece, pero no se convierte en
+         una explanada vacía: estos árboles/columnas mantienen rutas de kiteo
+         y cortes de LoS en los laterales nuevos. */
+      [-16, -10], [16, -10], [-16, 10], [16, 10]
     ];
     for (var i = 0; i < cols.length; i++) {
       obstacles.push(box(cols[i][0], 0, cols[i][1], 1.5, 3.6, 1.5, 'pillar'));
@@ -51,6 +55,14 @@ Arena.define('sim/arena', ['math/ray'], function (Arena) {
     /* Muros bajos: bloquean LoS a ras de suelo pero no la vista de cámara */
     obstacles.push(box(-13.5, 0, 0, 0.8, 1.6, 5.0, 'lowWall'));
     obstacles.push(box(13.5, 0, 0, 0.8, 1.6, 5.0, 'lowWall'));
+
+    /* Alas exteriores: ruinas cortas que crean una segunda ruta alrededor del
+       centro. Se mantienen lejos de los spawns originales para no alterar los
+       tests de duelo/balance. */
+    obstacles.push(box(-18.5, 0, -4.8, 5.0, 2.1, 0.8, 'lowWall'));
+    obstacles.push(box(-18.5, 0,  4.8, 5.0, 2.1, 0.8, 'lowWall'));
+    obstacles.push(box( 18.5, 0, -4.8, 5.0, 2.1, 0.8, 'lowWall'));
+    obstacles.push(box( 18.5, 0,  4.8, 5.0, 2.1, 0.8, 'lowWall'));
 
     /* Plataformas elevadas + rampas */
     var platforms = [

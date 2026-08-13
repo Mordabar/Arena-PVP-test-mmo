@@ -63,12 +63,17 @@ Arena.define('render/anim/locomotion',
       moveForward: 0, moveRight: 0, moveSpeed: 0,
       turnRate: 0, acceleration: 0, deceleration: 0,
       isMoving: false, isStarting: false, isStopping: false, isTurning: false,
+      airborne: false, jumpAmount: 0, jumpPhase: 0, landingAmount: 0,
 
       /* Ciclo de paso: un reloj normalizado 0..1, cada pierna desfasada 0.5.
          `duty`, `stride` y `stepFreq` se DERIVAN de la velocidad real en cada
          actualización; los valores iniciales sólo cubren el primer fotograma. */
       cycle: 0, duty: cfg.dutyFactor, stride: cfg.strideLength,
       stepFreq: cfg.stepFrequency, gait: 0,
+      /* Perfil direccional resuelto cada frame. Es PRESENTACIÓN pura: permite
+         que backpedal, strafe y diagonal tengan lenguaje corporal propio sin
+         alterar un milímetro la posición de simulación. */
+      motionProfile: { stride:1, lift:1, duty:1, arm:1, twist:1, hip:1 },
       legs: [makeLeg(0.0), makeLeg(0.5)],
 
       /* Centro de masa */
@@ -112,6 +117,28 @@ Arena.define('render/anim/locomotion',
     };
   }
 
+  /** Perfil visual de la dirección actual. Los perfiles viven en data/animConfig
+   * y se funden BASE→arquetipo→clase. Nunca escriben la entidad. */
+  function resolveMotionProfile(st, cfg) {
+    var d = cfg.directional || {};
+    var src;
+    if (st.state === Loco.STATE.BACKWARD || st.moveForward < -0.55) src = d.backward;
+    else if (st.state === Loco.STATE.STRAFE_L || st.state === Loco.STATE.STRAFE_R ||
+             Math.abs(st.moveRight) > 0.70 && Math.abs(st.moveForward) < 0.35) src = d.strafe;
+    else if (st.state === Loco.STATE.DIAGONAL ||
+             Math.abs(st.moveRight) > 0.35 && Math.abs(st.moveForward) > 0.35) src = d.diagonal;
+    else src = d.forward;
+    src = src || {};
+    var out = st.motionProfile;
+    out.stride = src.stride === undefined ? 1 : src.stride;
+    out.lift = src.lift === undefined ? 1 : src.lift;
+    out.duty = src.duty === undefined ? 1 : src.duty;
+    out.arm = src.arm === undefined ? 1 : src.arm;
+    out.twist = src.twist === undefined ? 1 : src.twist;
+    out.hip = src.hip === undefined ? 1 : src.hip;
+    return out;
+  }
+
   /* =========================================================================
    * Actualización
    * ====================================================================== */
@@ -146,11 +173,12 @@ Arena.define('render/anim/locomotion',
     var f = 0, r = 0;
     if (dist > 1e-5) {
       var sy = Math.sin(entity.yaw), cy = Math.cos(entity.yaw);
-      // Proyección sobre la base del personaje. `r` usa la MISMA derecha que el
-      // control (R = F × arriba); si no coincidieran, el personaje strafearía a
-      // un lado y reproduciría el ciclo del otro.
+      // Proyección sobre la MISMA base perceptual que usa main.js. Con
+      // yaw=0 el personaje mira a +Z y, visto desde la cámara situada detrás,
+      // su derecha visual es −X. Si este signo diverge, D mueve bien la entidad
+      // pero reproduce la animación de STRAFE_LEFT (o viceversa).
       f = (dx * sy + dz * cy) / dist;
-      r = (dz * sy - dx * cy) / dist;
+      r = (-dx * cy + dz * sy) / dist;
     }
     st.moveForward = damp(st.moveForward, f * (norm > 0.02 ? 1 : 0), cfg.dirBlendRate, dt);
     st.moveRight = damp(st.moveRight, r * (norm > 0.02 ? 1 : 0), cfg.dirBlendRate, dt);
@@ -161,6 +189,16 @@ Arena.define('render/anim/locomotion',
 
     Loco._updateIdle(st, dt);
     if (st.hitAmount > 0) st.hitAmount = Math.max(0, st.hitAmount - dt * cfg.hitReactDecay);
+    var wasAirborne = st.airborne;
+    st.airborne = !!entity.jumpActive || (entity.jumpOffset || 0) > 0.01;
+    st.jumpAmount = damp(st.jumpAmount, st.airborne ? 1 : 0, st.airborne ? 18 : 12, dt);
+    var jumpCfg = Arena.Data.balance.JUMP || { duration: 0.66 };
+    st.jumpPhase = entity.jumpActive
+      ? clamp((entity.jumpElapsed || 0) / Math.max(0.05, jumpCfg.duration), 0, 1) : 0;
+    // El aterrizaje no termina en el mismo frame que el arco: durante unas
+    // décimas las rodillas absorben el peso. Es visual y no introduce lag.
+    if (wasAirborne && !st.airborne) st.landingAmount = 1;
+    else st.landingAmount = Math.max(0, st.landingAmount - dt / 0.18);
 
     /* --- 2. Máquina de estados -------------------------------------------- */
     Loco._updateState(st, entity, dt);
@@ -190,18 +228,21 @@ Arena.define('render/anim/locomotion',
      * cadera alcanza, y la pierna se queda clavada apuntando al horizonte.
      */
     var gait = smooth((st.moveSpeed - 0.25) / 0.55);      // 0 = andar · 1 = correr
+    var profile = resolveMotionProfile(st, cfg);
     var dutyRun = cfg.dutyFactorRun === undefined ? cfg.dutyFactor : cfg.dutyFactorRun;
-    st.duty = cfg.dutyFactor + (dutyRun - cfg.dutyFactor) * gait;
+    st.duty = (cfg.dutyFactor + (dutyRun - cfg.dutyFactor) * gait) * profile.duty;
+    st.duty = clamp(st.duty, 0.28, 0.78);
     st.gait = gait;
 
-    // Retroceder y desplazarse de lado acortan el paso: eso es lo que los hace
-    // verse distintos, no reproducir el mismo ciclo a otra velocidad.
+    // `backwardRatio`/`strafeRatio` se conservan como ajuste macro histórico;
+    // el perfil añade la firma corporal fina sin duplicar lógica de velocidad.
     var dirRatio = 1;
     if (st.moveForward < -0.2) dirRatio = cfg.backwardRatio;
     else if (Math.abs(st.moveRight) > 0.5) dirRatio = cfg.strafeRatio;
 
     var gain = cfg.strideSpeedGain === undefined ? 0.45 : cfg.strideSpeedGain;
-    st.stride = cfg.strideLength * ((1 - gain) + gain * clamp(st.moveSpeed, 0, 1.2)) * dirRatio;
+    st.stride = cfg.strideLength * ((1 - gain) + gain * clamp(st.moveSpeed, 0, 1.2))
+              * dirRatio * profile.stride;
 
     var speedU = st.moveSpeed * Math.max(0.001, entity.moveSpeedBase);
     var freq = speedU * st.duty / Math.max(0.05, st.stride);
@@ -301,8 +342,8 @@ Arena.define('render/anim/locomotion',
     var sy = Math.sin(yaw), cy = Math.cos(yaw);
 
     // Dirección de avance en espacio mundo, para colocar el pie por delante.
-    var fwdX = st.moveForward * sy + st.moveRight * cy;
-    var fwdZ = st.moveForward * cy - st.moveRight * sy;
+    var fwdX = st.moveForward * sy - st.moveRight * cy;
+    var fwdZ = st.moveForward * cy + st.moveRight * sy;
     // `stride` es el recorrido del pie RESPECTO AL CUERPO, ya derivado en
     // Loco.update junto con la cadencia. Aquí sólo se reparte: medio por delante
     // al plantar, medio por detrás al despegar.
@@ -314,14 +355,14 @@ Arena.define('render/anim/locomotion',
       leg.t = (st.cycle + leg.offset) % 1;
       leg.phase = Loco.phaseOf(leg.t, duty);
 
-      var plantedNow = st.isMoving ? (leg.t < duty) : true;
+      var plantedNow = st.airborne ? false : (st.isMoving ? (leg.t < duty) : true);
       // Enganche y soltada suavizados: un cambio brusco produce un tirón.
       var blendRate = 1 / Math.max(0.02, cfg.footPlantBlend);
       leg.plantWeight = damp(leg.plantWeight, plantedNow ? 1 : 0, blendRate, dt);
 
       // Posición de reposo del pie bajo la cadera, con la base del arquetipo.
-      var restX = entity.pos.x + cy * side * cfg.stanceWidth;
-      var restZ = entity.pos.z - sy * side * cfg.stanceWidth;
+      var restX = entity.pos.x - cy * side * cfg.stanceWidth;
+      var restZ = entity.pos.z + sy * side * cfg.stanceWidth;
 
       if (plantedNow) {
         /* FOOT LOCK: al empezar el contacto se captura el punto del suelo y el
@@ -331,7 +372,7 @@ Arena.define('render/anim/locomotion',
           var ahead = st.isMoving ? stride * 0.5 : 0;
           leg.lock.x = restX + fwdX * ahead;
           leg.lock.z = restZ + fwdZ * ahead;
-          leg.lock.y = 0;
+          leg.lock.y = entity.pos.y;
           leg.hasLock = true;
         }
         leg.footPos.x = leg.lock.x;
@@ -345,13 +386,26 @@ Arena.define('render/anim/locomotion',
         var reach = (sw - 0.5) * stride;
         leg.footPos.x = restX + fwdX * reach;
         leg.footPos.z = restZ + fwdZ * reach;
-        leg.footPos.y = arc * cfg.stepHeight;
+        leg.footPos.y = entity.pos.y + arc * cfg.stepHeight * st.motionProfile.lift;
+      }
+
+      /* En el aire los pies dejan de perseguir el suelo. Se recogen debajo
+         de la pelvis con una asimetría mínima entre piernas: evita la pose de
+         “estrella” y, sobre todo, que el IK estire las piernas hasta el suelo
+         mientras el cuerpo ya está un metro arriba. */
+      if (st.airborne) {
+        leg.hasLock = false;
+        leg.plantWeight = damp(leg.plantWeight, 0, 20, dt);
+        var jumpY = entity.pos.y + (entity.jumpOffset || 0);
+        leg.footPos.x = restX + fwdX * (side * 0.04);
+        leg.footPos.z = restZ - fwdZ * (0.05 + (side > 0 ? 0.03 : 0));
+        leg.footPos.y = jumpY + 0.13 + (side > 0 ? 0.035 : -0.015);
       }
 
       /* Paso de pivote al girar en el sitio: un pie ancla, el otro reposiciona. */
       if (st.turnStepTimer > 0 && side === st.turnStepSide) {
         var tp = 1 - (st.turnStepTimer / 0.30);
-        leg.footPos.y = Math.sin(tp * Math.PI) * cfg.stepHeight * 0.7;
+        leg.footPos.y = Math.sin(tp * Math.PI) * cfg.stepHeight * st.motionProfile.lift * 0.7;
         leg.hasLock = false;
       }
     }
@@ -377,11 +431,17 @@ Arena.define('render/anim/locomotion',
 
     // Caída de cadera en el doble apoyo: el cuerpo baja dos veces por zancada.
     var drop = st.isMoving
-      ? Math.abs(Math.sin(st.cycle * Math.PI * 2)) * cfg.hipDropAmount * st.moveSpeed
+      ? Math.abs(Math.sin(st.cycle * Math.PI * 2)) * cfg.hipDropAmount * st.moveSpeed * st.motionProfile.hip
       : st.breathValue * cfg.breathAmount;
     // Al parar, las rodillas absorben: la cadera baja un poco más.
     if (st.isStopping) drop += cfg.hipDropAmount * 1.4 * clamp(st.stopTimer / cfg.stopAbsorb, 0, 1);
-    st.hipHeight = damp(st.hipHeight, -drop, 14, dt);
+    // Salto: pequeña compresión al despegar y absorción clara al aterrizar.
+    // El cuerpo sube por jumpOffset; esto sólo evita la pose rígida en el aire.
+    if (st.airborne && st.jumpPhase < 0.18) {
+      drop += cfg.hipDropAmount * 1.10 * (1 - st.jumpPhase / 0.18);
+    }
+    if (st.landingAmount > 0) drop += cfg.hipDropAmount * 2.25 * smooth(st.landingAmount);
+    st.hipHeight = damp(st.hipHeight, -drop, st.landingAmount > 0 ? 20 : 14, dt);
 
     // Inclinación: adelante al acelerar, atrás al frenar, lateral al strafear.
     var targetLeanF = st.moveForward * cfg.accelLean * st.moveSpeed
@@ -408,7 +468,8 @@ Arena.define('render/anim/locomotion',
     // El pecho contrarrota respecto a la cadera: es lo que hace que caminar no
     // parezca un bloque rígido desplazándose.
     var twist = st.isMoving
-      ? Math.sin(st.cycle * Math.PI * 2) * cfg.torsoTwist * st.moveSpeed * Math.max(0, st.moveForward)
+      ? Math.sin(st.cycle * Math.PI * 2) * cfg.torsoTwist * st.motionProfile.twist * st.moveSpeed
+        * (st.moveForward >= 0 ? Math.max(0.18, st.moveForward) : 0.32)
       : 0;
     // Parado, una deriva lentísima del tronco. No es un ciclo: son dos relojes
     // desfasados cuyo periodo aparente dura decenas de segundos.
@@ -480,7 +541,7 @@ Arena.define('render/anim/locomotion',
     var sy = Math.sin(entity.yaw), cy = Math.cos(entity.yaw);
     // Guardado en espacio local: front/back/left/right respecto al personaje.
     st.hitDir.z = (dx / len * sy + dz / len * cy);
-    st.hitDir.x = (dx / len * cy - dz / len * sy);
+    st.hitDir.x = (-dx / len * cy + dz / len * sy);
     st.hitAmount = 1;
   };
 

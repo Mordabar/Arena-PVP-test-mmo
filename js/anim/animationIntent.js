@@ -34,7 +34,7 @@
  * escribe. Ni una asignación a hp, posición, cooldowns o estados.
  * ========================================================================== */
 Arena.define('anim/animationIntent',
-  ['data/animConfig', 'data/castFamilies'], function (Arena) {
+  ['data/animConfig', 'data/castFamilies', 'data/balance'], function (Arena) {
   'use strict';
 
   var AI = {};
@@ -79,6 +79,7 @@ Arena.define('anim/animationIntent',
       moveForward: 0, moveRight: 0, speedNormalized: 0,
       turnRate: 0, accelerating: false, decelerating: false,
       gait: 0,                  // 0 = andar · 1 = correr, con fase de vuelo
+      airborne: false, jumpProgress: 0,
 
       /* Orientación */
       facingYaw: 0, targetYaw: 0, hasTarget: false,
@@ -88,6 +89,18 @@ Arena.define('anim/animationIntent',
       actionPhase: null,        // 'ANTICIPATION' | 'ACTIVE' | 'IMPACT' | 'RECOVERY'
       actionProgress: 0,        // 0..1 dentro de la acción
       actionWeight: 0,          // cuánto pesa la acción sobre la guardia
+      actionVariant: 0,         // variante visual determinista (p.ej. normal horizontal/diagonal)
+      visualAction: null,       // kick | shield | charge | archer | cast | … (data-driven)
+      actionType: null,          // weapon | ability | idle (semántica de simulación)
+      releaseOccurred: false,
+
+      /* Reloj del arma — independiente del GCD. */
+      weaponPhase: 'READY',
+      weaponProgress: 0,
+      weaponReady: true,
+      weaponReadyIn: 0,
+      queuedAction: null,
+      queuedKind: null,
 
       /* Casteo — lo gobierna la simulación, no un reloj de animación */
       casting: false,
@@ -152,6 +165,8 @@ Arena.define('anim/animationIntent',
       intent.accelerating = loco.acceleration > 0.05;
       intent.decelerating = loco.deceleration > 0.05;
       intent.gait = loco.gait || 0;
+      intent.airborne = !!loco.airborne;
+      intent.jumpProgress = loco.jumpPhase || 0;
       intent.targetYaw = entity.yaw + loco.headYaw;
     }
 
@@ -173,17 +188,47 @@ Arena.define('anim/animationIntent',
       intent.actionWeight = 0;
     }
     if (action) {
+      /* `visualAction` también existe durante PRE-RELEASE cuando todavía no hay
+         `actionFamily` activa. Es imprescindible para un backend skinned futuro. */
+      intent.actionVariant = action.variant || 0;
+      intent.visualAction = action.visualAction || null;
       intent.hitReaction.amount = action.react.amount;
       intent.hitReaction.front = action.react.front;
       intent.hitReaction.side = action.react.side;
       intent.castFamily = action.castFamily;
+    } else {
+      intent.actionVariant = 0;
+      intent.visualAction = null;
     }
+
+    /* --- Timeline autoritativo de arma/acción ------------------------------ */
+    var ws = entity.weaponState;
+    if (ws && world) {
+      intent.weaponPhase = ws.phase || 'READY';
+      intent.weaponReadyIn = Math.max(0, (ws.readyAt || 0) - world.time);
+      intent.weaponReady = intent.weaponReadyIn <= 1e-6 && intent.weaponPhase === 'READY';
+      if (ws.phase === 'WINDUP') {
+        intent.weaponProgress = Math.max(0, Math.min(1,
+          (world.time - ws.windupStartedAt) / Math.max(1e-3, ws.releaseAt - ws.windupStartedAt)));
+      } else if (ws.phase === 'RECOVERY') {
+        intent.weaponProgress = Math.max(0, Math.min(1,
+          (world.time - ws.recoveryStartedAt) / Math.max(1e-3, ws.readyAt - ws.recoveryStartedAt)));
+      } else intent.weaponProgress = ws.phase === 'RELEASE' ? 1 : 0;
+      intent.releaseOccurred = (world.time - (ws.lastReleaseAt || -999)) <= (Arena.Data.balance.TICK_DT * 1.25);
+    } else {
+      intent.weaponPhase = 'READY'; intent.weaponProgress = 0;
+      intent.weaponReady = true; intent.weaponReadyIn = 0; intent.releaseOccurred = false;
+    }
+    intent.actionType = entity.actionState ? entity.actionState.kind : null;
+    var qa = entity.queuedAction || entity.queued;
+    intent.queuedAction = qa ? qa.abilityId : null;
+    intent.queuedKind = qa ? qa.kind : null;
 
     /* --- Casteo -------------------------------------------------------------
      * El progreso sale de la simulación, no de un reloj propio: si la animación
      * llevara su propia cuenta, la barra de casteo y el cuerpo contarían cosas
      * distintas y el enemigo no podría fiarse de lo que ve para interrumpir. */
-    var cast = entity.cast;
+    var cast = entity.pendingCast || entity.cast;
     if (cast && world) {
       intent.casting = true;
       intent.castProgress = Math.min(1,
@@ -213,12 +258,18 @@ Arena.define('anim/animationIntent',
       'INTENT     ' + intent.archetype + '/' + intent.weaponType +
         (intent.alive ? '' : '  MUERTO'),
       '  loco     ' + intent.locomotion + '  v' + n(intent.speedNormalized) +
-        '  fwd' + n(intent.moveForward) + '  right' + n(intent.moveRight)
+        '  fwd' + n(intent.moveForward) + '  right' + n(intent.moveRight) +
+        (intent.airborne ? '  JUMP ' + Math.round(intent.jumpProgress * 100) + '%' : '')
     ];
     if (intent.actionFamily) {
       lines.push('  acción   ' + intent.actionFamily + ':' + intent.actionPhase +
-        '  t' + n(intent.actionProgress) + '  peso' + n(intent.actionWeight));
+        '  t' + n(intent.actionProgress) + '  peso' + n(intent.actionWeight) +
+        (intent.visualAction ? '  gesto=' + intent.visualAction : '') +
+        (intent.actionVariant ? '  var=' + intent.actionVariant : ''));
     }
+    lines.push('  arma     ' + intent.weaponPhase + '  ' + Math.round(intent.weaponProgress * 100) + '%' +
+      (intent.weaponReady ? '  READY' : '  ' + intent.weaponReadyIn.toFixed(2) + 's'));
+    if (intent.queuedAction) lines.push('  cola     ' + intent.queuedKind + ' → ' + intent.queuedAction);
     if (intent.casting) {
       lines.push('  casteo   ' + (intent.castFamily || '—') + ':' + intent.castPhase +
         '  ' + Math.round(intent.castProgress * 100) + '%' +

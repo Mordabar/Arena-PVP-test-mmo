@@ -44,11 +44,23 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
       combat: true, move: 'kite', desiredRange: 17
     },
     support: {
-      name: 'Soporte', desc: 'Cura y limpia a sus aliados. Prueba AntiHeal y presión al soporte.',
+      name: 'Soporte sanador', desc: 'Cura, limpia y protege a sus aliados mientras conserva una línea segura.',
       combat: true, move: 'kite', desiredRange: 13
     },
+    caster: {
+      name: 'Caster de control', desc: 'Busca distancia de casteo y convierte ventanas con burst/control.',
+      combat: true, move: 'kite', desiredRange: 15
+    },
+    peel: {
+      name: 'Peel defensivo', desc: 'Se mantiene cerca del frente aliado y prioriza protección/interrupción.',
+      combat: true, move: 'auto', desiredRange: 4.5
+    },
+    sparring: {
+      name: 'Rival Ladder', desc: 'Perfil completo de duelo: rango por clase, rotación y defensivos reactivos.',
+      combat: true, move: 'auto'
+    },
     bot: {
-      name: 'Bot completo', desc: 'Rotación de clase, defensivos reactivos y kiteo.',
+      name: 'Bot completo', desc: 'Compatibilidad de laboratorio; usa rango por clase y rotación completa.',
       combat: true, move: 'auto'
     }
   };
@@ -291,7 +303,10 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
     var len = Math.sqrt(toX * toX + toZ * toZ) || 1;
     toX /= len; toZ /= len;
 
-    self.yaw = V.yawTo(self.pos, anchor.pos);
+    // El bot no recibe un auto-face privilegiado: gira con el mismo límite
+    // temporal que Q/E del jugador. Si aún no terminó de orientar, Ability.canUse
+    // fallará por facing y esperará otra ventana de decisión.
+    world.turnEntityToward(self, V.yawTo(self.pos, anchor.pos), dt);
 
     var hasLoS = world.hasLineOfSight(self.eyePos(), anchor.centerPos(), self, anchor);
 

@@ -1,17 +1,14 @@
 /* =============================================================================
- * combat/abilitySystem.js — Validación, GCD, casteo, cola de input e interrupción.
+ * combat/abilitySystem.js — Timeline de combate: BEGIN → RELEASE → RESOLUTION.
  *
- * Implementa los pasos 1–4 del orden obligatorio (documento §10):
- *   1. ¿Lanzador vivo y habilitado?
- *   2. ¿Recurso, GCD y cooldown disponibles?
- *   3. ¿Target válido, en rango, orientación y línea de visión?
- *   4. Si hay cast: iniciar → permitir interrupción/cancelación
+ * Regla central de Project Arena:
+ *   - BEGIN prepara una acción; no paga todavía una habilidad casteada.
+ *   - RELEASE es el commit transaccional: recurso, cooldown y GCD empiezan aquí.
+ *   - Antes de RELEASE una acción puede cancelarse/reemplazarse sin daño fantasma.
+ *   - Después de RELEASE el hecho ya ocurrió; un proyectil no se borra porque el
+ *     lanzador se mueva, pierda LoS o muera.
  *
- * El paso 5 en adelante lo ejecuta combat/resolver.js.
- *
- * Nota de game feel: cada rechazo emite un motivo legible. "No pasa nada al
- * pulsar" es el peor bug posible en un MMO; aquí siempre hay una razón visible
- * en el HUD y en el log.
+ * La lógica temporal es determinista y usa exclusivamente world.time/fixed tick.
  * ========================================================================== */
 Arena.define('combat/abilitySystem',
   ['combat/resolver', 'data/balance'], function (Arena) {
@@ -26,44 +23,27 @@ Arena.define('combat/abilitySystem',
   var A = {};
 
   A.REASONS = {
-    dead: 'Estás muerto',
-    unknown: 'Habilidad desconocida',
-    silenced: 'Estás mareado',
-    stunned: 'Estás bajo control',
-    disarmed: 'No puedes usar el arma',
-    noOffense: 'No puedes usar poderes ofensivos',
-    noDamage: 'No puedes usar habilidades dañinas',
-    utilityLocked: 'No puedes usar habilidades de utilidad',
-    lockout: 'Escuela bloqueada',
-    gcd: 'Aún no está listo',
-    cooldown: 'En recuperación',
-    resource: 'Recurso insuficiente',
-    noTarget: 'Necesitas un objetivo',
-    badTarget: 'Objetivo no válido',
-    targetDead: 'El objetivo está muerto',
-    untargetable: 'El objetivo no puede ser seleccionado',
-    range: 'Fuera de rango',
-    facing: 'Debes encarar al objetivo',
-    los: 'Sin línea de visión',
-    casting: 'Ya estás lanzando',
-    noGround: 'Necesitas un punto de destino'
+    dead: 'Estás muerto', unknown: 'Habilidad desconocida', silenced: 'Estás mareado',
+    stunned: 'Estás bajo control', disarmed: 'No puedes usar el arma',
+    noOffense: 'No puedes usar poderes ofensivos', noDamage: 'No puedes usar habilidades dañinas',
+    utilityLocked: 'No puedes usar habilidades de utilidad', lockout: 'Escuela bloqueada',
+    gcd: 'Aún no está listo', cooldown: 'En recuperación', weaponInterval: 'El arma aún no está preparada',
+    resource: 'Recurso insuficiente', noTarget: 'Necesitas un objetivo', badTarget: 'Objetivo no válido',
+    targetDead: 'El objetivo está muerto', untargetable: 'El objetivo no puede ser seleccionado',
+    range: 'Fuera de rango', facing: 'Debes encarar al objetivo', los: 'Sin línea de visión',
+    casting: 'Ya estás lanzando', noGround: 'Necesitas un punto de destino',
+    moving: 'Debes detenerte', airborne: 'No puedes hacerlo en el aire', weaponWindup: 'Ataque normal en preparación'
   };
 
-  /* =========================================================================
-   * Coste efectivo
-   * ====================================================================== */
   A.costOf = function (world, caster, ability) {
     if (world.settings.freeResources) return 0;
-    var cost = ability.cost || 0;
-    var pct = caster.mods().resourceCostPct;   // Ímpetu: negativo
-    return Math.max(0, cost * (1 + pct));
+    return Math.max(0, (ability.cost || 0) * (1 + caster.mods().resourceCostPct));
   };
 
   A.castTimeOf = function (world, caster, ability) {
     var base = ability.castTime || 0;
     if (base <= 0) return 0;
-    var pct = caster.mods().castSpeedPct;      // Resonancia: negativo
-    return Math.max(0, base * (1 + pct));
+    return Math.max(0, base * (1 + caster.mods().castSpeedPct));
   };
 
   A.gcdOf = function (world, caster, ability) {
@@ -72,28 +52,99 @@ Arena.define('combat/abilitySystem',
     return B.GCD[g] === undefined ? B.GCD.standard : B.GCD[g];
   };
 
-  /* =========================================================================
-   * Validación completa (pasos 1–3)
-   * ====================================================================== */
+  A.timingOf = function (ability) {
+    return ability.combatTiming || {
+      actionType: 'utility', normalInteraction: 'independent', weaponIntervalPolicy: 'ignore',
+      stationary: false, cooldownCommit: 'onRelease', resourceCommit: 'onRelease', gcdCommit: 'onRelease'
+    };
+  };
 
-  /**
-   * @returns {{ok:boolean, reason:string, message:string, target:Entity}}
-   */
+  A.requiresFacing = function (ability, caster) {
+    var flags = ability.flags || {};
+    if (flags.requiresFacing !== undefined) return !!flags.requiresFacing;
+    // El nuevo contrato táctico se aplica por defecto al avatar del jugador.
+    // Los dummies/fixtures históricos siguen pudiendo aislar otras reglas sin
+    // necesitar orientar cada entidad manualmente; la IA real ya se encara.
+    return !!(caster && caster.isPlayer) && ability.target === 'enemy' && !!flags.offensive;
+  };
+
+  A.hasMovementIntent = function (entity) {
+    var v = entity && entity._moveIntent;
+    if (!v) return false;
+    return Math.sqrt(v.x * v.x + v.z * v.z) > B.MOVEMENT_INTENT_EPS;
+  };
+
+  A._bodyTurnMagnitude = function (entity, dt) {
+    var d = Math.abs(entity._mouseTurnDelta || 0);
+    if (entity._faceIntent !== null && entity._faceIntent !== undefined) {
+      d = Math.max(d, Math.abs(V.angleDelta(entity.yaw, entity._faceIntent)));
+    }
+    if (entity._turnIntent) d = Math.max(d, Math.abs(B.TURN_SPEED * dt * entity._turnIntent));
+    return d;
+  };
+
+  A._weapon = function (entity) {
+    if (!entity.weaponState) {
+      entity.weaponState = {
+        phase: 'READY', readyAt: entity.autoAttackNextAt || 0, windupStartedAt: 0,
+        releaseAt: 0, recoveryStartedAt: 0, recoveryUntil: 0, targetId: null,
+        lastReleaseAt: -999, lastCancelAt: -999, cancelReason: null
+      };
+    }
+    return entity.weaponState;
+  };
+
+  A._weaponCycle = function (entity) {
+    return entity.autoAttackCycle / Math.max(0.15, 1 + entity.mods().attackSpeedPct);
+  };
+
+  A._weaponWindup = function (entity) {
+    var archetype = Arena.Data.archetypeOf ? Arena.Data.archetypeOf(entity.classId) : 'melee';
+    return (B.AUTO_ATTACK.windupByArchetype && B.AUTO_ATTACK.windupByArchetype[archetype]) || B.AUTO_ATTACK.windup || 0.20;
+  };
+
+  A._setQueue = function (world, caster, kind, abilityId, ctx, expiresAt) {
+    var previous = caster.queuedAction;
+    var q = {
+      kind: kind || 'afterGcd', abilityId: abilityId,
+      targetId: ctx.targetId || (ctx.target && ctx.target.id) || null,
+      groundPoint: ctx.groundPoint ? { x: ctx.groundPoint.x, y: 0, z: ctx.groundPoint.z } : null,
+      at: world.time, expiresAt: expiresAt === undefined ? world.time + B.INPUT_QUEUE_WINDOW + 0.35 : expiresAt
+    };
+    caster.queuedAction = q;
+    caster.queued = q; // compatibilidad HUD/tests antiguos
+    if (previous && previous.abilityId !== abilityId) {
+      world.bus.emit('AbilityQueueReplaced', {
+        casterId: caster.id, oldAbilityId: previous.abilityId, abilityId: abilityId, kind: q.kind
+      });
+    }
+    world.bus.emit('AbilityQueued', { casterId: caster.id, abilityId: abilityId, kind: q.kind });
+    if (q.kind === 'afterNormal') {
+      world.bus.emit('AbilityQueuedAfterNormal', { casterId: caster.id, abilityId: abilityId });
+    }
+    return q;
+  };
+
+  A._clearQueue = function (caster) {
+    caster.queuedAction = null;
+    caster.queued = null;
+  };
+
+  /* =========================================================================
+   * Validación
+   * ====================================================================== */
   A.canUse = function (world, caster, ability, ctx) {
     ctx = ctx || {};
     var now = world.time;
-
     function no(reason) { return { ok: false, reason: reason, message: A.REASONS[reason] || reason }; }
 
-    /* --- 1. Lanzador vivo y habilitado ---------------------------------- */
     if (!caster.alive) return no('dead');
     if (!ability) return no('unknown');
 
     var m = caster.mods();
     if (m.isolated) return no('stunned');
-    if (!m.canUseAbility) {
-      return no(m.canMove ? 'silenced' : 'stunned');
-    }
+    if (!m.canUseAbility) return no(m.canMove ? 'silenced' : 'stunned');
+
     var causesDamage = Resolver.abilityCausesDamage(ability);
     var flags = ability.flags || {};
     if (flags.weaponAttack && !m.canWeaponAttack) return no('disarmed');
@@ -104,21 +155,25 @@ Arena.define('combat/abilitySystem',
     var school = ability.school || 'general';
     if (caster.schoolLockouts[school] > now) return no('lockout');
 
-    /* --- 2. Recurso, GCD y cooldown ------------------------------------- */
-    if (caster.gcdUntil > now) return no('gcd');
-    if (!world.settings.freeCooldowns && caster.isOnCooldown(ability.id, now)) return no('cooldown');
+    if (!ctx.ignoreCasting && (caster.pendingCast || caster.cast)) return no('casting');
+    if (!ctx.ignoreGcd && caster.gcdUntil > now) return no('gcd');
+    if (!ctx.ignoreCooldown && !world.settings.freeCooldowns && caster.isOnCooldown(ability.id, now)) return no('cooldown');
     if (caster.resource < A.costOf(world, caster, ability) - 1e-6) return no('resource');
 
-    /* --- 3. Objetivo, rango, orientación y línea de visión --------------- */
-    var target = null;
-    var needsTarget = (ability.target === 'enemy' || ability.target === 'ally' || ability.target === 'allyOrSelf');
+    var timing = A.timingOf(ability);
+    if (!ctx.ignoreWeaponInterval && timing.weaponIntervalPolicy === 'respectReady') {
+      if (A._weapon(caster).readyAt > now + 1e-6) return no('weaponInterval');
+    }
+    if (timing.stationary && caster.jumpActive) return no('airborne');
+    if (timing.stationary && !ctx.ignoreMovement && A.hasMovementIntent(caster) && caster.mods().canMove) return no('moving');
 
+    var target = null;
+    var needsTarget = ability.target === 'enemy' || ability.target === 'ally' || ability.target === 'allyOrSelf';
     if (needsTarget) {
       target = ctx.target || world.getEntity(ctx.targetId);
       if (!target) return no('noTarget');
       if (!target.alive) return no('targetDead');
       if (!target.isTargetable()) return no('untargetable');
-
       var hostile = world.areHostile(caster, target);
       if (ability.target === 'enemy' && !hostile) return no('badTarget');
       if (ability.target === 'ally' && (hostile || target.id === caster.id)) return no('badTarget');
@@ -126,16 +181,13 @@ Arena.define('combat/abilitySystem',
       if (hostile && target.mods().stealthed && !target.hasStatus('revealed')) return no('untargetable');
 
       var range = (ability.range || 0) + target.radius + caster.radius;
-      if (V.distXZ(caster.pos, target.pos) > range) return no('range');
+      if (V.distXZ(caster.pos, target.pos) > range + (ctx.releaseValidation ? B.RANGE_TOLERANCE : 0)) return no('range');
 
-      if (flags.requiresFacing) {
+      if (A.requiresFacing(ability, caster)) {
         var toTarget = V.yawTo(caster.pos, target.pos);
         if (Math.abs(V.angleDelta(caster.yaw, toTarget)) > B.FACING_HALF_ANGLE) return no('facing');
       }
-      if (!ability.ignoresLoS &&
-          !world.hasLineOfSight(caster.eyePos(), target.centerPos(), caster, target)) {
-        return no('los');
-      }
+      if (!ability.ignoresLoS && !world.hasLineOfSight(caster.eyePos(), target.centerPos(), caster, target)) return no('los');
     } else if (ability.target === 'ground') {
       if (!ctx.groundPoint) return no('noGround');
       if (V.distXZ(caster.pos, ctx.groundPoint) > (ability.range || 10) + 0.5) return no('range');
@@ -145,85 +197,127 @@ Arena.define('combat/abilitySystem',
   };
 
   /* =========================================================================
-   * Uso
+   * Habilidades: request → begin → release
    * ====================================================================== */
-
-  /**
-   * Intenta usar una habilidad. Si falta poco para que el GCD/cast termine,
-   * la deja en cola (documento §6: ventana de 150–250 ms).
-   * @returns {{ok:boolean, reason:string, queued:boolean}}
-   */
   A.tryUse = function (world, caster, abilityId, ctx) {
     ctx = ctx || {};
     var ability = Arena.Data.abilities[abilityId];
-    if (!ability) {
-      return { ok: false, reason: 'unknown', message: A.REASONS.unknown, queued: false };
+    if (!ability) return { ok: false, reason: 'unknown', message: A.REASONS.unknown, queued: false };
+    var now = world.time;
+    var timing = A.timingOf(ability);
+    var ws = A._weapon(caster);
+
+    /* Relación explícita poder ↔ normal. Nunca se infiere por daño. */
+    if (ws.phase === 'WINDUP') {
+      var left = ws.releaseAt - now;
+      if (timing.normalInteraction === 'weaveAfterNormal') {
+        if (left <= B.INPUT_QUEUE_WINDOW + 1e-6) {
+          A._setQueue(world, caster, 'afterNormal', abilityId, ctx, ws.releaseAt + B.INPUT_QUEUE_WINDOW + 0.30);
+          return { ok: false, reason: 'weaponWindup', message: A.REASONS.weaponWindup, queued: true };
+        }
+        world.bus.emit('AbilityRejected', { casterId: caster.id, abilityId: abilityId, reason: 'weaponWindup', message: A.REASONS.weaponWindup });
+        return { ok: false, reason: 'weaponWindup', message: A.REASONS.weaponWindup, queued: false };
+      }
+      if (timing.normalInteraction === 'replacesNormal') {
+        A.cancelWeaponWindup(world, caster, 'replacedByAbility', abilityId);
+      } else {
+        // Un poder solicitado explícitamente tiene prioridad sobre el pulso
+        // normal aún no liberado; esto evita que el autoattack robe el input.
+        A.cancelWeaponWindup(world, caster, 'abilityPriority', abilityId);
+      }
     }
 
-    var now = world.time;
     var check = A.canUse(world, caster, ability, ctx);
-
     if (!check.ok) {
-      // Cola de input: sólo por temporizadores (GCD, cast en curso, cooldown a
-      // punto de acabar). Nunca por rango, LoS ni control: encolar esos casos
-      // produciría acciones "fantasma" que el jugador ya no quiere.
       if (A._isQueueable(world, caster, ability, check.reason, now)) {
-        caster.queued = {
-          abilityId: abilityId, targetId: ctx.targetId || (ctx.target && ctx.target.id) || null,
-          groundPoint: ctx.groundPoint ? { x: ctx.groundPoint.x, y: 0, z: ctx.groundPoint.z } : null,
-          at: now
-        };
-        world.bus.emit('AbilityQueued', { casterId: caster.id, abilityId: abilityId });
+        var exp = now + B.INPUT_QUEUE_WINDOW + 0.35;
+        if (check.reason === 'casting' && (caster.pendingCast || caster.cast)) {
+          var pc = caster.pendingCast || caster.cast;
+          exp = pc.endTime + A.gcdOf(world, caster, ability) + B.INPUT_QUEUE_WINDOW + 0.35;
+        } else if (check.reason === 'gcd') {
+          exp = caster.gcdUntil + B.INPUT_QUEUE_WINDOW + 0.30;
+        }
+        A._setQueue(world, caster, 'afterGcd', abilityId, ctx, exp);
         return { ok: false, reason: check.reason, message: check.message, queued: true };
       }
-      world.bus.emit('AbilityRejected', {
-        casterId: caster.id, abilityId: abilityId,
-        reason: check.reason, message: check.message
-      });
+      world.bus.emit('AbilityRejected', { casterId: caster.id, abilityId: abilityId, reason: check.reason, message: check.message });
       return { ok: false, reason: check.reason, message: check.message, queued: false };
     }
 
-    // Un cast nuevo sustituye al anterior sólo si el jugador lo pide de forma
-    // explícita; si no, el cast en curso manda.
-    if (caster.cast) {
-      caster.queued = {
-        abilityId: abilityId, targetId: ctx.targetId || (ctx.target && ctx.target.id) || null,
-        groundPoint: ctx.groundPoint || null, at: now
-      };
-      return { ok: false, reason: 'casting', message: A.REASONS.casting, queued: true };
-    }
-
-    return A._commit(world, caster, ability, check.target, ctx);
+    return A._begin(world, caster, ability, check.target, ctx);
   };
 
   A._isQueueable = function (world, caster, ability, reason, now) {
-    if (reason === 'gcd') return (caster.gcdUntil - now) <= B.INPUT_QUEUE_WINDOW;
-    if (reason === 'cooldown') {
-      return caster.cooldownRemaining(ability.id, now) <= B.INPUT_QUEUE_WINDOW;
+    if (reason === 'gcd') return (caster.gcdUntil - now) <= B.INPUT_QUEUE_WINDOW + 1e-6;
+    if (reason === 'cooldown') return caster.cooldownRemaining(ability.id, now) <= B.INPUT_QUEUE_WINDOW + 1e-6;
+    if (reason === 'weaponInterval') return (A._weapon(caster).readyAt - now) <= B.INPUT_QUEUE_WINDOW + 1e-6;
+    if (reason === 'casting') {
+      var c = caster.pendingCast || caster.cast;
+      return !!c && (c.endTime - now) <= B.INPUT_QUEUE_WINDOW + 1e-6;
     }
-    if (reason === 'casting') return (caster.cast.endTime - now) <= B.INPUT_QUEUE_WINDOW;
     return false;
   };
 
-  /** Paga costes, arranca GCD y lanza el cast o ejecuta el instantáneo. */
-  A._commit = function (world, caster, ability, target, ctx) {
+  A._begin = function (world, caster, ability, target, ctx) {
+    ctx = ctx || {};
+    var now = world.time;
+    var castTime = A.castTimeOf(world, caster, ability);
+    var timing = A.timingOf(ability);
+
+    if (castTime <= 0) {
+      return A._release(world, caster, ability, target, ctx, null);
+    }
+
+    var pending = {
+      abilityId: ability.id, targetId: target ? target.id : null,
+      groundPoint: ctx.groundPoint ? { x: ctx.groundPoint.x, y: 0, z: ctx.groundPoint.z } : null,
+      startTime: now, endTime: now + castTime, duration: castTime,
+      startPos: V.clone(caster.pos), startYaw: caster.yaw,
+      expectedResourceCost: A.costOf(world, caster, ability),
+      movable: !timing.stationary || !!(ability.flags && ability.flags.movableCast),
+      stationary: !!timing.stationary && !(ability.flags && ability.flags.movableCast),
+      interruptible: !(ability.flags && ability.flags.uninterruptible),
+      school: ability.school || 'general', cancelReason: null
+    };
+    caster.pendingCast = pending;
+    caster.cast = pending; // compatibilidad con barra/AnimationIntent
+    caster.actionState = { kind: 'ability', phase: 'CASTING', abilityId: ability.id, startedAt: now, releaseAt: pending.endTime };
+
+    world.bus.emit('AbilityCastStarted', {
+      casterId: caster.id, abilityId: ability.id, targetId: pending.targetId,
+      castTime: castTime, endTime: pending.endTime, movable: pending.movable,
+      commit: 'onRelease'
+    });
+    return { ok: true, reason: 'ok', queued: false, instant: false, pending: true };
+  };
+
+  A._release = function (world, caster, ability, target, ctx, pending) {
+    ctx = ctx || {};
     var now = world.time;
 
-    /* NO HAY AUTO-ENCARADO. Y es una decisión de diseño, no un olvido.
-     *
-     * Antes se giraba al personaje hacia su objetivo al comprometer la acción,
-     * con el argumento de que rechazar por 10° rompía la respuesta inmediata.
-     * Ese argumento se sostiene en un juego donde apuntar no es una habilidad;
-     * aquí lo es. Con auto-encarado, seleccionar un objetivo equivale a apuntar
-     * a él para siempre y la orientación deja de ser una decisión táctica:
-     * flanquear, dar la espalda o rodear no significan nada.
-     *
-     * El objetivo pasa a ser INFORMACIÓN —a quién afecta la habilidad— y no un
-     * lock-on. Quien quiera golpear, que mire.
-     *
-     * Los bots no se ven afectados: dummyAI encara a su anclaje cada tick por
-     * su cuenta, así que esto no cambia el ritmo de combate ya validado.
-     */
+    /* Revalidación exactamente antes de RELEASE. No hay costes todavía. */
+    var check = A.canUse(world, caster, ability, {
+      target: target, targetId: target ? target.id : (ctx.targetId || null),
+      groundPoint: ctx.groundPoint || (pending && pending.groundPoint) || null,
+      ignoreCasting: true, releaseValidation: true,
+      // Un cast que empezó legalmente puede llegar a release aunque el jugador
+      // siga sujetando el input que lo habría cancelado: world cancela esa
+      // intención ANTES de llegar aquí. Esta bandera evita duplicar política.
+      ignoreMovement: true
+    });
+
+    if (!check.ok) {
+      caster.pendingCast = null; caster.cast = null;
+      caster.actionState = { kind: 'idle', phase: 'READY', startedAt: now, releaseAt: now };
+      world.bus.emit('AbilityFailedBeforeRelease', {
+        casterId: caster.id, abilityId: ability.id, reason: check.reason, message: check.message
+      });
+      // Evento legado para UI/logs existentes.
+      world.bus.emit('AbilityFizzled', { casterId: caster.id, abilityId: ability.id, reason: check.reason });
+      return { ok: false, reason: check.reason, message: check.message, queued: false, released: false };
+    }
+
+    target = check.target || target;
     var cost = A.costOf(world, caster, ability);
     caster.resource = Math.max(0, caster.resource - cost);
 
@@ -233,223 +327,267 @@ Arena.define('combat/abilitySystem',
       caster.gcdStartedAt = now;
       caster.gcdDuration = gcd;
     }
+    if (!world.settings.freeCooldowns && ability.cooldown) caster.cooldowns[ability.id] = now + ability.cooldown;
 
-    if (!world.settings.freeCooldowns && ability.cooldown) {
-      caster.cooldowns[ability.id] = now + ability.cooldown;
+    var timing = A.timingOf(ability);
+    if (timing.weaponIntervalPolicy === 'consume' || timing.weaponIntervalPolicy === 'reset' ||
+        timing.weaponIntervalPolicy === 'respectReady') {
+      var ws = A._weapon(caster);
+      ws.readyAt = now + A._weaponCycle(caster);
+      ws.phase = 'RECOVERY'; ws.recoveryStartedAt = now; ws.recoveryUntil = ws.readyAt;
+      caster.autoAttackNextAt = ws.readyAt;
     }
+
     caster.stats.abilitiesUsed++;
     caster.lastCombatAt = now;
 
-    // Lanzar rompe el sigilo, pero el bonus "desde sigilo" debe seguir contando:
-    // se marca antes de romperlo.
     caster._castedFromStealth = caster.mods().stealthed;
-    if (caster._castedFromStealth && !(ability.flags && ability.flags.keepsStealth)) {
-      Status.breakStealth(world, caster, 'cast');
-    }
+    if (caster._castedFromStealth && !(ability.flags && ability.flags.keepsStealth)) Status.breakStealth(world, caster, 'cast');
 
-    var castTime = A.castTimeOf(world, caster, ability);
+    caster.pendingCast = null;
+    caster.cast = null;
+    caster.actionState = { kind: 'ability', phase: 'RELEASE', abilityId: ability.id, startedAt: now, releaseAt: now };
 
-    if (castTime <= 0) {
-      A._finish(world, caster, ability, target, ctx);
-      return { ok: true, reason: 'ok', queued: false, instant: true };
-    }
-
-    caster.cast = {
-      abilityId: ability.id,
-      targetId: target ? target.id : null,
-      groundPoint: ctx.groundPoint ? { x: ctx.groundPoint.x, y: 0, z: ctx.groundPoint.z } : null,
-      startTime: now,
-      endTime: now + castTime,
-      duration: castTime,
-      startPos: V.clone(caster.pos),
-      movable: !!(ability.flags && ability.flags.movableCast),
-      interruptible: !(ability.flags && ability.flags.uninterruptible),
-      school: ability.school || 'general'
-    };
-
-    world.bus.emit('AbilityCastStarted', {
-      casterId: caster.id, abilityId: ability.id, targetId: caster.cast.targetId,
-      castTime: castTime, endTime: caster.cast.endTime, movable: caster.cast.movable
+    world.bus.emit('AbilityReleased', {
+      casterId: caster.id, abilityId: ability.id, targetId: target ? target.id : null,
+      resourceCost: cost, gcd: gcd, cooldown: ability.cooldown || 0, time: now
     });
-    return { ok: true, reason: 'ok', queued: false, instant: false };
-  };
-
-  /** Completa la ejecución: revalida lo que puede haber cambiado durante el cast. */
-  A._finish = function (world, caster, ability, target, ctx) {
-    ctx = ctx || {};
-
-    // Revalidación en el impacto: el objetivo pudo morir, entrar en estasis,
-    // salir de rango o romper la línea de visión mientras se casteaba.
-    if (target) {
-      if (!target.alive || !target.isTargetable()) {
-        world.bus.emit('AbilityFizzled', {
-          casterId: caster.id, abilityId: ability.id, reason: 'untargetable'
-        });
-        Status.consumeOnCast(world, caster, ability);
-        return null;
-      }
-      var maxRange = (ability.range || 0) + target.radius + caster.radius + B.RANGE_TOLERANCE;
-      if (V.distXZ(caster.pos, target.pos) > maxRange) {
-        world.bus.emit('AbilityFizzled', {
-          casterId: caster.id, abilityId: ability.id, reason: 'range'
-        });
-        Status.consumeOnCast(world, caster, ability);
-        return null;
-      }
-      if (!ability.ignoresLoS &&
-          !world.hasLineOfSight(caster.eyePos(), target.centerPos(), caster, target)) {
-        world.bus.emit('AbilityFizzled', {
-          casterId: caster.id, abilityId: ability.id, reason: 'los'
-        });
-        Status.consumeOnCast(world, caster, ability);
-        return null;
-      }
-      // Tampoco se encara al resolver el casteo: si el personaje se dio la
-      // vuelta durante el canal, eso es lo que hizo el jugador y la habilidad
-      // sale desde donde mira, no desde donde estaría cómodo que mirara.
-    }
-
+    // Compatibilidad: ahora Completed significa "alcanzó release", nunca begin.
     world.bus.emit('AbilityCastCompleted', {
-      casterId: caster.id, abilityId: ability.id, targetId: target ? target.id : null
+      casterId: caster.id, abilityId: ability.id, targetId: target ? target.id : null, releaseTime: now
     });
 
     var report = Resolver.execute(world, caster, ability, {
-      target: target,
-      targetId: target ? target.id : null,
-      groundPoint: ctx.groundPoint || (caster.cast && caster.cast.groundPoint) || null
+      target: target, targetId: target ? target.id : null,
+      groundPoint: ctx.groundPoint || (pending && pending.groundPoint) || null
     });
 
-    // Consumir Ímpetu / Resonancia después de aplicar sus efectos.
     Status.consumeOnCast(world, caster, ability);
     caster._castedFromStealth = false;
-
-    // Ganchos pasivos de clase (Ímpetu, Resonancia, Flujo compartido…).
     if (Arena.Data.passives && Arena.Data.passives.onAbilityUsed) {
       Arena.Data.passives.onAbilityUsed(world, caster, ability, report);
     }
-    return report;
+    return { ok: true, reason: 'ok', queued: false, instant: !pending, released: true, report: report };
   };
 
   /* =========================================================================
-   * Tick por entidad
+   * ATAQUE NORMAL — reloj separado del GCD
    * ====================================================================== */
+  A.cancelWeaponWindup = function (world, entity, reason, replacementAbilityId) {
+    var ws = A._weapon(entity);
+    if (ws.phase !== 'WINDUP') return false;
+    ws.phase = 'READY';
+    ws.lastCancelAt = world.time;
+    ws.cancelReason = reason || 'cancelled';
+    ws.targetId = null;
+    entity.autoAttackSwingEnd = 0;
+    world.bus.emit('WeaponWindupCancelled', {
+      casterId: entity.id, reason: ws.cancelReason, replacementAbilityId: replacementAbilityId || null
+    });
+    return true;
+  };
 
-  A.tick = function (world, entity, dt) {
-    var now = world.time;
+  A._canBeginNormal = function (world, entity, target, now) {
+    var m = entity.mods();
+    if (!entity.alive || !m.canWeaponAttack || m.isolated) return { ok:false, reason:'control' };
+    if (entity.pendingCast || entity.cast) return { ok:false, reason:'casting' };
+    if (entity.jumpActive) return { ok:false, reason:'airborne' };
+    if (A.hasMovementIntent(entity) && m.canMove) return { ok:false, reason:'moving' };
+    if (!target || !target.alive || !target.isTargetable() || !world.areHostile(entity, target)) return { ok:false, reason:'target' };
+    if (target.mods().stealthed && !target.hasStatus('revealed')) return { ok:false, reason:'target' };
+    var reach = entity.autoAttackRange + target.radius + entity.radius;
+    if (V.distXZ(entity.pos, target.pos) > reach) return { ok:false, reason:'range' };
+    if (!world.hasLineOfSight(entity.eyePos(), target.centerPos(), entity, target)) return { ok:false, reason:'los' };
+    var toTarget = V.yawTo(entity.pos, target.pos);
+    if (Math.abs(V.angleDelta(entity.yaw, toTarget)) > B.AUTO_ATTACK_HALF_ANGLE) return { ok:false, reason:'facing' };
+    return { ok:true };
+  };
 
-    /* --- Cast en curso -------------------------------------------------- */
-    if (entity.cast) {
-      var c = entity.cast;
-      // Moverse cancela los casteos estacionarios (§5).
-      if (!c.movable && V.distXZ(entity.pos, c.startPos) > B.CAST_MOVE_TOLERANCE) {
-        A.interruptCast(world, entity, { reason: 'moved', lockout: 0 });
-      } else if (now >= c.endTime) {
-        var ability = Arena.Data.abilities[c.abilityId];
-        var target = c.targetId ? world.getEntity(c.targetId) : null;
-        entity.cast = null;
-        A._finish(world, entity, ability, target, { groundPoint: c.groundPoint });
-      }
+  A._beginNormal = function (world, entity, target, now) {
+    var ws = A._weapon(entity);
+    var windup = A._weaponWindup(entity);
+    ws.phase = 'WINDUP'; ws.windupStartedAt = now; ws.releaseAt = now + windup;
+    ws.targetId = target.id; ws.cancelReason = null;
+    entity.autoAttackSwingEnd = ws.releaseAt;
+    entity.actionState = { kind:'weapon', phase:'WINDUP', startedAt:now, releaseAt:ws.releaseAt, targetId:target.id };
+    world.bus.emit('WeaponWindupStarted', {
+      casterId: entity.id, targetId: target.id, windup: windup, releaseAt: ws.releaseAt,
+      archetype: Arena.Data.archetypeOf ? Arena.Data.archetypeOf(entity.classId) : null
+    });
+  };
+
+  A._releaseNormal = function (world, entity, target, now) {
+    var ws = A._weapon(entity);
+    if (!target || !target.alive || !target.isTargetable() || !world.areHostile(entity, target)) {
+      A.cancelWeaponWindup(world, entity, 'targetInvalid'); return;
+    }
+    var valid = A._canBeginNormal(world, entity, target, now);
+    if (!valid.ok) { A.cancelWeaponWindup(world, entity, valid.reason); return; }
+
+    Status.breakStealth(world, entity, 'attack');
+    var raw = entity.power * B.AUTO_ATTACK.coefficient;
+    var ranged = entity.autoAttackRange > 5;
+    var result = null;
+
+    ws.phase = 'RELEASE'; ws.lastReleaseAt = now; ws.targetId = target.id;
+    ws.readyAt = now + A._weaponCycle(entity);
+    ws.recoveryStartedAt = now; ws.recoveryUntil = ws.readyAt;
+    entity.autoAttackNextAt = ws.readyAt;
+    entity.actionState = { kind:'weapon', phase:'RELEASE', startedAt:ws.windupStartedAt, releaseAt:now, targetId:target.id };
+
+    world.bus.emit('AutoAttackReleased', {
+      casterId: entity.id, targetId: target.id, ranged: ranged, releaseTime: now,
+      weaponReadyAt: ws.readyAt
+    });
+
+    if (ranged) {
+      world.spawnProjectile({
+        casterId: entity.id, targetId: target.id, abilityId: 'auto_attack',
+        from: entity.eyePos(), speed: entity.classId === 'arcanista' || entity.classId === 'vinculador' ? 38 : 48,
+        kind: entity.autoAttackSchool === 'magical' ? 'bolt' : 'arrow',
+        autoAttack: true, raw: raw, school: entity.autoAttackSchool
+      });
+    } else {
+      result = Dmg.applyDamage(world, {
+        source: entity, target: target, raw: raw,
+        school: entity.autoAttackSchool === 'magical' ? 'magical' : 'physical',
+        abilityId: 'auto_attack', canCrit: true
+      });
+      world.bus.emit('AutoAttackImpact', { casterId: entity.id, targetId: target.id, damage: result.applied, ranged:false });
+      if (Arena.Data.passives && Arena.Data.passives.onAutoAttack) Arena.Data.passives.onAutoAttack(world, entity, target, result);
     }
 
-    /* --- Cola de input -------------------------------------------------- */
-    if (entity.queued) {
-      var q = entity.queued;
-      // Una entrada en cola caduca: no debe dispararse 3 s tarde.
-      if (now - q.at > B.INPUT_QUEUE_WINDOW + 1.2) {
-        entity.queued = null;
-      } else if (!entity.cast && entity.gcdUntil <= now) {
-        var ab = Arena.Data.abilities[q.abilityId];
-        var qctx = { targetId: q.targetId, groundPoint: q.groundPoint };
-        var check = ab ? A.canUse(world, entity, ab, qctx) : { ok: false };
-        if (check.ok) {
-          entity.queued = null;
-          A._commit(world, entity, ab, check.target, qctx);
-        } else if (check.reason !== 'cooldown' && check.reason !== 'gcd') {
-          entity.queued = null;
-        }
-      }
-    }
-
-    /* --- Ataque normal --------------------------------------------------- */
-    A._tickAutoAttack(world, entity, now);
+    // Evento legado: representa RELEASE, no el momento de pulsar.
+    world.bus.emit('AutoAttack', {
+      casterId: entity.id, targetId: target.id, damage: result ? result.applied : 0,
+      ranged: ranged, released: true
+    });
   };
 
   A._tickAutoAttack = function (world, entity, now) {
-    if (!entity.autoAttackOn || !entity.alive) return;
-    var m = entity.mods();
-    if (!m.canWeaponAttack || m.isolated) return;
-    if (entity.cast) return;                       // no se solapa con casteos
-
-    var target = entity.targetId ? world.getEntity(entity.targetId) : null;
-    if (!target || !target.alive || !target.isTargetable() || !world.areHostile(entity, target)) return;
-    if (target.mods().stealthed && !target.hasStatus('revealed')) return;
-
-    var reach = entity.autoAttackRange + target.radius + entity.radius;
-    if (V.distXZ(entity.pos, target.pos) > reach) return;
-    if (!world.hasLineOfSight(entity.eyePos(), target.centerPos(), entity, target)) return;
-
-    if (now < entity.autoAttackNextAt) return;
-
-    /* ARCO FRONTAL. El ataque normal exige tener al objetivo delante, y no gira
-       al personaje para conseguirlo. Sin esta condición, quitar el auto-encarado
-       no cambiaría nada en la práctica: se seguiría pegando de espaldas. */
-    var toTarget = V.yawTo(entity.pos, target.pos);
-    if (Math.abs(V.angleDelta(entity.yaw, toTarget)) > B.AUTO_ATTACK_HALF_ANGLE) {
-      world.bus.emit('AutoAttackBlocked', { casterId: entity.id, targetId: target.id, reason: 'facing' });
+    var ws = A._weapon(entity);
+    // Compatibilidad: activar autoAttackOn implica entrar en combatMode.
+    if (entity.autoAttackOn) entity.combatMode = true;
+    if (!entity.autoAttackOn || !entity.combatMode || !entity.alive) {
+      if (ws.phase === 'WINDUP') A.cancelWeaponWindup(world, entity, 'combatModeOff');
       return;
     }
 
-    var cycle = entity.autoAttackCycle / (1 + m.attackSpeedPct);
-    entity.autoAttackNextAt = now + cycle;
-
-    Status.breakStealth(world, entity, 'attack');
-
-    var raw = entity.power * B.AUTO_ATTACK.coefficient;
-    var res = Dmg.applyDamage(world, {
-      source: entity, target: target, raw: raw,
-      school: entity.autoAttackSchool === 'magical' ? 'magical' : 'physical',
-      abilityId: 'auto_attack', canCrit: true
-    });
-
-    world.bus.emit('AutoAttack', {
-      casterId: entity.id, targetId: target.id, damage: res.applied,
-      ranged: entity.autoAttackRange > 5
-    });
-
-    if (Arena.Data.passives && Arena.Data.passives.onAutoAttack) {
-      Arena.Data.passives.onAutoAttack(world, entity, target, res);
+    if (ws.phase === 'RELEASE') {
+      ws.phase = 'RECOVERY';
+      entity.actionState.phase = 'RECOVERY';
     }
+    if (ws.phase === 'RECOVERY' && now >= ws.readyAt - 1e-6) {
+      ws.phase = 'READY'; ws.targetId = null;
+      entity.actionState = { kind:'idle', phase:'READY', startedAt:now, releaseAt:now };
+      world.bus.emit('WeaponReady', { casterId: entity.id, time: now });
+    }
+
+    if (ws.phase === 'WINDUP') {
+      var t = ws.targetId ? world.getEntity(ws.targetId) : null;
+      if (now >= ws.releaseAt - 1e-6) A._releaseNormal(world, entity, t, now);
+      return;
+    }
+
+    if (ws.phase !== 'READY' || now < ws.readyAt - 1e-6) return;
+    var target = entity.targetId ? world.getEntity(entity.targetId) : null;
+    var ok = A._canBeginNormal(world, entity, target, now);
+    if (!ok.ok) {
+      if (ok.reason === 'facing') world.bus.emit('AutoAttackBlocked', { casterId:entity.id, targetId:target && target.id, reason:'facing' });
+      return;
+    }
+    A._beginNormal(world, entity, target, now);
   };
 
   /* =========================================================================
-   * Interrupción y cancelación
+   * Tick, colas y cancelaciones
    * ====================================================================== */
+  A.handlePreMovementIntents = function (world, entity, dt) {
+    if (!entity || !entity.alive) return;
+    var moving = A.hasMovementIntent(entity) && entity.mods().canMove;
+    var turning = A._bodyTurnMagnitude(entity, dt) >= B.CAST_TURN_CANCEL_THRESHOLD;
+    var c = entity.pendingCast || entity.cast;
+    if (c && c.stationary && (moving || turning)) {
+      A.interruptCast(world, entity, { reason: moving ? 'movement' : 'rotation', lockout: 0 });
+    }
+    if (A._weapon(entity).phase === 'WINDUP' && (moving || entity.jumpActive)) {
+      A.cancelWeaponWindup(world, entity, moving ? 'movement' : 'jump');
+    }
+  };
+
+  A._processQueue = function (world, entity, now) {
+    var q = entity.queuedAction || entity.queued;
+    if (!q) return;
+    if (q.expiresAt !== undefined && now > q.expiresAt + 1e-6) { A._clearQueue(entity); return; }
+
+    if (q.kind === 'afterNormal') {
+      if (A._weapon(entity).lastReleaseAt < q.at - 1e-6) return;
+    }
+    if (entity.pendingCast || entity.cast || entity.gcdUntil > now + 1e-6) return;
+
+    var ab = Arena.Data.abilities[q.abilityId];
+    if (!ab) { A._clearQueue(entity); return; }
+    var ctx = { targetId:q.targetId, target:world.getEntity(q.targetId), groundPoint:q.groundPoint };
+    var check = A.canUse(world, entity, ab, ctx);
+    if (check.ok) {
+      A._clearQueue(entity);
+      A._begin(world, entity, ab, check.target, ctx);
+      return;
+    }
+    // Si ya no es una barrera temporal, no guardar un input fantasma.
+    if (check.reason !== 'gcd' && check.reason !== 'cooldown' && check.reason !== 'weaponInterval' && check.reason !== 'casting') {
+      A._clearQueue(entity);
+    }
+  };
+
+  A.tick = function (world, entity, dt) {
+    var now = world.time;
+    var c = entity.pendingCast || entity.cast;
+    if (c) {
+      // Fallback contra jitter/teleports. La cancelación normal por input ocurre
+      // ANTES de mover la entidad en World._tick.
+      if (c.stationary && V.distXZ(entity.pos, c.startPos) > B.CAST_MOVE_TOLERANCE) {
+        A.interruptCast(world, entity, { reason:'moved', lockout:0 });
+      } else if (now >= c.endTime - 1e-6) {
+        var ability = Arena.Data.abilities[c.abilityId];
+        var target = c.targetId ? world.getEntity(c.targetId) : null;
+        A._release(world, entity, ability, target, { groundPoint:c.groundPoint }, c);
+      }
+    }
+
+    // El normal libera antes de procesar afterNormal: así una habilidad weave
+    // puede empezar en el MISMO tick posterior al release sin robar el golpe.
+    A._tickAutoAttack(world, entity, now);
+    A._processQueue(world, entity, now);
+  };
 
   A.interruptCast = function (world, entity, opts) {
     opts = opts || {};
-    var c = entity.cast;
+    var c = entity.pendingCast || entity.cast;
     if (!c) return false;
-
-    // Un cast marcado como no interrumpible sólo lo corta el hard CC.
     if (!c.interruptible && opts.reason === 'interrupt') return false;
 
-    entity.cast = null;
+    entity.pendingCast = null; entity.cast = null;
+    entity.actionState = { kind:'idle', phase:'READY', startedAt:world.time, releaseAt:world.time };
     var lockout = opts.lockout === undefined ? 0 : opts.lockout;
     if (lockout > 0) {
       var school = c.school || 'general';
       entity.schoolLockouts[school] = Math.max(entity.schoolLockouts[school] || 0, world.time + lockout);
     }
-
+    var reason = opts.reason || 'interrupt';
+    world.bus.emit('AbilityCastCancelled', {
+      casterId: entity.id, abilityId: c.abilityId, reason: reason, sourceId: opts.sourceId || null
+    });
     world.bus.emit('AbilityCastInterrupted', {
-      casterId: entity.id, abilityId: c.abilityId, reason: opts.reason || 'interrupt',
+      casterId: entity.id, abilityId: c.abilityId, reason: reason,
       sourceId: opts.sourceId || null, lockout: lockout, school: c.school
     });
     return true;
   };
 
-  A.cancelCast = function (world, entity) {
-    if (!entity.cast) return false;
-    return A.interruptCast(world, entity, { reason: 'cancelled', lockout: 0 });
+  A.cancelCast = function (world, entity, reason) {
+    if (!(entity.pendingCast || entity.cast)) return false;
+    return A.interruptCast(world, entity, { reason: reason || 'manual', lockout: 0 });
   };
 
   Arena.Combat.AbilitySystem = A;

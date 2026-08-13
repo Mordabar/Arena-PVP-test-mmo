@@ -19,6 +19,58 @@ Arena.define('data/abilities', ['data/classes', 'data/effects'], function (Arena
 
   var abilities = {};
 
+
+  /* =========================================================================
+   * Contrato temporal de combate
+   *
+   * Es DATA, no inferencia por daño. Dos poderes físicamente parecidos pueden
+   * relacionarse de forma distinta con el swing normal. El motor sólo consume
+   * esta tabla y nunca pregunta por ids concretos.
+   * ====================================================================== */
+  var COMBAT_TIMING = {
+    devastador_embestida:          { actionType:'weaponSkill', normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'charge' },
+    devastador_impacto_sismico:    { actionType:'utility',     normalInteraction:'weaveAfterNormal',weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'kick' },
+    devastador_golpe_quebrador:    { actionType:'weaponSkill', normalInteraction:'replacesNormal', weaponIntervalPolicy:'respectReady',stationary:true,  visualAction:'heavy' },
+    devastador_bramido:            { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'cry' },
+    devastador_furia:              { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'cry' },
+    devastador_profanador:         { actionType:'weaponSkill', normalInteraction:'replacesNormal', weaponIntervalPolicy:'respectReady',stationary:true,  visualAction:'heavy' },
+
+    guardian_avasallamiento:       { actionType:'utility',     normalInteraction:'weaveAfterNormal',weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'shield' },
+    guardian_guardia_absoluta:     { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
+    guardian_interponer:           { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
+    guardian_egida:                { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
+    guardian_proteccion_aliada:    { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
+    guardian_postura:              { actionType:'utility',     normalInteraction:'blocksNormal',   weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'none' },
+
+    centinela_disparo_tensado:     { actionType:'weaponSkill', normalInteraction:'replacesNormal', weaponIntervalPolicy:'respectReady',stationary:true,  visualAction:'archer' },
+    centinela_flecha_perforante:   { actionType:'weaponSkill', normalInteraction:'weaveAfterNormal',weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'archer' },
+    centinela_rafaga_disruptiva:   { actionType:'weaponSkill', normalInteraction:'weaveAfterNormal',weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'archer' },
+    centinela_pulso_invernal:      { actionType:'spell',       normalInteraction:'weaveAfterNormal',weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'archer' },
+    centinela_retroceso:           { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
+    centinela_lluvia_astillas:     { actionType:'weaponSkill', normalInteraction:'replacesNormal', weaponIntervalPolicy:'respectReady',stationary:true,  visualAction:'archer' },
+
+    rastreador_camuflaje:          { actionType:'utility',     normalInteraction:'blocksNormal',   weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'none' },
+    rastreador_emboscada:          { actionType:'weaponSkill', normalInteraction:'replacesNormal', weaponIntervalPolicy:'respectReady',stationary:true,  visualAction:'archer' },
+    rastreador_trampa:             { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'none' },
+    rastreador_marca_corrosiva:    { actionType:'weaponSkill', normalInteraction:'weaveAfterNormal',weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'archer' },
+    rastreador_confusion:          { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'none' },
+    rastreador_revelar:            { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
+
+    arcanista_descarga:            { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    arcanista_prision:             { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    arcanista_impacto_celeste:     { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    arcanista_estasis:             { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    arcanista_corrupcion:          { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    arcanista_velo_nulo:           { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+
+    vinculador_pulso_vital:        { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    vinculador_regeneracion:       { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    vinculador_barrera:            { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    vinculador_intervencion:       { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    vinculador_purificacion:       { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:true, visualAction:'cast' },
+    vinculador_enlace:             { actionType:'spell',       normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'cast' }
+  };
+
   function ab(id, o) {
     o.id = id;
     o.flags = o.flags || {};
@@ -28,6 +80,18 @@ Arena.define('data/abilities', ['data/classes', 'data/effects'], function (Arena
     if (o.cooldown === undefined) o.cooldown = 0;
     if (o.cost === undefined) o.cost = 0;
     if (o.school === undefined) o.school = 'general';
+    var timing = COMBAT_TIMING[id];
+    if (!timing) throw new Error('Falta combatTiming para ' + id);
+    o.combatTiming = {
+      actionType: timing.actionType,
+      normalInteraction: timing.normalInteraction,
+      weaponIntervalPolicy: timing.weaponIntervalPolicy,
+      stationary: !!timing.stationary,
+      visualAction: timing.visualAction || (timing.actionType === 'spell' ? 'cast' : 'none'),
+      cooldownCommit: 'onRelease',
+      resourceCommit: 'onRelease',
+      gcdCommit: 'onRelease'
+    };
     abilities[id] = o;
     return o;
   }

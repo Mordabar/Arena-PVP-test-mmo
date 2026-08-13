@@ -1,15 +1,36 @@
-# Project Arena · Combat Lab 3D
+# Project Arena · Ladder PvP Vertical Slice
+
+## Alpha v0.8 · Product Loop Integration
+
+La versión hospedada usa Three.js vendorizado y mantiene el núcleo de simulación independiente.
+Esta iteración conserva el **Animation Reference Pass v0.7** y añade el loop de producto competitivo: lobby, selección de las seis clases, Training Lab, 1v1 Ladder local, 2v2, countdown, resultados, rating/placements persistentes y rematch.
+
+La regla central sigue intacta: **la simulación decide; Three.js, UI y Product Flow representan/orquestan**.
+
+Validación de entrega: `node tools/run-tests.js`, `node tools/arbiter.js` y `node tools/visual-audit.js`.
+
 
 Prototipo jugable del combate de un MMO PvP de fantasía en tercera persona.
-**HTML, CSS, JavaScript y WebGL2 nativo. Cero dependencias.**
+**HTML, CSS y JavaScript con presentación Three.js vendorizada y fallback WebGL2. Sin npm ni build step.**
 
-Sin npm, sin Node para jugar, sin Three.js, sin servidor: **doble clic en
-`index.html`** y ya está.
+En Hostinger se sirve `index-three.html` con Three.js vendorizado. `index.html` conserva la ruta de compatibilidad/fallback.
 
 > *"Si el combate es divertido en una sala gris con personajes genéricos, existe
 > una base real sobre la cual construir el juego."*
 
-![Combat Lab](docs/screenshot.png)
+
+---
+
+## Documentos de ejecución autónoma
+
+Antes de pedir a un agente una macro-iteración del Arena Ladder PvP, debe leer en este orden:
+
+1. [`CLAUDE.md`](CLAUDE.md) — constitución y reglas globales.
+2. [`AGENTS.md`](AGENTS.md) — fan-out, ownership e integración.
+3. [`ARENA_VERTICAL_SLICE_SPEC.md`](ARENA_VERTICAL_SLICE_SPEC.md) — objetivo de producto completo.
+4. [`QA_GATE.md`](QA_GATE.md) — gates automáticos, adversariales, visuales y de rendimiento.
+
+Estos documentos convierten el proyecto en un flujo de trabajo de largo horizonte: **planificar → paralelizar → construir → integrar → probar → criticar → corregir → repetir**.
 
 ---
 
@@ -26,9 +47,11 @@ Sin npm, sin Node para jugar, sin Three.js, sin servidor: **doble clic en
 
 | Acción | Tecla |
 |---|---|
-| Mover | `W` `A` `S` `D` (relativo a cámara) |
-| Cámara | arrastrar con el ratón · rueda para zoom |
-| Girar el personaje | arrastrar con el botón derecho |
+| Mover | `W/S` frente/atrás · `A/D` strafe relativo al personaje |
+| Girar personaje | `Q/E` o arrastre con **click izquierdo** 1:1 |
+| Free-look | mantener **click derecho**; sólo gira cámara |
+| Cámara | rueda para zoom |
+| Saltar | `Espacio` |
 | Seleccionar objetivo | clic · `Tab` enemigos · `⇧Tab` aliados |
 | Seleccionarte a ti | `F` |
 | Habilidades | `1` … `6` |
@@ -66,12 +89,15 @@ papel que ninguna otra cubre igual:
 * Línea de visión por raycast, rango medido en el plano, colisión contra muros y
   entre personajes, proyectiles que resuelven al impactar.
 
-**Combat Lab**
+**Loop Ladder / Combat Lab**
 
-Cuatro escenarios (sacos de daño, duelo 1v1, combate 2v2, sala de counters),
-siete perfiles de dummy, aplicación directa de cada control y cada counter sobre
-el objetivo, e interruptores para DR, RNG, cooldowns, coste de recurso, IA,
-invulnerabilidad, telegraphs y cámara lenta.
+El arranque entra ahora en un lobby de producto con las seis clases, resumen del kit, perfil Ladder y elección 1v1/2v2. El flujo competitivo es:
+
+`LOBBY → COUNTDOWN → ACTIVE → RESULTS → REMATCH / LOBBY`
+
+Training conserva los escenarios de laboratorio (sacos de daño, duelo, 2v2, counters y Timing Lab) y los controles de DR, RNG, cooldowns, recurso, IA, invulnerabilidad, telegraphs y cámara lenta.
+
+La IA dispone de perfiles explícitos de presión melee, kiter, caster de control, soporte sanador, peel defensivo y sparring Ladder. Los bots giran mediante el límite de la simulación y no reciben auto-face instantáneo privilegiado.
 
 Registro de combate con marca de tiempo de simulación y copia al portapapeles:
 cualquier secuencia rara se puede reproducir y pegar en un informe.
@@ -81,8 +107,10 @@ cualquier secuencia rara se puede reproducir y pegar en un informe.
 ## Verificación
 
 ```bash
-node tools/run-tests.js     # 80 pruebas
-node tools/browser.js smoke # arranca el juego real en Chromium headless
+node tools/run-tests.js      # 215 pruebas
+node tools/arbiter.js        # gates adversariales de autoridad/RELEASE/producto
+node tools/visual-audit.js   # critic estático Three.js + UI + assets
+node tools/browser.js smoke  # smoke real cuando Chromium permite localhost/HTTP local
 ```
 
 Las pruebas no comprueban sólo fórmulas. Los objetivos de ritmo del documento
@@ -96,16 +124,10 @@ puede divergir de lo que se ejecuta en el navegador.
 
 ---
 
-## Estado y siguiente paso
+## Estado y siguiente milestone
 
-Esto es la **fase 3–6 del roadmap** del documento de diseño: simulación,
-renderer 3D, Combat Lab, las seis clases y bots. Deliberadamente **fuera de
-alcance por ahora**: mundo abierto, quests, economía, progresión, loot y
-monetización.
+El repositorio ya contiene el **Vertical Slice local de producto** sobre el núcleo Tactical Rhythm: simulación fija, seis clases, bots, arena, Three.js, animación procedural, VFX, audio, HUD, Training, 1v1/2v2, resultados y Ladder local reemplazable.
 
-Los nombres, timings y valores son provisionales. La prioridad es validar un
-game feel *"rápido en manos, táctico en cabeza"* antes de expandir el mundo.
+Deliberadamente fuera del slice local: producción online autoritativa, matchmaking real, cuentas remotas, mundo abierto, quests, economía, loot y monetización.
 
-Los pasos siguientes previstos son sustituir el humanoide procedural por mallas
-reales, llevar la simulación validada a Unity para producción visual, y montar
-un servidor autoritativo para 1v1/2v2/3v3 en línea.
+El próximo milestone de producto es validar visualmente v0.8 en navegador no administrado, realizar playtests humanos del loop completo y, después, decidir entre profundizar el backend GLB/skinned en Three.js o iniciar la migración visual a Unity manteniendo la simulación y contratos ya validados.

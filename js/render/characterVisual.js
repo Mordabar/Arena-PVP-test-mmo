@@ -32,7 +32,7 @@
 Arena.define('render/characterVisual',
   ['render/primitives', 'math/mat4', 'data/races',
    'render/anim/skeleton', 'render/anim/locomotion', 'render/anim/actions',
-   'anim/animationIntent'],
+   'anim/animationIntent', 'data/balance'],
   function (Arena) {
   'use strict';
 
@@ -43,6 +43,7 @@ Arena.define('render/characterVisual',
   var Loco = Arena.Render.Locomotion;
   var Act = Arena.Render.Actions;
   var AI = Arena.Anim.AnimationIntent;
+  var B = Arena.Data.balance;
 
   var CV = {};
 
@@ -167,6 +168,22 @@ Arena.define('render/characterVisual',
       // Hombrera de cuero: una cazoleta, no una bola de acero. Es la primera
       // pieza que distingue a un explorador de un caballero a veinte unidades.
       shoulderCap: P.scale(P.sphere(0.5, 7, 10), 0.170, 0.090, 0.160),
+      pauldronSpike: P.scale(P.cone(0.050, 0.16, 6), 1, 1, 0.82),
+      chestBadge: P.merge([
+        P.scale(P.box(0.085, 0.105, 0.020), 1, 1, 1),
+        P.translate(P.scale(P.cone(0.040, 0.070, 4), 1, 1, 0.55), 0, -0.070, 0.008)
+      ]),
+      rangerScarf: P.translate(P.scale(P.cylinder(0.215, 0.105, 12, 1.10), 1, 1, 0.88), 0, 0.02, 0),
+      hipPouch: P.merge([
+        P.scale(P.box(0.105, 0.125, 0.055), 1, 1, 1),
+        P.translate(P.box(0.095, 0.024, 0.058), 0, 0.065, 0)
+      ]),
+      mageMantle: P.merge([
+        P.translate(P.scale(P.sphere(0.5, 9, 12), 0.405, 0.105, 0.275), 0, 0.235, -0.020),
+        P.translate(P.scale(P.box(0.320, 0.040, 0.215), 1, 1, 1), 0, 0.215, 0.010)
+      ]),
+      robeCuff: P.translate(P.cylinder(0.070, 0.095, 10, 1.18), 0, -LOWER_ARM * 0.90, 0),
+      hatBand: P.translate(P.scale(P.cylinder(0.205, 0.042, 16, 1.0), 1, 1, 0.90), 0, 0.055, 0),
       tabard: P.translate(P.scale(P.box(0.115, 0.40, 0.235), 1, 1, 1), 0, 0.00, 0),
       collar: P.translate(P.scale(P.box(0.31, 0.062, 0.215), 1, 1, 1), 0, 0.30, 0),
       chestPlate: P.merge([
@@ -225,6 +242,14 @@ Arena.define('render/characterVisual',
         P.translate(P.scale(P.sphere(0.5, 8, 10), 0.240, 0.190, 0.320), 0, 0.010, -0.140),
         P.translate(P.scale(P.sphere(0.5, 7, 9), 0.145, 0.115, 0.190), 0, -0.045, -0.235)
       ]),
+      /* Sombrero del arcanista: ala ancha + copa inclinada en tres volúmenes.
+         Sigue siendo low-poly, pero la silueta se reconoce incluso a cámara
+         lejana y deja de depender de una capucha genérica. */
+      mageHat: P.merge([
+        P.translate(P.scale(P.cylinder(0.33, 0.035, 18, 0.94), 1, 1, 0.86), 0, 0.00, 0),
+        P.translate(P.scale(P.cone(0.185, 0.40, 12), 0.92, 1, 0.88), 0, 0.03, 0),
+        P.translate(P.scale(P.cone(0.095, 0.20, 10), 0.92, 1, 0.90), 0.055, 0.36, -0.025)
+      ]),
       cape: P.translate(P.scale(P.box(0.42, 0.76, 0.035), 1, 1, 1), 0, -0.38, 0),
 
       /* --- Armas ---------------------------------------------------------- */
@@ -257,9 +282,20 @@ Arena.define('render/characterVisual',
         P.cylinder(0.013, 0.60, 5, 1),
         P.translate(P.cone(0.027, 0.082, 5), 0, 0.60, 0)
       ]),
+      dagger: P.merge([
+        P.translate(P.scale(P.box(0.040, 0.31, 0.018), 1, 1, 1), 0, 0.20, 0),
+        P.translate(P.scale(P.cone(0.026, 0.085, 4), 1, 1, 0.40), 0, 0.395, 0),
+        P.translate(P.box(0.115, 0.028, 0.040), 0, 0.035, 0),
+        P.translate(P.cylinder(0.027, 0.115, 7, 0.92), 0, -0.080, 0)
+      ]),
       staff: P.merge([
         P.translate(P.cylinder(0.026, 1.46, 8, 0.88), 0, -0.60, 0),
         P.translate(P.scale(P.sphere(0.5, 7, 9), 0.105, 0.165, 0.105), 0, 0.88, 0)
+      ]),
+      staffCrown: P.merge([
+        P.translate(P.scale(P.cone(0.040, 0.18, 6), 0.75, 1, 0.75), -0.095, 0.87, 0),
+        P.translate(P.scale(P.cone(0.040, 0.18, 6), 0.75, 1, 0.75),  0.095, 0.87, 0),
+        P.translate(P.scale(P.box(0.215, 0.026, 0.035), 1, 1, 1), 0, 0.82, 0)
       ]),
       gem: P.sphere(0.078, 8, 10),
       orb: P.sphere(0.112, 8, 12)
@@ -280,7 +316,7 @@ Arena.define('render/characterVisual',
     guardian:   { left: 'shield', outfit: 'plate', scale: 0.92 },
     centinela:  { left: null, outfit: 'leather', scale: 1.08 },
     rastreador: { left: null, outfit: 'leather', scale: 0.94, cape: true },
-    arcanista:  { left: null, outfit: 'robe', scale: 1.00, hood: true },
+    arcanista:  { left: null, outfit: 'robe', scale: 1.00, hat: true },
     vinculador: { left: 'orb', outfit: 'robe', scale: 0.95, hood: true }
   };
   for (var _cid in LOADOUT) {
@@ -318,16 +354,18 @@ Arena.define('render/characterVisual',
     upperArm: 'SKIN', lowerArm: 'SKIN', elbow: 'SKIN', shoulderBall: 'SKIN', hand: 'SKIN',
 
     ribcage: 'CLOTH', abdomen: 'CLOTH', pelvis: 'CLOTH', thigh: 'CLOTH', shin: 'CLOTH',
-    knee: 'CLOTH', tabard: 'CLOTH', robe: 'CLOTH', hood: 'CLOTH', cape: 'CLOTH',
+    knee: 'CLOTH', tabard: 'CLOTH', robe: 'CLOTH', hood: 'CLOTH', mageHat: 'CLOTH', cape: 'CLOTH',
+    rangerScarf: 'CLOTH', mageMantle: 'CLOTH', robeCuff: 'CLOTH',
     hairCap: 'CLOTH', hairTail: 'CLOTH',
 
     belt: 'LEATHER', skirtPanel: 'LEATHER', bracer: 'LEATHER', foot: 'LEATHER',
-    bowString: 'LEATHER', strap: 'LEATHER', quiver: 'LEATHER', shoulderCap: 'LEATHER',
+    bowString: 'LEATHER', strap: 'LEATHER', quiver: 'LEATHER', shoulderCap: 'LEATHER', hipPouch: 'LEATHER',
     sash: 'CLOTH', stole: 'CLOTH', robeBodice: 'CLOTH', quiverArrows: 'WOOD',
 
-    pauldron: 'METAL', collar: 'METAL', chestPlate: 'METAL', buckle: 'METAL',
+    pauldron: 'METAL', pauldronSpike: 'METAL', collar: 'METAL', chestPlate: 'METAL', buckle: 'METAL',
+    chestBadge: 'METAL', hatBand: 'METAL', staffCrown: 'METAL',
     thighGuard: 'METAL', kneeGuard: 'METAL', bootCuff: 'METAL', robeTrim: 'METAL',
-    sword: 'METAL', shield: 'METAL',
+    sword: 'METAL', shield: 'METAL', dagger: 'METAL',
 
     bow: 'WOOD', staff: 'WOOD', arrow: 'WOOD',
 
@@ -339,16 +377,21 @@ Arena.define('render/characterVisual',
 
   var OUTFIT = {
     plate: {
-      cloth: [0.150, 0.152, 0.190], metal: [0.335, 0.345, 0.395],
-      trim: [0.86, 0.70, 0.30], leather: [0.135, 0.105, 0.085], wood: [0.26, 0.20, 0.16]
+      // Acero frío + tabardo azul oscuro: lectura de guerrero sin convertirlo
+      // en una silueta gris. El trim cálido recorta hombros y arma contra verde.
+      cloth: [0.085, 0.135, 0.205], metal: [0.405, 0.435, 0.485],
+      trim: [0.88, 0.68, 0.28], leather: [0.165, 0.105, 0.070], wood: [0.28, 0.20, 0.14]
     },
     leather: {
-      cloth: [0.215, 0.245, 0.150], metal: [0.290, 0.240, 0.165],
-      trim: [0.66, 0.53, 0.28], leather: [0.185, 0.135, 0.090], wood: [0.30, 0.22, 0.14]
+      // Explorador: verdes de bosque, cuero tostado y metal bronceado.
+      cloth: [0.115, 0.235, 0.145], metal: [0.390, 0.300, 0.185],
+      trim: [0.73, 0.58, 0.29], leather: [0.245, 0.155, 0.082], wood: [0.34, 0.235, 0.125]
     },
     robe: {
-      cloth: [0.205, 0.034, 0.052], metal: [0.275, 0.225, 0.170],
-      trim: [0.90, 0.74, 0.34], leather: [0.155, 0.115, 0.095], wood: [0.28, 0.22, 0.18]
+      // Caster: índigo profundo + oro viejo. Se diferencia instantáneamente del
+      // arquero verde y conserva contraste para los VFX azules/morados.
+      cloth: [0.075, 0.120, 0.275], metal: [0.400, 0.305, 0.175],
+      trim: [0.88, 0.67, 0.27], leather: [0.170, 0.110, 0.080], wood: [0.30, 0.205, 0.125]
     }
   };
 
@@ -407,6 +450,31 @@ Arena.define('render/characterVisual',
     // disparar mientras strafea sin que ninguna de las dos capas se entere.
     Act.update(st.action, st.cfg, dt);
 
+    /* El reloj de la acción normal lo gobierna weaponState. La animación sigue
+       teniendo blend/inercia propios, pero su ANTICIPATION/IMPACT se alinea al
+       RELEASE real de simulación. Así arco, espada y pulso de báculo no pueden
+       golpear visualmente antes o después del evento autoritativo. */
+    var ws = entity.weaponState;
+    if (st.action.family && !st.action.isPower && ws) {
+      var aph = st.cfg.phases[st.action.family] || st.cfg.phases.light;
+      var releaseT = aph.impact;
+      if (ws.phase === 'WINDUP') {
+        var wp = (world.time - ws.windupStartedAt) / Math.max(0.001, ws.releaseAt - ws.windupStartedAt);
+        wp = Math.max(0, Math.min(1, wp));
+        /* Nunca cruzar el marker visual antes del RELEASE autoritativo. */
+        st.action.t = wp * Math.max(0.01, releaseT - 0.012);
+      } else if (ws.phase === 'RELEASE') {
+        st.action.t = Math.max(st.action.t, releaseT);
+      } else if (ws.phase === 'RECOVERY' && ws.lastReleaseAt > -900) {
+        var ar = CV.archetypeOf(entity.classId);
+        var rr = (B.AUTO_ATTACK.releaseRecoveryVisual && B.AUTO_ATTACK.releaseRecoveryVisual[ar]) || 0.30;
+        var rp = Math.max(0, Math.min(1, (world.time - ws.lastReleaseAt) / rr));
+        st.action.t = Math.max(st.action.t, releaseT + rp * (1 - releaseT));
+      } else if (ws.phase === 'READY' && ws.lastCancelAt > -900 && world.time - ws.lastCancelAt < 0.20) {
+        Act.cancelVisual(st.action);
+      }
+    }
+
     // Espejos de lectura para VFX, HUD y depuración.
     st.speed = st.loco.moveSpeed;
     st.phase = st.loco.cycle * Math.PI * 2;
@@ -451,9 +519,18 @@ Arena.define('render/characterVisual',
    * elección de familia vive en render/anim/actions.js, que es quien conoce
    * las fases.
    */
-  CV.triggerAttack = function (st, kind, isPower, castFamily) {
+  CV.triggerAttack = function (st, kind, isPower, castFamily, visualAction) {
     if (!st.cfg) return;   // aún no ha corrido el primer update
-    Act.trigger(st.action, Act.familyFor(kind || 'melee', isPower), st.cfg, isPower, castFamily);
+    var family = Act.familyFor(kind || 'melee', isPower, visualAction);
+    Act.trigger(st.action, family, st.cfg, isPower, castFamily, visualAction);
+    /* Los poderes llegan aquí en AbilityReleased: RELEASE ya ocurrió en la
+       simulación. La presentación entra exactamente en el marker de impacto,
+       no reproduce otro windup después de que el proyectil ya salió. */
+    if (isPower) {
+      var ph = st.cfg.phases[family] || st.cfg.phases.cast || st.cfg.phases.heavy;
+      st.action.t = ph.impact;
+      st.action.weight = 1;
+    }
   };
 
   /**
@@ -461,8 +538,8 @@ Arena.define('render/characterVisual',
    * data/castFamilies.js: la presentación conoce siete categorías visuales, no
    * el catálogo de habilidades.
    */
-  CV.beginCast = function (st, castFamily) {
-    if (st.action) Act.beginCast(st.action, castFamily);
+  CV.beginCast = function (st, castFamily, visualAction) {
+    if (st.action) Act.beginCast(st.action, castFamily, visualAction);
   };
 
   /**
@@ -499,7 +576,8 @@ Arena.define('render/characterVisual',
       torsoTwist: lc.torsoYaw, hipRoll: lc.hipRoll,
       bob: lc.hipHeight,
       armSwing: Math.sin(lc.cycle * Math.PI * 2) * (cfg.armSwing + cfg.armSwingRun * lc.moveSpeed)
-                * lc.moveSpeed * Math.max(0.25, lc.moveForward)
+                * lc.moveSpeed * Math.max(0.22, Math.abs(lc.moveForward) + Math.abs(lc.moveRight) * 0.55)
+                * (lc.motionProfile ? lc.motionProfile.arm : 1)
     };
     var breath = Math.sin(lc.breathe) * cfg.breathAmount * (1 - lc.moveSpeed);
 
@@ -622,18 +700,29 @@ Arena.define('render/characterVisual',
     if (loadout.outfit === 'plate') {
       draw(chest, 'collar', metal);
       draw(node(chest, 0, 0.12, 0.010), 'chestPlate', metal);
+      draw(node(chest, 0, 0.18, 0.132, 0, 0, 0, 0.86, 0.86, 0.86), 'chestBadge', trim);
       draw(node(chest, 0, 0.02, 0.012), 'tabard', teamCol);
     } else if (loadout.outfit === 'leather') {
       // Correa del carcaj cruzada sobre el pecho: da lectura de asimetría, que
       // es justo lo que separa una silueta de explorador de una de soldado.
+      draw(node(chest, 0, 0.27, -0.012, 0.04, 0, 0), 'rangerScarf', cloth);
       draw(node(chest, 0.055, 0.20, 0.075, 0, 0, 0.42), 'strap', palette.leather);
       draw(node(chest, 0.030, 0.10, 0.020), 'tabard', teamCol);
       var quiverM = node(chest, -0.115, 0.24, -0.145, 0.30, 0, -0.34);
       draw(quiverM, 'quiver', palette.leather);
       draw(node(quiverM, 0, 0.02, 0), 'quiverArrows', [0.58, 0.47, 0.32]);
+      draw(node(hips, 0.235, -0.01, 0.110, 0, 0.15, 0), 'hipPouch', palette.leather);
     } else {
       draw(node(chest, 0, -0.16, 0), 'robeBodice', cloth);
+      draw(node(chest, 0, 0.20, -0.010, 0.02, 0, 0), 'mageMantle', trim);
       draw(node(chest, 0, 0.24, 0.098), 'stole', teamCol);
+    }
+
+    // Dagas secundarias visibles del arquero/rastreador. No participan en las
+    // reglas todavía: son parte de la silueta y preparan el modelo definitivo.
+    if (loadout.outfit === 'leather') {
+      draw(node(hips, -0.205, 0.01, 0.115, Math.PI, 0.10, -0.18, 0.82, 0.82, 0.82), 'dagger', steel);
+      draw(node(hips,  0.205, 0.01, 0.115, Math.PI, -0.10, 0.18, 0.82, 0.82, 0.82), 'dagger', steel);
     }
 
     /* --- Cabeza ----------------------------------------------------------- */
@@ -667,12 +756,26 @@ Arena.define('render/characterVisual',
     draw(node(head, 0.052, 0.008, 0.104, 0, 0.18, 0), 'eye', eyeCol, eyeEm);
 
     if (loadout.hood) draw(node(head, 0, -0.01, -0.02, 0.10, 0, 0), 'hood', cloth);
+    if (loadout.hat) {
+      var hatM = node(head, 0, 0.105, -0.01, 0.04, -0.08, 0.03);
+      draw(hatM, 'mageHat', cloth);
+      draw(node(hatM, 0, 0.005, 0), 'hatBand', trim);
+    }
 
     /* --- Piernas con rodilla y tobillo ------------------------------------ */
     var robed = loadout.outfit === 'robe';
     if (robed) {
-      var swayR = lc.leanF * 0.3 + Math.sin(lc.cycle * Math.PI * 2) * 0.09 * lc.moveSpeed;
-      var robeM = node(hips, 0, 0.06, 0, swayR, 0, lc.torsoRoll * 0.5);
+      /* La túnica no es física de tela, pero tampoco puede ser una campana
+         soldada a la pelvis. Combina paso, aceleración, strafe y giro en una
+         respuesta pequeña: el dobladillo acusa el movimiento sin convertirse
+         en gelatina ni alterar un solo dato de simulación. */
+      var robeStep = Math.sin(lc.cycle * Math.PI * 2) * 0.052 * lc.moveSpeed
+                   * (lc.motionProfile ? lc.motionProfile.lift : 1);
+      var robePitch = lc.leanF * 0.38 + robeStep * (lc.moveForward >= 0 ? 1 : -0.52)
+                    - lc.acceleration * 0.020 + lc.deceleration * 0.016;
+      var robeRoll = lc.torsoRoll * 0.32 - lc.moveRight * lc.moveSpeed * 0.060;
+      var robeYaw = -lc.turnRate * 0.035;
+      var robeM = node(hips, 0, 0.06, 0, robePitch, robeYaw, robeRoll);
       draw(robeM, 'robe', cloth);
       draw(robeM, 'robeTrim', trim);
     }
@@ -701,7 +804,17 @@ Arena.define('render/characterVisual',
         var lz = -wx * sinY + wz * cosY;
 
         var hipOrigin = { x: hipLocalX, y: hipY - HIP_SOCKET, z: 0 };
-        var footTarget = { x: lx, y: leg.footPos.y + ANKLE_HEIGHT, z: lz };
+        var footTarget = { x: lx, y: (leg.footPos.y - pos.y) + ANKLE_HEIGHT, z: lz };
+
+        /* Puntapié procedural del guerrero: la pierna derecha deja temporalmente
+           el objetivo de locomoción y extiende el pie hacia delante. Es sólo
+           presentación; el RELEASE y el CC siguen siendo de simulación. */
+        if (side > 0 && A.kick > 0.001 && arche === 'melee') {
+          var kk = A.kick;
+          footTarget.z += 0.54 * kk;
+          footTarget.y += 0.24 * Math.sin(Math.min(1, kk) * Math.PI * 0.72);
+          footTarget.x += 0.035 * kk;
+        }
 
         if (ccProne > 0) {
           // Objetivo "tendido": pierna extendida en la prolongación del cuerpo.
@@ -749,7 +862,12 @@ Arena.define('render/characterVisual',
       }
     }
 
-    if (loadout.cape) draw(node(chest, 0, 0.22, -0.13, 0.14 + lc.moveSpeed * 0.40, 0, 0), 'cape', trim);
+    if (loadout.cape) {
+      var capePitch = 0.12 + lc.moveSpeed * 0.34 + lc.acceleration * 0.05 - lc.deceleration * 0.025;
+      var capeRoll = -lc.moveRight * lc.moveSpeed * 0.045 + Math.sin(lc.cycle * Math.PI * 2) * 0.018 * lc.moveSpeed;
+      var capeYaw = -lc.turnRate * 0.040;
+      draw(node(chest, 0, 0.22, -0.13, capePitch, capeYaw, capeRoll), 'cape', trim);
+    }
 
     /* --- Brazos con codo -------------------------------------------------- */
     var arms = [{ x: -0.205, s: A.left, side: -1 }, { x: 0.205, s: A.right, side: 1 }];
@@ -757,7 +875,9 @@ Arena.define('render/characterVisual',
     for (var a = 0; a < 2; a++) {
       var q = arms[a];
       if (loadout.outfit === 'plate') {
-        draw(node(chest, q.x * 1.10, 0.22, 0, 0, 0, q.side * 0.26), 'pauldron', metal);
+        var pm = node(chest, q.x * 1.10, 0.22, 0, 0, 0, q.side * 0.26);
+        draw(pm, 'pauldron', metal);
+        draw(node(pm, q.side * 0.12, 0.11, -0.015, q.side * -0.10, 0, q.side * -0.55, 0.75, 0.75, 0.75), 'pauldronSpike', trim);
       } else if (loadout.outfit === 'leather') {
         draw(node(chest, q.x * 1.04, 0.225, 0, 0, 0, q.side * 0.20), 'shoulderCap', palette.leather);
       }
@@ -769,6 +889,7 @@ Arena.define('render/characterVisual',
       draw(elbowM, 'lowerArm', skin);
       if (loadout.outfit === 'plate') draw(elbowM, 'bracer', metal);
       else if (loadout.outfit === 'leather') draw(elbowM, 'bracer', palette.leather);
+      else if (loadout.outfit === 'robe') draw(elbowM, 'robeCuff', trim);
       hands[a] = node(elbowM, 0, -LOWER_ARM, 0, q.s.wrist || 0, 0, 0);
       draw(hands[a], 'hand', skin);
     }
@@ -793,8 +914,10 @@ Arena.define('render/characterVisual',
       }
 
     } else if (loadout.right === 'staff') {
-      var staffM = node(handR, 0, -0.045, 0.01, A.weaponPitch, A.weaponYaw || 0, A.weaponRoll, sc, sc, sc);
+      var staffM = node(handR, A.weaponOffsetX || 0, -0.045 + (A.weaponOffsetY || 0),
+        0.01 + (A.weaponOffsetZ || 0), A.weaponPitch, A.weaponYaw || 0, A.weaponRoll, sc, sc, sc);
       draw(staffM, 'staff', palette.wood);
+      draw(staffM, 'staffCrown', trim);
       var glow = 0.5 + st.cast * 2.6 + A.gemFlash * 2.2;
       draw(node(staffM, 0, 0.90, 0), 'gem', accent,
         [accent[0] * glow, accent[1] * glow, accent[2] * glow]);
@@ -831,8 +954,8 @@ Arena.define('render/characterVisual',
       skin: entity.skinTone || race.palette.skin,
       hair: entity.hairColor || race.palette.hair,
       eye: race.palette.eye,
-      cloth: mix(outfit.cloth, teamTint, 0.10),
-      metal: mix(outfit.metal, teamTint, 0.12),
+      cloth: mix(outfit.cloth, teamTint, 0.065),
+      metal: mix(outfit.metal, teamTint, 0.055),
       steel: outfit.metal,
       leather: outfit.leather,
       wood: outfit.wood,

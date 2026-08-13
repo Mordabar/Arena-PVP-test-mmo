@@ -38,6 +38,18 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
     this.height = cfg.height || B.ENTITY_HEIGHT;
     this.groundY = 0;
 
+    /* --- Salto ----------------------------------------------------------
+     * `jumpOffset` es altura adicional sobre el suelo, separada de pos.y para
+     * no contaminar rango/LoS/colliders 2D del Combat Lab. La simulación sigue
+     * siendo autoridad sobre el arco; el renderer sólo interpola y dibuja. */
+    this.jumpOffset = 0;
+    this.prevJumpOffset = 0;
+    this.jumpActive = false;
+    this.jumpElapsed = 0;
+    this.jumpStartedAt = -999;
+    this._jumpRequested = false;
+    this._mouseTurnDelta = 0;
+
     /* --- Vitales -------------------------------------------------------- */
     this.hpMax = cfg.hpMax || 1000;
     this.hp = cfg.hp === undefined ? this.hpMax : cfg.hp;
@@ -65,15 +77,33 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
     this.gcdUntil = 0;
     this.gcdStartedAt = 0;
     this.gcdDuration = 0;
-    this.cast = null;                       // {abilityId, targetId, start, end, ...}
+    /* Línea temporal de acciones. `cast` se conserva como alias de compatibilidad
+       con HUD/animación, pero la semántica nueva vive en pendingCast/actionState. */
+    this.actionState = { kind: 'idle', phase: 'READY', startedAt: 0, releaseAt: 0 };
+    this.pendingCast = null;                 // transacción aún NO comprometida
+    this.cast = null;                        // alias visual del pendingCast
     this.channel = null;
     this.schoolLockouts = Object.create(null);
-    this.queued = null;                     // input en cola: {abilityId, targetId, at}
+    this.queuedAction = null;                // una sola intención futura: latest valid wins
+    this.queued = null;                      // alias legado para UI/tests antiguos
 
     /* --- Ataque normal --------------------------------------------------- */
+    this.combatMode = false;
     this.autoAttackOn = false;
-    this.autoAttackNextAt = 0;
-    this.autoAttackSwingEnd = 0;
+    this.autoAttackNextAt = 0;               // alias de weaponState.readyAt
+    this.autoAttackSwingEnd = 0;             // alias de releaseAt durante WINDUP
+    this.weaponState = {
+      phase: 'READY',                        // READY | WINDUP | RELEASE | RECOVERY
+      readyAt: 0,
+      windupStartedAt: 0,
+      releaseAt: 0,
+      recoveryStartedAt: 0,
+      recoveryUntil: 0,
+      targetId: null,
+      lastReleaseAt: -999,
+      lastCancelAt: -999,
+      cancelReason: null
+    };
 
     /* --- Estados -------------------------------------------------------- */
     this.statuses = [];
@@ -309,11 +339,20 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
     this.charges = Object.create(null);
     this.gcdUntil = 0;
     this.gcdDuration = 0;
+    this.actionState = { kind: 'idle', phase: 'READY', startedAt: 0, releaseAt: 0 };
+    this.pendingCast = null;
     this.cast = null;
+    this.queuedAction = null;
     this.queued = null;
+    this.combatMode = false;
     this.autoAttackOn = false;
     this.autoAttackNextAt = 0;
     this.autoAttackSwingEnd = 0;
+    this.weaponState = {
+      phase: 'READY', readyAt: 0, windupStartedAt: 0, releaseAt: 0,
+      recoveryStartedAt: 0, recoveryUntil: 0, targetId: null,
+      lastReleaseAt: -999, lastCancelAt: -999, cancelReason: null
+    };
     this.lastCombatAt = -999;
     this.aiState = null;
     this.invalidateMods();

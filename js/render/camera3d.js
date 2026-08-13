@@ -42,7 +42,7 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
     this.viewProj = M.create();
     this.invViewProj = M.create();
 
-    this.sensitivity = 0.0026;
+    this.sensitivity = 0.00315;  // v0.5: giro de ratón más directo, sin sensación de arrastre
     /* Seguimiento CONTENIDO. Una cámara que persigue al milímetro convierte
        cada paso en un empujón de encuadre y el conjunto se siente de juego de
        acción. Un MMO táctico quiere una cámara casi estática: sigue, pero no

@@ -7,7 +7,8 @@
  * ========================================================================== */
 Arena.define('main',
   ['sim/world', 'render/webglRenderer', 'render/vfx', 'render/picking',
-   'ui/hud', 'ui/combatLog', 'ui/labPanel', 'ui/tooltips', 'ai/dummyAI', 'audio/audio'],
+   'ui/hud', 'ui/combatLog', 'ui/labPanel', 'ui/tooltips', 'ui/gameShell',
+   'product/matchFlow', 'product/ladder', 'ai/dummyAI', 'audio/audio'],
   function (Arena) {
   'use strict';
 
@@ -18,7 +19,8 @@ Arena.define('main',
   var VFX = Arena.Render.VFX;
 
   var Game = {
-    world: null, renderer: null, hud: null, log: null, lab: null, tooltips: null,
+    world: null, renderer: null, hud: null, log: null, lab: null, tooltips: null, shell: null,
+    flow: null, ladderStore: null,
     playerClass: 'devastador',
     scenario: 'duel',
     input: {
@@ -33,12 +35,17 @@ Arena.define('main',
          forma de saber a qué se apuntaba. */
       downTime: 0, downX: 0, downY: 0, downNdc: { x: 0, y: 0 },
       pointerLocked: false,
+      steerYawPending: 0, pointerTimer: null,
+      dragActive: false, pendingDragDx: 0, pendingDragDy: 0,
       /* Modo de cámara activo: 'steer' (botón izquierdo — la cámara arrastra al
          personaje) o 'freelook' (botón derecho — mirar sin girar el cuerpo). */
       camMode: null
     },
     _lastFrame: 0,
-    _running: false
+    _running: false,
+    _matchResolved: false,
+    _matchEndPending: false,
+    _lastMatch: { mode: '1v1', classId: 'devastador' }
   };
 
   /* =========================================================================
@@ -62,6 +69,14 @@ Arena.define('main',
     this.tooltips = new Arena.UI.Tooltips(hudRoot, this.world);
 
     var self = this;
+    var browserStorage = null;
+    try { browserStorage = window.localStorage; } catch (storageErr) { browserStorage = null; }
+    this.ladderStore = Arena.Product.Ladder.makeStorage(browserStorage);
+    this.flow = new Arena.Product.MatchFlow({
+      classId: this.playerClass,
+      profile: this.ladderStore.load(),
+      onChange: function (state, reason) { self._onFlowChange(state, reason); }
+    });
     this.lab = new Arena.UI.LabPanel(hudRoot, {
       world: this.world,
       renderer: this.renderer,
@@ -71,6 +86,15 @@ Arena.define('main',
       buildScenario: function (id) { self.buildScenario(id); },
       resetWorld: function () { self.buildScenario(self.scenario); }
     });
+
+    this.shell = new Arena.UI.GameShell({
+      world: this.world, flow: this.flow, classId: this.playerClass,
+      onStart: function (mode, classId) { self.startMatch(mode, classId); },
+      onTraining: function () { self.openTraining(); },
+      onRematch: function () { self.rematch(); },
+      onLobby: function () { self.enterLobby(); }
+    });
+    this.world.bus.on('EntityDied', function () { self._matchEndPending = true; });
 
     // El audio se arma en el primer gesto: los navegadores bloquean el contexto
     // hasta que hay interacción real del usuario.
@@ -87,12 +111,132 @@ Arena.define('main',
     this._bindInput(canvas);
     this._bindActionBar();
 
-    this.buildScenario('duel');
+    this._clearWorld();
     this.world.start();
+    this.flow.enterLobby();
 
     this._running = true;
     this._lastFrame = performance.now();
     requestAnimationFrame(function (t) { self._frame(t); });
+  };
+
+  Game._clearWorld = function () {
+    var world = this.world;
+    if (!world) return;
+    world.entities.length = 0;
+    world._byId = Object.create(null);
+    world.zones.length = 0;
+    world.projectiles.length = 0;
+    world.bus.emit('WorldReset', { time: world.time });
+    if (VFX) VFX.clear();
+    if (this.hud) { this.hud.clearFloaters(); this.hud.playerId = null; }
+    if (this.renderer) { this.renderer.playerId = null; this.renderer.selectedId = null; this.renderer.syncVisuals(0); }
+  };
+
+  Game._onFlowChange = function (state, reason) {
+    if (reason === 'fight') {
+      this._setBotsEnabled(true);
+      var p = this.world.getPlayer();
+      if (p) p.combatMode = false;
+      if (Arena.Audio && Arena.Audio.sounds && Arena.Audio.sounds.roundStart) Arena.Audio.sounds.roundStart();
+    }
+    if (reason === 'finish') {
+      this._setBotsEnabled(false);
+      this.ladderStore.save(this.flow.profile);
+      if (Arena.Audio && Arena.Audio.sounds && state.result && !state.result.draw) {
+        var s = state.result.won ? Arena.Audio.sounds.victory : Arena.Audio.sounds.defeat;
+        if (s) s();
+      }
+    }
+    if (this.shell) this.shell.update(state);
+  };
+
+  Game._setBotsEnabled = function (enabled) {
+    for (var i=0; i<this.world.entities.length; i++) {
+      var e = this.world.entities[i];
+      if (!e.isPlayer) e.aiEnabled = !!enabled && e.aiProfile !== 'passive' && e.aiProfile !== 'armored' && e.aiProfile !== 'warded';
+    }
+  };
+
+  Game._opponentFor = function (classId) {
+    return { devastador:'centinela', guardian:'arcanista', centinela:'devastador',
+      rastreador:'vinculador', arcanista:'guardian', vinculador:'rastreador' }[classId] || 'centinela';
+  };
+
+  Game._allyFor = function (classId) {
+    if (classId === 'vinculador') return 'devastador';
+    if (classId === 'guardian') return 'centinela';
+    return 'vinculador';
+  };
+
+  Game._aiProfileForClass = function (classId) {
+    return {
+      devastador:'chaser', guardian:'peel', centinela:'kiter', rastreador:'kiter',
+      arcanista:'caster', vinculador:'support'
+    }[classId] || 'sparring';
+  };
+
+  Game.startMatch = function (mode, classId) {
+    this.playerClass = Arena.Data.classes[classId] ? classId : this.playerClass;
+    this._lastMatch = { mode: mode === '2v2' ? '2v2' : '1v1', classId: this.playerClass };
+    this._matchResolved = false;
+    this._matchEndPending = false;
+    this.buildScenario(this._lastMatch.mode === '2v2' ? 'team' : 'duel');
+    this._setBotsEnabled(false);
+    var p = this.world.getPlayer();
+    if (p) { p._moveIntent = null; p._turnIntent = 0; p.autoAttackOn = false; p.combatMode = false; }
+    this.flow.begin(this._lastMatch.mode, this.playerClass, 3.0);
+  };
+
+  Game.openTraining = function () {
+    this._matchResolved = false;
+    this._matchEndPending = false;
+    this.flow.begin('training', this.playerClass, 0);
+    this.buildScenario('timing');
+    this._setBotsEnabled(false);
+    document.body.classList.add('arena-training');
+  };
+
+  Game.enterLobby = function () {
+    document.body.classList.remove('arena-training');
+    this._matchResolved = false;
+    this._matchEndPending = false;
+    this._clearWorld();
+    this.flow.enterLobby();
+  };
+
+  Game.rematch = function () {
+    this.startMatch(this._lastMatch.mode, this._lastMatch.classId);
+  };
+
+  Game._teamAlive = function (team) {
+    for (var i=0; i<this.world.entities.length; i++) {
+      var e=this.world.entities[i]; if (e.team===team && e.alive) return true;
+    }
+    return false;
+  };
+
+  Game._teamStats = function (team) {
+    var out={damage:0, healing:0, interrupts:0};
+    for (var i=0;i<this.world.entities.length;i++) {
+      var e=this.world.entities[i]; if(e.team!==team) continue;
+      out.damage += e.stats.damageDealt || 0; out.healing += e.stats.healingDone || 0; out.interrupts += e.stats.interrupts || 0;
+    }
+    return out;
+  };
+
+  Game._evaluateMatchEnd = function () {
+    if (!this.flow || this.flow.phase !== 'ACTIVE' || this.flow.mode === 'training' || this._matchResolved) return;
+    var alive0=this._teamAlive(0), alive1=this._teamAlive(1);
+    if (alive0 && alive1) return;
+    this._matchResolved = true;
+    var winner = (!alive0 && !alive1) ? -1 : (alive0 ? 0 : 1);
+    var enemyName='Rival';
+    for(var i=0;i<this.world.entities.length;i++){ var e=this.world.entities[i]; if(e.team===1){ enemyName=Arena.Data.classes[e.classId]?Arena.Data.classes[e.classId].name:e.name; break; } }
+    this.flow.finish(winner, {
+      opponentRating: this.flow.mode === '2v2' ? 1040 : 1020,
+      opponent: enemyName, stats: this._teamStats(0)
+    });
   };
 
   /* =========================================================================
@@ -102,13 +246,7 @@ Arena.define('main',
     var world = this.world;
     this.scenario = id;
 
-    world.entities.length = 0;
-    world._byId = Object.create(null);
-    world.zones.length = 0;
-    world.projectiles.length = 0;
-    world.bus.emit('WorldReset', { time: world.time });
-    if (VFX) VFX.clear();
-    if (this.hud) this.hud.clearFloaters();
+    this._clearWorld();
 
     var spawns = world.arena.spawns;
     var player = Arena.Data.makeEntity(this.playerClass, {
@@ -140,13 +278,17 @@ Arena.define('main',
         break;
 
       case 'duel':
-        add('centinela', { name: 'Duelista', team: 1, x: spawns.enemy.x, z: spawns.enemy.z, profile: 'bot' });
+        var duelClass = this._opponentFor(this.playerClass);
+        add(duelClass, { name: Arena.Data.classes[duelClass].name + ' rival', team: 1, x: spawns.enemy.x, z: spawns.enemy.z, profile: 'sparring' });
         break;
 
       case 'team':
-        add('vinculador', { name: 'Vinculador aliado', team: 0, x: -12, z: 2, profile: 'bot' });
-        add('devastador', { name: 'Devastador rival', team: 1, x: 10, z: -2, profile: 'bot' });
-        add('vinculador', { name: 'Vinculador rival', team: 1, x: 13, z: 2, profile: 'bot' });
+        var allyClass = this._allyFor(this.playerClass);
+        var enemyA = this._opponentFor(this.playerClass);
+        var enemyB = this._allyFor(enemyA);
+        add(allyClass, { name: Arena.Data.classes[allyClass].name + ' aliado', team: 0, x: -12, z: 2, profile: this._aiProfileForClass(allyClass) });
+        add(enemyA, { name: Arena.Data.classes[enemyA].name + ' rival', team: 1, x: 10, z: -2, profile: this._aiProfileForClass(enemyA) });
+        add(enemyB, { name: Arena.Data.classes[enemyB].name + ' rival', team: 1, x: 13, z: 2, profile: this._aiProfileForClass(enemyB) });
         break;
 
       case 'counters':
@@ -154,6 +296,17 @@ Arena.define('main',
         add('vinculador', { name: 'Vinculador (intervención)', team: 1, x: 5, z: 0, profile: 'passive' });
         add('arcanista', { name: 'Arcanista (velo nulo)', team: 1, x: 5, z: 4, profile: 'passive' });
         add('vinculador', { name: 'Aliado de pruebas', team: 0, x: -8, z: 3, profile: 'passive' });
+        break;
+
+      case 'timing':
+        // TIMING LAB: blancos pasivos en una zona compacta para practicar las
+        // ventanas que definen el nuevo ritmo táctico sin interferencia de IA.
+        add('guardian',   { name: '1 · STOP-SHOT',    team: 1, x: -3.5, z: -5.0, profile: 'passive' });
+        add('centinela',  { name: '2 · WEAVE',        team: 1, x: -1.5, z: -2.0, profile: 'passive' });
+        add('devastador', { name: '3 · REPLACE',      team: 1, x: -1.5, z:  2.0, profile: 'passive' });
+        add('arcanista',  { name: '4 · CAST CANCEL',  team: 1, x: -3.5, z:  5.0, profile: 'passive' });
+        add('vinculador', { name: '5 · GCD CHAIN',    team: 1, x:  1.0, z: -4.0, profile: 'passive' });
+        add('guardian',   { name: '6 · RELEASE EDGE', team: 1, x:  1.0, z:  4.0, profile: 'passive' });
         break;
     }
 
@@ -172,9 +325,9 @@ Arena.define('main',
     // orientado hacia una pared es la primera impresión más barata de perder.
     var cam = this.renderer.camera;
     cam.yaw = player.yaw + Math.PI;
-    cam.pitch = 0.48;
-    cam.targetDistance = 8.2;
-    cam.distance = 8.2;
+    cam.pitch = 0.44;
+    cam.targetDistance = 7.8;
+    cam.distance = 7.8;
     cam.setFocus(player.pos.x, player.pos.y, player.pos.z);
     V.copy(cam.smoothFocus, cam.focus);
 
@@ -187,11 +340,14 @@ Arena.define('main',
 
   function scenarioName(id) {
     return { dummies: 'sacos de daño', duel: 'duelo 1v1', team: 'combate 2v2',
-             counters: 'sala de counters' }[id] || id;
+             counters: 'sala de counters', timing: 'Timing Lab' }[id] || id;
   }
 
   Game.setPlayerClass = function (classId) {
+    if (!Arena.Data.classes[classId]) return;
     this.playerClass = classId;
+    if (this.flow) this.flow.classId = classId;
+    if (this.flow && this.flow.phase === 'LOBBY') { if (this.shell) this.shell.selectClass(classId); return; }
     this.buildScenario(this.scenario);
   };
 
@@ -223,6 +379,8 @@ Arena.define('main',
       input.dragging = true;
       input.dragButton = e.button;
       input.dragMoved = 0;
+      input.dragActive = false;
+      input.pendingDragDx = 0; input.pendingDragDy = 0;
       input.lastX = e.clientX;
       input.lastY = e.clientY;
       input.downTime = (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -233,11 +391,14 @@ Arena.define('main',
       input.downNdc.y = ndc0.y;
       input.camMode = (e.button === 0) ? 'steer' : (e.button === 2 ? 'freelook' : null);
       canvas.classList.add('dragging');
+      // Pointer Lock sólo empieza al superar el deadzone: mantener pulsado sin
+      // mover sigue siendo un clic potencial y NO toca la cámara.
       e.preventDefault();
     });
 
     window.addEventListener('mouseup', function (e) {
       if (!input.dragging) return;
+      if (input.pointerTimer) { clearTimeout(input.pointerTimer); input.pointerTimer = null; }
       canvas.classList.remove('dragging');
 
       var now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
@@ -246,7 +407,7 @@ Arena.define('main',
       // Clic corto y quieto = seleccionar. El umbral doble —tiempo y píxeles—
       // evita que un temblor de mano cambie de objetivo en mitad de un burst y
       // que una cámara movida despacio cuente como selección.
-      if (e.button === 0 && held < CLICK_MAX_MS && moved < CLICK_MAX_PX && !input.pointerLocked) {
+      if (e.button === 0 && held < CLICK_MAX_MS && !input.dragActive) {
         self._selectAt(input.downNdc.x, input.downNdc.y);
       }
       self._exitPointerLock();
@@ -273,13 +434,23 @@ Arena.define('main',
 
       if (input.dragging) {
         input.dragMoved += Math.abs(dx) + Math.abs(dy);
+        if (!input.dragActive) {
+          input.pendingDragDx += dx; input.pendingDragDy += dy;
+          // DEADZONE REAL: hasta cruzarlo NO se ha movido ni un píxel de cámara
+          // ni un radián del cuerpo. Esto evita que seleccionar cambie el encuadre.
+          if (input.dragMoved < CLICK_MAX_PX) return;
+          input.dragActive = true;
+          dx = input.pendingDragDx; dy = input.pendingDragDy;
+          input.pendingDragDx = 0; input.pendingDragDy = 0;
+          self._enterPointerLock(canvas);
+        }
+        var yawBefore = self.renderer.camera.yaw;
         self.renderer.camera.orbit(dx, dy);
-        // Superado el umbral, el gesto ya no puede ser un clic: se toma el
-        // ratón. Antes de eso no, o un clic de selección robaría el cursor.
-        if (input.dragMoved >= CLICK_MAX_PX) self._enterPointerLock(canvas);
-        /* El personaje NO se gira aquí. En modo `steer` el frame siguiente lee
-           el yaw de cámara y emite una INTENCIÓN de giro; quien la aplica es la
-           simulación, dentro del paso fijo. La presentación no escribe yaw. */
+        if (input.camMode === 'steer') {
+          var p = self.world && self.world.getPlayer ? self.world.getPlayer() : null;
+          if (p) p._mouseTurnDelta = (p._mouseTurnDelta || 0) +
+            V.angleDelta(yawBefore, self.renderer.camera.yaw);
+        }
       } else if (e.target === canvas) {
         var hover = Picking.entityAt(self.world, self.renderer.camera,
           input.mouseNdc.x, input.mouseNdc.y, self.world.getPlayer());
@@ -301,6 +472,7 @@ Arena.define('main',
     window.addEventListener('keyup', function (e) { self._onKeyUp(e); });
     window.addEventListener('blur', function () {
       input.forward = 0; input.strafe = 0;
+      if (input.pointerTimer) { clearTimeout(input.pointerTimer); input.pointerTimer = null; }
       self._keys = Object.create(null);
     });
   };
@@ -317,8 +489,11 @@ Arena.define('main',
     var player = world.getPlayer();
     if (!player) return;
 
+    var combatEnabled = !this.flow || this.flow.phase === 'ACTIVE';
+
     // Habilidades 1–6
     if (key >= '1' && key <= '6') {
+      if (!combatEnabled) { e.preventDefault(); return; }
       this._useSlot(parseInt(key, 10) - 1);
       e.preventDefault();
       return;
@@ -332,14 +507,20 @@ Arena.define('main',
         break;
       }
       case 't':
+        if (!combatEnabled) break;
         player.autoAttackOn = !player.autoAttackOn;
+        player.combatMode = player.autoAttackOn;
+        if (!player.autoAttackOn && player.weaponState && player.weaponState.phase === 'WINDUP') {
+          Ability.cancelWeaponWindup(world, player, 'combatModeOff');
+        }
         break;
       case 'escape':
-        if (player.cast) Ability.cancelCast(world, player);
+        if (player.pendingCast || player.cast) Ability.cancelCast(world, player, 'manual');
         else { player.targetId = null; this.renderer.selectedId = null; }
         break;
       case 'r':
-        this.buildScenario(this.scenario);
+        if (this.flow && this.flow.mode !== 'training' && this.flow.phase !== 'LOBBY') this.rematch();
+        else this.buildScenario(this.scenario);
         break;
       case 'f':
         // Seleccionarse a uno mismo: necesario para autocurarse.
@@ -347,6 +528,8 @@ Arena.define('main',
         this.renderer.selectedId = player.id;
         break;
       case ' ':
+        if (!combatEnabled) break;
+        player._jumpRequested = true;
         e.preventDefault();
         break;
       case 'f3':
@@ -415,7 +598,9 @@ Arena.define('main',
        Así se comporta el giro con ratón en cualquier MMO, y es lo que hace que
        el gesto se sienta conectado a la mano en vez de a un motor. */
     if (this.input.camMode === 'steer') {
-      player._faceIntent = this.renderer.camera.yaw + Math.PI;
+      /* El delta exacto del ratón ya quedó en `_mouseTurnDelta` durante
+         mousemove. Aquí sólo impedimos que Q/E compitan con el gesto. */
+      player._faceIntent = null;
       player._turnIntent = 0;
       return;
     }
@@ -427,6 +612,7 @@ Arena.define('main',
   };
 
   Game._useSlot = function (index) {
+    if (this.flow && this.flow.phase !== 'ACTIVE') return;
     var world = this.world;
     var player = world.getPlayer();
     if (!player) return;
@@ -501,8 +687,9 @@ Arena.define('main',
 
     var self2 = this;
     this.hud.autoBtn.addEventListener('click', function () {
+      if (self2.flow && self2.flow.phase !== 'ACTIVE') return;
       var p = self2.world.getPlayer();
-      if (p) p.autoAttackOn = !p.autoAttackOn;
+      if (p) { p.autoAttackOn = !p.autoAttackOn; p.combatMode = p.autoAttackOn; }
     });
     this.hud.autoBtn.addEventListener('mouseenter', function () {
       self2.tooltips.showText('Ataque normal (T)',
@@ -524,6 +711,7 @@ Arena.define('main',
 
     var world = this.world;
     var player = world.getPlayer();
+    if (this.flow) this.flow.update(realDt);
 
     /* --- Intención de movimiento y giro -----------------------------------
      *
@@ -536,17 +724,20 @@ Arena.define('main',
      * qué habilidad puede lanzarse— y por eso orientarse es una decisión
      * táctica y no un efecto secundario de mover el ratón.
      */
-    if (player && player.alive) {
+    if (player && player.alive && (!this.flow || this.flow.phase === 'ACTIVE')) {
       var mv = this._readMovement();
       if (mv.forward || mv.strafe) {
-        /* Base ortonormal del personaje.
+        /* Base ortonormal del personaje, alineada con la percepción de la
+         * cámara que arranca DETRÁS del avatar. El proyecto usa +Z como frente;
+         * en un sistema diestro con Y arriba, la derecha visual de ese frente
+         * es −X, no +X. Ésa era la raíz real del bug A/D: matemáticamente se
+         * movía por un vector consistente, pero en pantalla D se veía a la
+         * izquierda.
          *
-         *   frente   F = ( sin yaw, cos yaw)
-         *   derecha  R = F × arriba = (−cos yaw, sin yaw)
+         *   frente   F = ( sin yaw,  cos yaw)
+         *   derecha  R = (-cos yaw,  sin yaw)
          *
-         * El producto vectorial NO es opcional: escribir "derecha" a ojo en un
-         * sistema diestro con Y arriba sale del revés la mitad de las veces, y
-         * es exactamente lo que pasó aquí — A y D quedaron intercambiados. */
+         * Con yaw=0 y la cámara detrás, D va a la DERECHA de la pantalla. */
         var sy = Math.sin(player.yaw), cy = Math.cos(player.yaw);
         var dx = sy * mv.forward - cy * mv.strafe;
         var dz = cy * mv.forward + sy * mv.strafe;
@@ -556,10 +747,13 @@ Arena.define('main',
         player._moveIntent = null;
       }
       this._applyTurnIntent(player);
+    } else if (player) {
+      player._moveIntent = null; player._turnIntent = 0; player._faceIntent = null;
     }
 
     /* --- Simulación ------------------------------------------------------- */
     var alpha = world.advance(realDt);
+    if (this._matchEndPending) { this._matchEndPending = false; this._evaluateMatchEnd(); }
 
     /* --- Presentación ----------------------------------------------------- */
     this.renderer.syncVisuals(realDt);
@@ -567,7 +761,9 @@ Arena.define('main',
 
     if (player) {
       var ipos = V.lerp(V.create(), player.prevPos, player.pos, alpha);
-      this.renderer.camera.setFocus(ipos.x, ipos.y, ipos.z);
+      var jumpY = (player.prevJumpOffset || 0) +
+        ((player.jumpOffset || 0) - (player.prevJumpOffset || 0)) * alpha;
+      this.renderer.camera.setFocus(ipos.x, ipos.y + jumpY * 0.42, ipos.z);
       // Look-ahead: la velocidad se deduce del paso fijo ya simulado, no del
       // input. Así el encuadre se adelanta a lo que el personaje ESTÁ haciendo
       // y no a lo que se le acaba de pedir.
@@ -584,6 +780,7 @@ Arena.define('main',
 
     this.renderer.render(alpha, realDt);
     this.hud.update(realDt, alpha);
+    if (this.shell && this.flow) this.shell.update(this.flow.snapshot());
     this.lab.update(realDt, realDt);
     this._updateAnimDebug(player);
 

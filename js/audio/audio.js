@@ -206,6 +206,25 @@ Arena.define('audio/audio', ['sim/world'], function (Arena) {
     },
     ready: function () {
       tone({ type: 'sine', freq: 1046, dur: 0.09, gain: 0.05 });
+    },
+    roundStart: function () {
+      tone({ type: 'triangle', freq: 330, freqEnd: 660, dur: 0.18, gain: 0.10 });
+      tone({ type: 'sine', freq: 660, freqEnd: 990, dur: 0.24, gain: 0.12, delay: 0.16 });
+    },
+    victory: function () {
+      tone({ type: 'triangle', freq: 392, freqEnd: 784, dur: 0.34, gain: 0.11 });
+      tone({ type: 'sine', freq: 523, freqEnd: 1046, dur: 0.42, gain: 0.10, delay: 0.18 });
+      tone({ type: 'sine', freq: 659, dur: 0.52, gain: 0.07, delay: 0.34 });
+    },
+    defeat: function () {
+      tone({ type: 'sawtooth', freq: 220, freqEnd: 82, dur: 0.52, gain: 0.09 });
+      tone({ type: 'sine', freq: 146, freqEnd: 73, dur: 0.70, gain: 0.10, delay: 0.14 });
+    },
+    uiSelect: function () {
+      tone({ type: 'triangle', freq: 520, freqEnd: 620, dur: 0.045, gain: 0.035 });
+    },
+    uiConfirm: function () {
+      tone({ type: 'sine', freq: 440, freqEnd: 760, dur: 0.09, gain: 0.05 });
     }
   };
 

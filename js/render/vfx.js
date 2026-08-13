@@ -28,7 +28,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
     VFX.particles.push({
       alive: false, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0,
       life: 0, maxLife: 1, size: 0.1, endSize: 0.1,
-      r: 1, g: 1, b: 1, gravity: -9, drag: 0.9, mesh: 'sphere', spin: 0
+      r: 1, g: 1, b: 1, gravity: -9, drag: 0.9, mesh: 'sphere', style: 'orb', spin: 0
     });
   }
 
@@ -49,6 +49,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       p.gravity = cfg.gravity === undefined ? -9 : cfg.gravity;
       p.drag = cfg.drag === undefined ? 2.2 : cfg.drag;
       p.mesh = cfg.mesh || 'sphere';
+      p.style = cfg.style || 'orb';
       return p;
     }
     return null;
@@ -70,7 +71,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
         size: (cfg.size || 0.12) * (0.7 + Math.random() * 0.7),
         endSize: cfg.endSize,
         r: cfg.r, g: cfg.g, b: cfg.b,
-        gravity: cfg.gravity, drag: cfg.drag, mesh: cfg.mesh
+        gravity: cfg.gravity, drag: cfg.drag, mesh: cfg.mesh, style: cfg.style
       });
     }
   };
@@ -86,7 +87,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
     function posOf(id, high) {
       var e = world.getEntity(id);
       if (!e) return null;
-      return { x: e.pos.x, y: e.pos.y + (high === undefined ? e.height * 0.55 : high), z: e.pos.z };
+      return { x: e.pos.x, y: e.pos.y + (e.jumpOffset || 0) + (high === undefined ? e.height * 0.55 : high), z: e.pos.z };
     }
 
     bus.on('DamageApplied', function (p) {
@@ -100,7 +101,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
         var big = p.applied > 120;
         VFX.burst(pos, big ? 14 : 7, {
           r: 1.0, g: p.school === 'magical' ? 0.45 : 0.72, b: p.school === 'magical' ? 0.95 : 0.28,
-          speed: big ? 5.5 : 3.4, life: 0.42, size: big ? 0.14 : 0.10
+          speed: big ? 5.5 : 3.4, life: 0.42, size: big ? 0.14 : 0.10, style: big ? 'shard' : 'spark'
         });
         /* SACUDIDA POR NIVELES. Que todo tiemble igual es lo mismo que nada
            tiemble: el ataque normal no mueve la cámara, un poder la mueve un
@@ -136,7 +137,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       if (!pos) return;
       VFX.burst(pos, 8, {
         r: 0.35, g: 1.0, b: 0.55, speed: 1.6, life: 0.85,
-        size: 0.09, gravity: 2.2, up: 1.6, drag: 1.2
+        size: 0.09, gravity: 2.2, up: 1.6, drag: 1.2, style: 'wisp'
       });
     });
 
@@ -144,7 +145,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       var pos = posOf(p.targetId, 0.9);
       if (!pos) return;
       VFX.burst(pos, 16, {
-        r: 0.5, g: 0.85, b: 1.0, speed: 2.6, life: 0.6, size: 0.08, gravity: 0, drag: 3
+        r: 0.5, g: 0.85, b: 1.0, speed: 2.6, life: 0.6, size: 0.08, gravity: 0, drag: 3, style: 'rune'
       });
     });
 
@@ -154,13 +155,19 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
        conjuro se veían exactamente igual mientras se canalizaban. */
     bus.on('AbilityCastStarted', function (p) {
       var vis = renderer && renderer.visuals[p.casterId];
-      if (!vis) return;
-      Arena.Render.CharacterBackend.current.beginCast(vis, Arena.Data.castFamilyOf(p.abilityId));
+      var castAb = Arena.Data.abilities[p.abilityId];
+      var castVisual = castAb && castAb.combatTiming ? castAb.combatTiming.visualAction : null;
+      if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, Arena.Data.castFamilyOf(p.abilityId), castVisual);
+      var startPos = posOf(p.casterId, 1.05);
+      if (startPos) VFX.burst(startPos, 10, {
+        r: 0.55, g: 0.72, b: 1.0, speed: 1.25, life: 0.72,
+        size: 0.065, gravity: 0.15, drag: 2.8, style: 'wisp'
+      });
     });
 
     bus.on('AbilityCastInterrupted', function (p) {
       var vis = renderer && renderer.visuals[p.casterId];
-      if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, null);
+      if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, null, null);
     });
 
     bus.on('AbilityCastCompleted', function (p) {
@@ -170,7 +177,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       var magic = ab && ab.flags && ab.flags.magic;
       VFX.burst(pos, 9, {
         r: magic ? 0.72 : 1.0, g: magic ? 0.45 : 0.82, b: magic ? 1.0 : 0.42,
-        speed: 3.0, life: 0.4, size: 0.1, gravity: -1
+        speed: 3.8, life: 0.48, size: 0.11, gravity: -0.4, style: magic ? 'spark' : 'shard'
       });
       var caster = world.getEntity(p.casterId);
       var vis = renderer && renderer.visuals[p.casterId];
@@ -179,18 +186,39 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
         // data/castFamilies.js: aquí sólo se transporta la etiqueta, para que la
         // presentación nunca tenga que conocer el catálogo de habilidades.
         var CB = Arena.Render.CharacterBackend.current;
-        CB.triggerAttack(vis, CB.archetypeOf(caster.classId), true,
-          Arena.Data.castFamilyOf(p.abilityId));
+        var ab = Arena.Data.abilities[p.abilityId];
+        var visualAction = ab && ab.combatTiming ? ab.combatTiming.visualAction : null;
+        /* Utility visualmente pasiva (camuflaje, guardia, interponer...) no
+           debe fingir un heavy swing. La habilidad ya conserva sus VFX propios. */
+        if (visualAction !== 'none') {
+          CB.triggerAttack(vis, CB.archetypeOf(caster.classId), true,
+            Arena.Data.castFamilyOf(p.abilityId), visualAction);
+        }
       }
     });
 
-    bus.on('AutoAttack', function (p) {
+    /* El cuerpo empieza el gesto en WINDUP; el proyectil/daño aparece sólo en
+       AutoAttackReleased. Así presentación y simulación comparten el mismo
+       marker semántico sin que la animación decida el impacto. */
+    bus.on('WeaponWindupStarted', function (p) {
       var caster = world.getEntity(p.casterId);
       var vis = renderer && renderer.visuals[p.casterId];
       if (vis && caster) {
         var CBa = Arena.Render.CharacterBackend.current;
         CBa.triggerAttack(vis, CBa.archetypeOf(caster.classId), false);
       }
+    });
+
+    bus.on('AutoAttackReleased', function (p) {
+      var pos = posOf(p.casterId, 1.05);
+      if (!pos) return;
+      var caster = world.getEntity(p.casterId);
+      var magic = caster && caster.autoAttackSchool === 'magical';
+      VFX.burst(pos, magic ? 10 : 5, {
+        r: magic ? 0.66 : 1.0, g: magic ? 0.48 : 0.86, b: magic ? 1.0 : 0.52,
+        speed: magic ? 2.8 : 1.5, life: 0.34, size: magic ? 0.08 : 0.045,
+        gravity: 0, drag: 3.2, style: magic ? 'spark' : 'shard'
+      });
     });
 
     bus.on('AbilityBlocked', function (p) {
@@ -203,7 +231,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
     bus.on('AbilityReflected', function (p) {
       var pos = posOf(p.targetId, 1.0);
       if (!pos) return;
-      VFX.burst(pos, 20, { r: 0.78, g: 0.60, b: 1.0, speed: 5.5, life: 0.55, size: 0.12, gravity: -2 });
+      VFX.burst(pos, 20, { r: 0.78, g: 0.60, b: 1.0, speed: 5.5, life: 0.55, size: 0.12, gravity: -2, style: 'rune' });
       if (renderer) renderer.camera.shakeTier('heavy');
     });
 
@@ -238,7 +266,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
 
     bus.on('ProjectileHit', function (p) {
       VFX.burst({ x: p.x, y: p.y, z: p.z }, 8, {
-        r: 1.0, g: 0.8, b: 0.5, speed: 3.5, life: 0.35, size: 0.09
+        r: 1.0, g: 0.8, b: 0.5, speed: 3.5, life: 0.35, size: 0.09, style: 'spark'
       });
     });
 

@@ -497,30 +497,31 @@ Arena.define('tests/combatTests', ['tests/testRunner', 'data/passives'], functio
    * ====================================================================== */
   T.suite('§6 · Ritmo, GCD, cola e interrupción', function () {
 
-    T.test('El GCD bloquea la siguiente acción durante su duración', function () {
+    T.test('El GCD empieza en RELEASE y después bloquea la siguiente acción', function () {
       var w = T.makeWorld();
       var dev = T.spawn(w, 'devastador', { team: 0 });
       var enemy = T.spawn(w, 'guardian', { team: 1, x: 2 });
       dev.targetId = enemy.id;
 
       var r = Ability.tryUse(w, dev, 'devastador_golpe_quebrador', { targetId: enemy.id, target: enemy });
-      T.assert(r.ok, 'la primera debe salir: ' + r.reason);
-      T.assertNear(dev.gcdRemaining(w.time), B.GCD.standard, 0.001);
+      T.assert(r.ok, 'el cast debe comenzar: ' + r.reason);
+      T.assertNear(dev.gcdRemaining(w.time), 0, 0.001, 'BEGIN no paga GCD');
+      T.advance(w, 0.45); // cast 0.4 → release
+      T.assert(dev.gcdRemaining(w.time) > 0.65, 'tras RELEASE el GCD sí está activo');
 
       var r2 = Ability.tryUse(w, dev, 'devastador_impacto_sismico', { targetId: enemy.id, target: enemy });
       T.assertFalse(r2.ok, 'la segunda debe rebotar contra el GCD');
       T.assertEqual(r2.reason, 'gcd');
     });
 
-    T.test('Una pulsación dentro de la ventana de cola se ejecuta sola al liberarse', function () {
+    T.test('Una pulsación dentro de la ventana de cola se ejecuta al terminar el GCD', function () {
       var w = T.makeWorld();
       var dev = T.spawn(w, 'devastador', { team: 0 });
       var enemy = T.spawn(w, 'guardian', { team: 1, x: 2 });
       dev.targetId = enemy.id;
 
-      Ability.tryUse(w, dev, 'devastador_golpe_quebrador', { targetId: enemy.id, target: enemy });
-      T.advance(w, B.GCD.standard - 0.10);   // dentro de la ventana de 0.20 s
-
+      Ability.tryUse(w, dev, 'devastador_furia', {}); // instantáneo: GCD short desde release
+      T.advance(w, B.GCD.short - 0.10);
       var r = Ability.tryUse(w, dev, 'devastador_impacto_sismico', { targetId: enemy.id, target: enemy });
       T.assert(r.queued, 'debía quedar en cola');
 
@@ -528,7 +529,7 @@ Arena.define('tests/combatTests', ['tests/testRunner', 'data/passives'], functio
       var off = w.bus.on('AbilityExecuted', function (p) {
         if (p.abilityId === 'devastador_impacto_sismico') used = true;
       });
-      T.advance(w, 0.30);
+      T.advance(w, 0.25);
       off();
       T.assert(used, 'la habilidad en cola debe dispararse al terminar el GCD');
       T.assertEqual(dev.queued, null, 'la cola debe vaciarse');

@@ -171,6 +171,7 @@ const KEYS = {
   '1': ['1', 'Digit1', 49], '2': ['2', 'Digit2', 50], '3': ['3', 'Digit3', 51],
   '4': ['4', 'Digit4', 52], '5': ['5', 'Digit5', 53], '6': ['6', 'Digit6', 54],
   w: ['w', 'KeyW', 87], a: ['a', 'KeyA', 65], s: ['s', 'KeyS', 83], d: ['d', 'KeyD', 68],
+  q: ['q', 'KeyQ', 81], e: ['e', 'KeyE', 69], space: [' ', 'Space', 32],
   t: ['t', 'KeyT', 84], r: ['r', 'KeyR', 82], f: ['f', 'KeyF', 70],
   tab: ['Tab', 'Tab', 9], escape: ['Escape', 'Escape', 27]
 };
@@ -217,7 +218,7 @@ const cmd = process.argv[2] || 'smoke';
     let url;
     if (page.indexOf('three') >= 0 || process.env.ARENA_HTTP) {
       const port = await startServer();
-      url = 'http://localhost:' + port + '/' + page;
+      url = 'http://' + (process.env.ARENA_HOST || '127.0.0.1') + ':' + port + '/' + page;
     } else {
       url = 'file://' + path.join(ROOT, page);
     }

@@ -3,7 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Project Arena · Combat Lab 3D</title>
+<script>
+/* En hosting usamos Three.js por defecto. Al abrir el ZIP con doble clic se
+   conserva el renderer WebGL2 nativo, que no necesita módulos ES ni servidor. */
+if (location.protocol === 'http:' || location.protocol === 'https:') {
+  location.replace('index-three.html?build=v080-20260813-1006' + location.hash);
+}
+</script>
+<title>Project Arena · Ladder Vertical Slice v0.8</title>
 <link rel="stylesheet" href="css/arena.css">
 </head>
 <body>
@@ -15,7 +22,7 @@
 <div id="hud">
   <div id="brand" class="passthrough">
     <div class="t">Project Arena</div>
-    <div class="s">Combat Lab 3D · v0.2 · WebGL2 nativo, cero dependencias</div>
+    <div class="s">Ladder PvP · v0.8 · fallback WebGL2 nativo</div>
   </div>
 
   <div id="help">
@@ -25,7 +32,7 @@
       <b>Girar</b> <kbd>Q</kbd><kbd>E</kbd> · relativo a tu propio frente<br>
       <b>Cámara + girar</b> mantener botón izquierdo<br>
       <b>Mirar libre</b> mantener botón derecho · no gira el cuerpo<br>
-      <b>Zoom</b> rueda<br>
+      <b>Zoom</b> rueda · <b>Saltar</b> <kbd>Espacio</kbd><br>
       <b>Objetivo</b> clic corto · <kbd>Tab</kbd> enemigos · <kbd>⇧Tab</kbd> aliados<br>
       <span style="color:rgba(255,200,120,.75)">El objetivo NO gira tu personaje: apunta tú.</span><br>
       <b>Uno mismo</b> <kbd>F</kbd><br>
@@ -80,6 +87,8 @@
 <script src="js/data/passives.js"></script>
 <script src="js/data/castFamilies.js"></script>
 <script src="js/anim/animationIntent.js"></script>
+<script src="js/product/ladder.js"></script>
+<script src="js/product/matchFlow.js"></script>
 
 <!-- Simulación -->
 <script src="js/sim/arena.js"></script>
@@ -102,6 +111,8 @@
 <script src="js/render/picking.js"></script>
 
 <!-- Interfaz -->
+<script src="js/ui/abilityIcons.js"></script>
+<script src="js/ui/gameShell.js"></script>
 <script src="js/ui/hud.js"></script>
 <script src="js/ui/combatLog.js"></script>
 <script src="js/ui/labPanel.js"></script>

@@ -5,7 +5,7 @@
  * Nunca decide nada ni escribe en el mundo. Cualquier acción del jugador pasa
  * por main.js → Arena.Combat.AbilitySystem, igual que la de un bot.
  * ========================================================================== */
-Arena.define('ui/hud', ['render/picking', 'data/passives'], function (Arena) {
+Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons'], function (Arena) {
   'use strict';
 
   var V = Arena.Math.Vec3;
@@ -356,7 +356,7 @@ Arena.define('ui/hud', ['render/picking', 'data/passives'], function (Arena) {
       var id = player.abilities[i];
       var ab = id ? Arena.Data.abilities[id] : null;
       this.slots[i].abilityId = id || null;
-      this.slots[i].icon.textContent = ab ? ab.icon : '';
+      this.slots[i].icon.innerHTML = ab ? Arena.UI.AbilityIcons.svg(ab) : '';
       this.slots[i].root.classList.toggle('empty', !ab);
     }
   };
@@ -412,8 +412,9 @@ Arena.define('ui/hud', ['render/picking', 'data/passives'], function (Arena) {
       if (hostile && e.mods().stealthed && !e.hasStatus('revealed')) continue;
 
       var pos = V.lerp(V.create(), e.prevPos, e.pos, alpha);
+      var jumpY = (e.prevJumpOffset || 0) + ((e.jumpOffset || 0) - (e.prevJumpOffset || 0)) * alpha;
       var screen = Picking.worldToScreen(cam, canvas, {
-        x: pos.x, y: pos.y + e.height + 0.42, z: pos.z
+        x: pos.x, y: pos.y + jumpY + e.height + 0.42, z: pos.z
       });
       if (!screen || screen.depth > 1) continue;
 

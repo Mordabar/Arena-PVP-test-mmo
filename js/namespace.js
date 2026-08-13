@@ -8,8 +8,8 @@
 
   var Arena = global.Arena || {};
 
-  Arena.VERSION = '0.2.0';
-  Arena.BUILD = 'combat-lab';
+  Arena.VERSION = '0.8.0';
+  Arena.BUILD = 'ladder-vertical-slice';
 
   // Sub-namespaces. Se rellenan por los ficheros posteriores.
   Arena.Math = Arena.Math || {};
@@ -21,6 +21,7 @@
   Arena.Render = Arena.Render || {};
   Arena.UI = Arena.UI || {};
   Arena.Audio = Arena.Audio || {};
+  Arena.Product = Arena.Product || {};
   Arena.Tests = Arena.Tests || {};
 
   /**

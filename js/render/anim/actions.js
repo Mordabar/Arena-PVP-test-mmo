@@ -33,6 +33,10 @@ Arena.define('render/anim/actions',
     LIGHT_SWING: 'light',
     HEAVY_SWING: 'heavy',
     THRUST: 'thrust',
+    KICK: 'kick',
+    SHIELD_BASH: 'shield',
+    CHARGE: 'charge',
+    WAR_CRY: 'cry',
     ARCHER_SHOT: 'ranged',
     ARCANE_PULSE: 'pulse',   // ataque normal del mago: NO es una estocada
     CAST: 'cast'             // liberación de hechizo
@@ -52,7 +56,17 @@ Arena.define('render/anim/actions',
   };
 
   /** Qué familia usa cada arquetipo según sea ataque normal o poder. */
-  Act.familyFor = function (archetype, isPower) {
+  Act.familyFor = function (archetype, isPower, visualAction) {
+    /* Las acciones especiales vienen de DATA (`combatTiming.visualAction`).
+       El renderer conoce categorías de movimiento, nunca ids de habilidades. */
+    if (visualAction) {
+      if (visualAction === 'kick') return Act.FAMILY.KICK;
+      if (visualAction === 'shield') return Act.FAMILY.SHIELD_BASH;
+      if (visualAction === 'charge') return Act.FAMILY.CHARGE;
+      if (visualAction === 'cry') return Act.FAMILY.WAR_CRY;
+      if (visualAction === 'thrust') return Act.FAMILY.THRUST;
+      if (visualAction === 'heavy') return Act.FAMILY.HEAVY_SWING;
+    }
     if (archetype === 'archer') return Act.FAMILY.ARCHER_SHOT;
     // El mago tiene DOS gestos distintos, no uno con variación: el ataque
     // normal canaliza energía por el báculo, el poder libera un hechizo.
@@ -74,6 +88,7 @@ Arena.define('render/anim/actions',
     return {
       family: null, t: 0, duration: 0, isPower: false,
       weight: 0,             // 0..1 — cuánto pesa la acción sobre la guardia
+      variant: 0, normalSequence: 0, visualAction: null,
       /* Familia VISUAL del hechizo en curso (data/castFamilies.js). La fija la
          simulación al empezar el casteo y sobrevive hasta la recuperación: es
          lo que hace que curar y enraizar no se vean igual. */
@@ -91,16 +106,33 @@ Arena.define('render/anim/actions',
     };
   };
 
-  Act.trigger = function (st, family, cfg, isPower, castFamily) {
+  Act.trigger = function (st, family, cfg, isPower, castFamily, visualAction) {
     st.family = family;
     st.duration = (cfg.actionTime[family] || 0.42);
     st.t = 0;
     st.isPower = !!isPower;
+    st.visualAction = visualAction || null;
+    /* Dos normales melee alternan de forma DETERMINISTA: horizontal y diagonal.
+       No cambia daño/timing de simulación; sólo evita el metronómico mismo tajo. */
+    if (family === Act.FAMILY.LIGHT_SWING && !isPower) {
+      st.variant = st.normalSequence & 1;
+      st.normalSequence++;
+    } else st.variant = 0;
     if (castFamily !== undefined && castFamily !== null) st.castFamily = castFamily;
   };
 
   /** La simulación ha empezado un casteo: fija la familia visual del gesto. */
-  Act.beginCast = function (st, castFamily) { st.castFamily = castFamily || null; };
+  Act.beginCast = function (st, castFamily, visualAction) {
+    st.castFamily = castFamily || null;
+    st.visualAction = visualAction || null;
+  };
+
+  /** Cancela sólo la representación de una acción aún no liberada. La simulación
+   * ya tomó la decisión; aquí simplemente dejamos que BLEND_OUT la disuelva. */
+  Act.cancelVisual = function (st) {
+    if (!st || !st.family) return;
+    st.t = 1;
+  };
 
   Act.update = function (st, cfg, dt) {
     st.idleNoise += dt * 0.9;
@@ -177,19 +209,21 @@ Arena.define('render/anim/actions',
    * ====================================================================== */
   function blankPose(cfg, armSwing) {
     return {
-      left:  { pitch: armSwing, yaw: 0, roll: 0.16, elbow: cfg.elbowBaseBend },
-      right: { pitch: -armSwing, yaw: 0, roll: -0.16, elbow: cfg.elbowBaseBend },
+      left:  { pitch: armSwing, yaw: 0, roll: 0.16, elbow: cfg.elbowBaseBend, wrist: 0 },
+      right: { pitch: -armSwing, yaw: 0, roll: -0.16, elbow: cfg.elbowBaseBend, wrist: 0 },
       weaponPitch: 0.40, weaponRoll: 0, weaponYaw: 0,
+      weaponOffsetX: 0, weaponOffsetY: 0, weaponOffsetZ: 0,
       draw: 0, gemFlash: 0, bowPitch: 1.0, bowYaw: 0,
       chestPitch: 0, chestYaw: 0, chestRoll: 0,
-      kneeAbsorb: 0, bowShake: 0
+      kneeAbsorb: 0, bowShake: 0, kick: 0
     };
   }
 
-  var ARM_KEYS = ['pitch', 'yaw', 'roll', 'elbow'];
-  var TOP_KEYS = ['weaponPitch', 'weaponRoll', 'weaponYaw', 'draw', 'gemFlash', 'bowPitch',
+  var ARM_KEYS = ['pitch', 'yaw', 'roll', 'elbow', 'wrist'];
+  var TOP_KEYS = ['weaponPitch', 'weaponRoll', 'weaponYaw', 'weaponOffsetX', 'weaponOffsetY', 'weaponOffsetZ',
+                  'draw', 'gemFlash', 'bowPitch',
                   'bowYaw', 'chestPitch', 'chestYaw', 'chestRoll',
-                  'kneeAbsorb', 'bowShake'];
+                  'kneeAbsorb', 'bowShake', 'kick'];
 
   /** Mezcla `from` hacia `to` con peso w. Sin esto, cada acción daría un salto. */
   function blendPose(from, to, w) {
@@ -213,7 +247,7 @@ Arena.define('render/anim/actions',
     A.right.elbow += swingBend;
 
     // Guardia base por arquetipo: lo que se ve el 90 % del tiempo.
-    Act._guard(A, cfg, archetype, loadout, st);
+    Act._guard(A, cfg, archetype, loadout, st, armSwing);
 
     // Casteo sostenido: tiene prioridad sobre la guardia, pero no sobre un
     // ataque en curso, porque la simulación no permite ambos a la vez.
@@ -228,8 +262,12 @@ Arena.define('render/anim/actions',
        no se viera: la pose de release existía y nunca llegaba a pintarse. */
     if (!acting && (casting || castProgress > 0.02)) {
       var C = blankPose(cfg, armSwing);
-      Act._guard(C, cfg, archetype, loadout, st);
-      Act._castPose(C, cfg, castProgress, st.castFamily, st);
+      Act._guard(C, cfg, archetype, loadout, st, armSwing);
+      /* PRE-RELEASE por arquetipo. Antes, cualquier habilidad con castTime
+         adoptaba la pose de mago, incluso un arquero tensando una flecha. */
+      if (archetype === 'archer') Act._archerCastPose(C, castProgress);
+      else if (archetype === 'melee') Act._meleeCastPose(C, castProgress, st.visualAction);
+      else Act._castPose(C, cfg, castProgress, st.castFamily, st);
       // PREPARE tiene que sentirse INMEDIATO: el jugador ha pulsado y el cuerpo
       // debe responder ya. Por eso la mezcla se completa en el primer 12 % del
       // casteo, no gradualmente a lo largo de todo él.
@@ -241,12 +279,16 @@ Arena.define('render/anim/actions',
       // La acción se calcula sobre una copia de la guardia y luego se mezcla:
       // así el arranque y el final de cada golpe son continuos por construcción.
       var B = blankPose(cfg, armSwing);
-      Act._guard(B, cfg, archetype, loadout, st);
+      Act._guard(B, cfg, archetype, loadout, st, armSwing);
       var ph = cfg.phases[st.family] || cfg.phases.light;
       switch (st.family) {
-        case Act.FAMILY.LIGHT_SWING: Act._lightSwing(B, st.t, ph); break;
+        case Act.FAMILY.LIGHT_SWING: Act._lightSwing(B, st.t, ph, st.variant); break;
         case Act.FAMILY.HEAVY_SWING: Act._heavySwing(B, st.t, ph); break;
         case Act.FAMILY.THRUST: Act._thrust(B, st.t, ph); break;
+        case Act.FAMILY.KICK: Act._kick(B, st.t, ph); break;
+        case Act.FAMILY.SHIELD_BASH: Act._shieldBash(B, st.t, ph); break;
+        case Act.FAMILY.CHARGE: Act._charge(B, st.t, ph); break;
+        case Act.FAMILY.WAR_CRY: Act._warCry(B, st.t, ph); break;
         case Act.FAMILY.ARCHER_SHOT: Act._archerShot(B, st.t, ph, st.isPower); break;
         case Act.FAMILY.ARCANE_PULSE: Act._arcanePulse(B, st.t, ph); break;
         case Act.FAMILY.CAST: Act._castRelease(B, st.t, ph, st.castFamily); break;
@@ -257,8 +299,9 @@ Arena.define('render/anim/actions',
   };
 
   /* --- Guardias de reposo --------------------------------------------------- */
-  Act._guard = function (A, cfg, archetype, loadout, st) {
+  Act._guard = function (A, cfg, archetype, loadout, st, armSwing) {
     var idle = Math.sin(st.idleNoise) * 0.02;   // micro-movimiento de manos
+    armSwing = armSwing || 0;
     if (archetype === 'melee') {
       // GUARDIA ALTA. El arma no cuelga: se sostiene lista, cruzada delante del
       // cuerpo, con el codo cerrado. Un guerrero con la espada colgando parece
@@ -291,15 +334,28 @@ Arena.define('render/anim/actions',
       // Postura vertical con el báculo APOYADO EN EL SUELO, no cruzado en
       // diagonal delante del cuerpo. Un bastón atravesado tapa la túnica, que
       // es justo la silueta que identifica al mago.
-      A.right.pitch = 0.08 + idle;
-      A.right.elbow = 0.34;
-      A.right.roll = -0.26;   // el báculo se separa del cuerpo: si queda
-                              // pegado a la túnica, la gema no se ve
-      // El arma cancela la inclinación del antebrazo para quedar vertical.
-      A.weaponPitch = -(0.08 + 0.34) + 0.06;
-      A.left.pitch = -0.14;
-      A.left.elbow = 0.42 + idle;
-      A.chestPitch = 0.02;
+      /* La MANO camina y el BÁCULO se estabiliza. Antes el brazo se quedaba
+         casi congelado y el arma parecía soldada al cuerpo. `armSwing` viene
+         de la locomoción real: lo usamos poco en hombro/codo y compensamos en
+         la muñeca para que la punta tenga inercia sin bailar. */
+      var counter = cfg.staffWalkCounter === undefined ? 0.40 : cfg.staffWalkCounter;
+      var inertia = cfg.staffStrideInertia === undefined ? 0.18 : cfg.staffStrideInertia;
+      var staffWalk = armSwing * counter;
+      A.right.pitch = 0.06 - staffWalk + idle;
+      A.right.elbow = 0.40 + Math.abs(staffWalk) * 0.16;
+      A.right.roll = -0.25 + staffWalk * 0.08;
+      A.right.wrist = 0.08 + staffWalk * 0.12;
+      /* La mano acompaña el paso; la punta del báculo intenta quedarse estable.
+         Esta oposición mano↔asta vende peso sin convertirla en una goma. */
+      A.weaponPitch = -(A.right.pitch + A.right.elbow) + 0.06 - staffWalk * inertia;
+      A.weaponRoll = -staffWalk * 0.12;
+      A.weaponOffsetY = Math.abs(armSwing) * (cfg.staffGripLift || 0.024);
+      A.weaponOffsetZ = -staffWalk * 0.026;
+      A.left.pitch = -0.12 + armSwing * 0.22;
+      A.left.elbow = 0.46 + idle + Math.abs(armSwing) * 0.10;
+      A.left.wrist = -armSwing * 0.08;
+      A.chestPitch = 0.015;
+      A.chestYaw += -armSwing * 0.10;
     }
   };
 
@@ -307,19 +363,37 @@ Arena.define('render/anim/actions',
    * El pecho rota primero, el hombro sigue, después el codo y por último el
    * arma. Esa cadena es lo que hace que un golpe parezca un acto físico y no
    * una rotación de hueso.                                                    */
-  Act._lightSwing = function (A, t, ph) {
+  Act._lightSwing = function (A, t, ph, variant) {
     var ant = smooth(t / ph.active);
     var hit = smooth((t - ph.active) / (ph.recovery - ph.active));
     var rec = smooth((t - ph.recovery) / (ph.end - ph.recovery));
+    variant = variant || 0;
 
-    A.chestYaw = 0.28 * ant - 0.42 * hit + 0.14 * rec;
-    A.right.pitch = 1.05 * ant - 2.25 * hit + 0.60 * rec + 0.15;
-    A.right.yaw = 0.60 * ant - 1.10 * hit + 0.50 * rec;
-    A.right.roll = -0.28 - 0.50 * hit + 0.28 * rec;
-    A.right.elbow = 1.45 * ant - 1.25 * hit + 0.45 * rec + 0.25;
-    A.weaponPitch = 0.50 - 0.15 * hit;
-    A.weaponRoll = -0.32 * hit;
-    A.left.elbow = 0.55 + 0.25 * ant;
+    if (variant === 0) {
+      /* Normal A — corte horizontal: el pecho carga primero y el arma llega
+         última. La recuperación cruza ligeramente el centro para vender masa. */
+      A.chestYaw = 0.32 * ant - 0.48 * hit + 0.16 * rec;
+      A.chestPitch = -0.05 * ant + 0.08 * hit;
+      A.right.pitch = 1.02 * ant - 2.22 * hit + 0.62 * rec + 0.12;
+      A.right.yaw = 0.66 * ant - 1.18 * hit + 0.52 * rec;
+      A.right.roll = -0.30 - 0.46 * hit + 0.26 * rec;
+      A.right.elbow = 1.42 * ant - 1.20 * hit + 0.42 * rec + 0.28;
+      A.weaponPitch = 0.46 - 0.18 * hit;
+      A.weaponRoll = -0.34 * hit + 0.12 * rec;
+    } else {
+      /* Normal B — diagonal descendente. Misma ventana lógica, silueta distinta:
+         no modifica DPS ni weapon interval, sólo rompe la repetición robótica. */
+      A.chestYaw = -0.22 * ant + 0.36 * hit - 0.12 * rec;
+      A.chestPitch = -0.14 * ant + 0.22 * hit - 0.08 * rec;
+      A.right.pitch = 1.62 * ant - 2.72 * hit + 0.82 * rec + 0.22;
+      A.right.yaw = -0.32 * ant + 0.64 * hit - 0.20 * rec;
+      A.right.roll = -0.12 - 0.62 * ant + 0.42 * hit + 0.10 * rec;
+      A.right.elbow = 1.52 * ant - 1.32 * hit + 0.52 * rec + 0.22;
+      A.weaponPitch = 0.22 - 0.32 * hit + 0.10 * rec;
+      A.weaponRoll = 0.28 * ant - 0.46 * hit + 0.16 * rec;
+    }
+    A.left.elbow = 0.58 + 0.22 * ant;
+    A.kneeAbsorb = hit * (1 - rec) * 0.05;
   };
 
   /* --- MELEE: golpe pesado --------------------------------------------------
@@ -354,12 +428,107 @@ Arena.define('render/anim/actions',
     A.left.pitch = -0.30 * ant;
   };
 
+  /* --- MELEE: puntapié / control táctico ------------------------------- */
+  Act._kick = function (A, t, ph) {
+    var load = smooth(t / ph.active);
+    var hit = smooth((t - ph.active) / Math.max(0.06, ph.impact - ph.active));
+    var rec = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
+    A.chestPitch = -0.10 * load + 0.24 * hit - 0.12 * rec;
+    A.chestYaw = 0.14 * load - 0.12 * rec;
+    A.right.pitch = -0.30 - 0.18 * load + 0.26 * rec; // arma se aparta, no protagoniza
+    A.right.elbow = 1.05 + 0.18 * load - 0.22 * rec;
+    A.left.pitch = -0.48 * load + 0.22 * rec;
+    A.kneeAbsorb = 0.18 * load - 0.08 * rec;
+    A.kick = clamp(load * 0.35 + hit * 0.90 - rec * 0.95, 0, 1);
+    A.weaponPitch = 0.16;
+  };
+
+  /* --- MELEE: golpe de escudo --------------------------------------------- */
+  Act._shieldBash = function (A, t, ph) {
+    var load = smooth(t / ph.active);
+    var hit = smooth((t - ph.active) / Math.max(0.06, ph.impact - ph.active));
+    var rec = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
+    A.chestPitch = -0.13 * load + 0.25 * hit - 0.10 * rec;
+    A.chestYaw = -0.18 * load + 0.24 * hit - 0.08 * rec;
+    A.left.pitch = -0.70 - 0.30 * load + 0.42 * hit + 0.20 * rec;
+    A.left.elbow = 1.12 + 0.24 * load - 0.48 * hit + 0.18 * rec;
+    A.left.yaw = -0.22 + 0.46 * hit;
+    A.right.pitch = -0.28 + 0.18 * load;
+    A.right.elbow = 1.10;
+    A.kneeAbsorb = 0.10 * hit * (1 - rec);
+  };
+
+  /* --- MELEE: carga -------------------------------------------------------- */
+  Act._charge = function (A, t, ph) {
+    var brace = smooth(t / ph.active);
+    var drive = smooth((t - ph.active) / Math.max(0.08, ph.impact - ph.active));
+    var rec = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
+    A.chestPitch = -0.28 * brace - 0.18 * drive + 0.34 * rec;
+    A.chestYaw = 0.10 * brace - 0.12 * drive;
+    A.right.pitch = -0.62 * brace - 0.24 * drive + 0.50 * rec;
+    A.right.elbow = 1.28 + 0.12 * brace;
+    A.left.pitch = -0.42 * brace;
+    A.kneeAbsorb = 0.15 * brace + 0.08 * drive - 0.12 * rec;
+  };
+
+  /* --- MELEE: grito táctico ------------------------------------------------ */
+  Act._warCry = function (A, t, ph) {
+    var open = smooth(t / ph.active);
+    var peak = smooth((t - ph.active) / Math.max(0.08, ph.impact - ph.active));
+    var rec = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
+    A.chestPitch = -0.18 * open - 0.10 * peak + 0.22 * rec;
+    A.chestYaw = 0;
+    A.left.pitch = -0.82 * open + 0.54 * rec;
+    A.right.pitch = -0.92 * open + 0.62 * rec;
+    A.left.elbow = 0.62 + 0.20 * open;
+    A.right.elbow = 0.82 + 0.18 * open;
+    A.weaponPitch = -0.18 * open + 0.16 * rec;
+    A.kneeAbsorb = 0.06 * open;
+  };
+
+  /* --- PRE-RELEASE: arquero ----------------------------------------------
+   * Un cast de arco es literalmente RAISE→NOCK→DRAW. Nunca usa la pose de mago.
+   * Se queda justo antes de RELEASE; el evento autoritativo inicia el recoil. */
+  Act._archerCastPose = function (A, c) {
+    var ph = { impact: 0.62, end: 1.0 };
+    Act._archerShot(A, Math.min(0.60, c * 0.60), ph, true);
+    A.gemFlash = 0;
+  };
+
+  /* --- PRE-RELEASE: weapon skill melee ------------------------------------ */
+  Act._meleeCastPose = function (A, c, visualAction) {
+    var load = smooth(c);
+    if (visualAction === 'kick') {
+      A.chestPitch = -0.08 * load;
+      A.right.pitch = -0.34 - 0.14 * load;
+      A.right.elbow = 1.08;
+      A.left.pitch = -0.28 * load;
+      A.kneeAbsorb = 0.10 * load;
+      return;
+    }
+    if (visualAction === 'shield') {
+      A.left.pitch = -0.72 - 0.24 * load;
+      A.left.elbow = 1.10 + 0.18 * load;
+      A.chestPitch = -0.10 * load;
+      return;
+    }
+    /* Heavy/thrust: el cuerpo carga sin cruzar todavía la ventana de impacto. */
+    A.chestPitch = -0.18 * load;
+    A.chestYaw = 0.20 * load;
+    A.right.pitch = 0.42 + 1.45 * load;
+    A.right.yaw = 0.34 * load;
+    A.right.elbow = 0.82 + 0.52 * load;
+    A.weaponPitch = 0.18 - 0.12 * load;
+    A.left.pitch = -0.24 - 0.28 * load;
+    A.kneeAbsorb = 0.06 * load;
+  };
+
   /* --- ARQUERO: RAISE → NOCK → DRAW → AIM → RELEASE → FOLLOW_THROUGH --------
    * El brazo del arco permanece casi extendido; el codo de la cuerda retrocede
    * hasta la mejilla; el pecho rota; al soltar hay recoil y el arco vibra.    */
   Act._archerShot = function (A, t, ph, isPower) {
-    var raise = smooth(t / 0.18);
-    var nock = smooth((t - 0.12) / 0.16);
+    var raise = smooth(t / 0.16);
+    var nock = smooth((t - 0.10) / 0.15);
     var drawEnd = isPower ? 0.62 : ph.impact;
     var pull = smooth((t - 0.24) / (drawEnd - 0.24));
     var aim = smooth((t - drawEnd * 0.85) / Math.max(0.05, drawEnd * 0.15));
@@ -367,21 +536,24 @@ Arena.define('render/anim/actions',
     var follow = smooth((t - drawEnd - 0.10) / Math.max(0.05, ph.end - drawEnd - 0.10));
 
     // Brazo del arco: sube y se queda casi recto apuntando al objetivo.
-    A.left.pitch = -1.50 * raise;
-    A.left.yaw = -0.16 * raise;
-    A.left.elbow = 0.12 + 0.08 * raise;
+    A.left.pitch = -1.48 * raise;
+    A.left.yaw = -0.18 * raise;
+    A.left.elbow = 0.10 + 0.06 * raise;
+    A.left.wrist = -0.06 * raise;
 
     // Brazo de la cuerda: encaja la flecha, tira hasta la mejilla, suelta.
     A.right.pitch = -1.22 * raise - 0.10 * nock;
     A.right.yaw = (0.50 + (isPower ? 0.30 : 0)) * pull;
-    A.right.elbow = 0.55 + (1.55 + (isPower ? 0.35 : 0)) * pull - 1.30 * rel;
+    A.right.elbow = 0.58 + (1.62 + (isPower ? 0.34 : 0)) * pull - 1.34 * rel;
+    A.right.wrist = -0.10 * nock + 0.16 * pull - 0.20 * rel;
 
     // El pecho rota con el tensado: sin torsión no hay potencia legible.
     A.chestYaw = (0.22 + (isPower ? 0.16 : 0)) * pull - 0.30 * rel;
     A.chestPitch = -0.06 * aim;
 
     A.draw = clamp(pull - rel, 0, 1);
-    A.bowPitch = 1.42;
+    A.bowPitch = 1.40 - 0.05 * pull + 0.04 * rel;
+    A.bowYaw = -0.06 * pull + 0.03 * follow;
     // Recoil del brazo de cuerda y vibración del arco tras soltar.
     A.right.pitch += 0.45 * rel - 0.20 * follow;
     A.bowShake = Math.max(0, rel - follow) * 0.06;
@@ -409,6 +581,13 @@ Arena.define('render/anim/actions',
    * Un solo eje por familia, deliberadamente pequeño. Siete poses
    * independientes serían siete cosas que mantener; siete DESVIACIONES sobre
    * una base común se leen distintas y siguen siendo el mismo personaje.      */
+  /* Mantiene el báculo bajo un ángulo de mundo legible. Como el arma cuelga
+     de hombro→codo→mano, sumar otro pitch grande en la muñeca duplicaba la
+     rotación y producía el típico báculo que se voltea dentro de la mano. */
+  function orientStaff(A, desiredPitch) {
+    A.weaponPitch = desiredPitch - (A.right.pitch + A.right.elbow);
+  }
+
   var CAST_MOD = {
     //            báculo↔frente  mano libre  torso  apertura  base baja  golpe suelo  arranque
     projectile: { staffFwd: 0.30, freeHand: 0.55, chest: 0.10, open: 0.00, stanceLow: 0.00, staffDown: 0.00, startRaise: 1.00 },
@@ -446,12 +625,18 @@ Arena.define('render/anim/actions',
     var breath = Math.sin(n * 2.1) * 0.014 * chan;
 
     /* Brazo del báculo: se afirma, luego se eleva, y en canal queda sostenido. */
-    A.right.pitch = -0.30 - 0.55 * prep - (1.05 + m.staffFwd) * gath - 0.10 * chan + tremor;
-    A.right.elbow = 0.30 + 0.22 * prep + 0.42 * gath - 0.06 * chan;
-    A.right.roll = -0.22 - 0.10 * gath;
-    A.weaponPitch = -0.18 - 0.30 * prep - (0.34 - m.staffDown * 0.9) * gath + tremor * 1.4;
-    A.weaponRoll = -0.08 * gath;
-    A.weaponYaw = tremor * 0.8;
+    A.right.pitch = -0.18 - 0.38 * prep - (0.68 + m.staffFwd * 0.42) * gath - 0.06 * chan + tremor;
+    A.right.elbow = 0.42 + 0.18 * prep + 0.30 * gath - 0.05 * chan;
+    A.right.roll = -0.24 - 0.08 * gath;
+    A.right.wrist = 0.08 + 0.12 * gath - 0.05 * chan;
+    /* El brazo mueve el asta; la muñeca sólo corrige. Evitar giros de más de
+       ~90° elimina el efecto de báculo que se voltea dentro de la mano. */
+    var staffHold = 0.06 - 0.10 * prep - (0.24 + m.staffDown * 0.32) * gath + tremor * 0.65;
+    orientStaff(A, staffHold);
+    A.weaponRoll = -0.045 * gath;
+    A.weaponYaw = tremor * 0.55;
+    A.weaponOffsetY = 0.012 * prep + 0.026 * gath;
+    A.weaponOffsetZ = -0.018 * gath;
 
     /* Mano libre: es la que domina el gesto y la que cambia entre familias. */
     A.left.pitch = -0.35 * prep - (0.95 * m.freeHand) * gath - 0.12 * chan + breath;
@@ -502,9 +687,9 @@ Arena.define('render/anim/actions',
        y hace lo contrario, un golpe corto hacia ARRIBA y adelante. Por eso el
        destino depende de `raise`: sin esto, un instantáneo salía de un punto
        que ya estaba pasado el objetivo y el brazo no se movía en absoluto. */
-    var startPitch = -2.25 * raise - 0.10;
-    var aimPitch = -1.15 - (1 - raise) * 0.50   // instantáneo apunta más alto
-                 + m.staffDown * 0.75;          // el área baja el brazo al suelo
+    var startPitch = -1.30 * raise - 0.12;
+    var aimPitch = -0.78 - (1 - raise) * 0.28
+                 + m.staffDown * 0.46;          // el área baja el brazo al suelo
 
     A.chestPitch = -0.24 * raise - 0.14 * torso + 0.36 * back;
     A.chestYaw = (0.24 + m.chest) * torso - 0.34 * back;
@@ -514,14 +699,18 @@ Arena.define('render/anim/actions',
     A.right.pitch += (0.08 - aimPitch) * back;
     A.right.elbow = (0.88 * raise + 0.34 * (1 - raise)) - 0.58 * elbow + 0.18 * back;
     A.right.roll = -0.26 + 0.12 * shoulder;
+    A.right.wrist = 0.16 * weapon - 0.10 * back;
 
     // El báculo se adelanta un instante más que la mano: es el último eslabón.
     // El báculo NO se voltea hacia atrás en las áreas: se clava hacia delante y
     // abajo. Quien marca el suelo es el brazo, no un giro de muñeca imposible.
-    A.weaponPitch = -0.82 * raise - (0.52 + m.staffDown * 0.35) * weapon
-                  + (0.42 + 0.82 * raise) * back;
-    A.weaponRoll = -0.26 * weapon + 0.20 * back;
-    A.weaponYaw = 0.14 * m.open * weapon;
+    var releaseStaff = -0.08 * raise - (0.44 + m.staffDown * 0.30) * weapon;
+    releaseStaff += (0.08 - releaseStaff) * back;
+    orientStaff(A, releaseStaff);
+    A.weaponRoll = -0.10 * weapon + 0.08 * back;
+    A.weaponYaw = 0.10 * m.open * weapon;
+    A.weaponOffsetY = 0.025 * (1 - back);
+    A.weaponOffsetZ = -0.045 * weapon + 0.035 * back;
 
     /* La mano libre empuja o se abre según la familia: es la lectura más rápida
        de qué clase de hechizo acaba de salir. */
@@ -552,13 +741,19 @@ Arena.define('render/anim/actions',
     var rec = smooth((t - ph.recovery) / Math.max(0.08, ph.end - ph.recovery));
 
     // El báculo se orienta y la gema se adelanta; el codo se cierra cargando.
-    A.right.pitch = 0.08 - 0.62 * prep - 0.45 * pulse + 0.85 * rec;
-    A.right.elbow = 0.34 + 0.55 * prep - 0.40 * pulse + 0.30 * rec;
+    A.right.pitch = 0.02 - 0.44 * prep - 0.36 * pulse + 0.66 * rec;
+    A.right.elbow = 0.38 + 0.38 * prep - 0.28 * pulse + 0.22 * rec;
     A.right.roll = -0.26 - 0.10 * prep;
-    A.weaponPitch = -0.42 - 0.34 * prep - 0.30 * pulse + 0.62 * rec;
-    // Retroceso del arma tras el pulso: sin él, el proyectil sale de la nada.
-    A.weaponPitch += 0.26 * follow * (1 - rec);
-    A.weaponYaw = -0.12 * pulse + 0.08 * follow;
+    A.right.wrist = 0.10 * prep + 0.14 * pulse - 0.12 * rec;
+    // La orientación final del asta se expresa en espacio corporal y después
+    // se descuenta lo que ya rotaron hombro+codo: así la gema apunta y vuelve
+    // sin que el bastón atraviese la muñeca.
+    var pulseStaff = -0.02 - 0.10 * prep - 0.42 * pulse + 0.20 * follow;
+    pulseStaff += (0.08 - pulseStaff) * rec;
+    orientStaff(A, pulseStaff);
+    A.weaponYaw = -0.08 * pulse + 0.055 * follow;
+    A.weaponOffsetY = 0.018 * prep + 0.010 * pulse;
+    A.weaponOffsetZ = -0.035 * pulse + 0.022 * rec;
 
     // La mano libre estabiliza el báculo durante la carga: es lo que comunica
     // que el arma está haciendo algo, no simplemente moviéndose.

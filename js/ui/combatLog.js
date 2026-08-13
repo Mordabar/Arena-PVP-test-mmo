@@ -145,8 +145,29 @@ Arena.define('ui/combatLog', ['ui/hud'], function (Arena) {
         ' (' + p.castTime.toFixed(1) + ' s)', [p.casterId, p.targetId]);
     });
 
+    bus.on('WeaponWindupStarted', function (p) {
+      self.push('info', N(p.casterId) + ': ARMA · WINDUP → release @ ' + p.releaseAt.toFixed(2),
+        [p.casterId, p.targetId]);
+    });
+    bus.on('WeaponWindupCancelled', function (p) {
+      self.push('reject', N(p.casterId) + ': ARMA · CANCEL (' + p.reason + ')', [p.casterId]);
+    });
+    bus.on('AutoAttackReleased', function (p) {
+      self.push('info', N(p.casterId) + ': ARMA · RELEASE → ' + N(p.targetId), [p.casterId, p.targetId]);
+    });
+    bus.on('AbilityReleased', function (p) {
+      self.push('info', N(p.casterId) + ': PODER · RELEASE ' + A(p.abilityId) +
+        ' · GCD ' + p.gcd.toFixed(2), [p.casterId, p.targetId]);
+    });
+    bus.on('AbilityQueued', function (p) {
+      self.push('info', N(p.casterId) + ': QUEUE ' + A(p.abilityId) + ' [' + p.kind + ']', [p.casterId]);
+    });
+    bus.on('AbilityQueueReplaced', function (p) {
+      self.push('info', N(p.casterId) + ': QUEUE reemplaza ' + A(p.oldAbilityId) + ' → ' + A(p.abilityId), [p.casterId]);
+    });
+
     bus.on('AbilityCastInterrupted', function (p) {
-      var why = { moved: 'al moverse', cc: 'por control', cancelled: 'cancelado' }[p.reason] || 'interrumpido';
+      var why = { moved:'al moverse', movement:'al moverse', jump:'al saltar', manual:'cancelado manualmente', rotation:'al girar el cuerpo', cc:'por control', cancelled:'cancelado' }[p.reason] || 'interrumpido';
       var lock = p.lockout > 0 ? ' · escuela "' + p.school + '" bloqueada ' + p.lockout.toFixed(1) + ' s' : '';
       self.push('counter', N(p.casterId) + ': ' + A(p.abilityId) + ' ' + why + lock,
         [p.casterId, p.sourceId]);

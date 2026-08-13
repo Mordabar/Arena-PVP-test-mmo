@@ -83,7 +83,7 @@ Arena.define('tests/animTests',
 
     T.test('desplazarse de lado da STRAFE del lado correcto', function () {
       var e = fakeEntity();
-      // Mirando a +Z, la derecha del personaje es −X (regla de la mano derecha).
+      // Mirando a +Z con cámara detrás, la derecha visual es −X.
       var stR = Loco.createState(cfgFor('centinela', 'archer'));
       walk(stR, e, 60, 1 / 60, -4.8, 0);
       T.assertEqual(stR.state, Loco.STATE.STRAFE_R, 'strafe a la derecha');
@@ -519,6 +519,27 @@ Arena.define('tests/animTests',
       T.assert(signature('projectile').length === 7, 'firma completa');
     });
 
+    T.test('el báculo del caster conserva una orientación física durante el channel', function () {
+      var cfg = cfgFor('arcanista', 'caster');
+      var st = Act.createState(41);
+      var loadout = { right: 'staff', left: null };
+      Act.beginCast(st, 'projectile');
+      var prev = null;
+      for (var i = 0; i <= 10; i++) {
+        var c = i / 10;
+        var A = Act.upperBodyPose(st, cfg, 'caster', loadout, c, true, 0.05);
+        // La malla del báculo cuelga de brazo+codo; esta suma aproxima el pitch
+        // corporal final que ve el jugador. Si se dispara a ±π, el asta se está
+        // volteando dentro de la mano.
+        var worldPitch = A.right.pitch + A.right.elbow + A.weaponPitch;
+        T.assert(worldPitch > -1.15 && worldPitch < 0.55,
+          'pitch de báculo razonable en c=' + c.toFixed(1) + ': ' + worldPitch.toFixed(3));
+        if (prev !== null) T.assert(Math.abs(worldPitch - prev) < 0.42,
+          'sin flip entre muestras consecutivas');
+        prev = worldPitch;
+      }
+    });
+
     T.test('la reacción al daño es aditiva y se disuelve sola', function () {
       var cfg = cfgFor('devastador', 'melee');
       var st = Act.createState(5);
@@ -695,7 +716,7 @@ Arena.define('tests/animTests',
 
     T.test('el caster conserva su familia de locomoción en la intención', function () {
       var e = fakeEntity({ classId: 'arcanista' });
-      // −X es la derecha del personaje cuando mira a +Z.
+      // −X es la derecha visual del personaje cuando mira a +Z con cámara detrás.
       var r = intentFor(e, {
         prime: function (loco) { walk(loco, e, 60, 1 / 60, -4.8, 0); }
       });
@@ -749,6 +770,16 @@ Arena.define('tests/animTests',
       var stun = Act.ccPose(fakeEntity({ statuses: ['stun'] }), 1);
       T.assert(root.armDrop < stun.armDrop,
         'el enraizado conserva los brazos, el aturdido no');
+    });
+
+    T.test('el salto viaja por AnimationIntent sin introducir geometría', function () {
+      var e = fakeEntity({ classId: 'arcanista' });
+      e.jumpActive = true; e.jumpElapsed = 0.33; e.jumpOffset = 1.0;
+      var r = intentFor(e, { prime: function (loco) {
+        loco.airborne = true; loco.jumpPhase = 0.50;
+      }});
+      T.assert(r.intent.airborne, 'el backend futuro sabe que está en aire');
+      T.assertNear(r.intent.jumpProgress, 0.50, 1e-6, 'transporta fase normalizada');
     });
 
     T.test('un slow no detiene la locomoción', function () {

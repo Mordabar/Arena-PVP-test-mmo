@@ -1,0 +1,11 @@
+# Project Arena — entorno de desarrollo público.
+# Evita que Hostinger/LiteSpeed o el navegador mantengan JS/CSS antiguos entre
+# subidas consecutivas. Cuando el proyecto llegue a producción se podrá volver
+# a activar caché de assets con hashes de contenido.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js|css)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>

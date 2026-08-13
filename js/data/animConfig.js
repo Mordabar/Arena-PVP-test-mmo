@@ -26,6 +26,16 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     backwardRatio: 0.72,
     strafeRatio: 0.90,
 
+    /* Lenguaje corporal por dirección. No cambia la velocidad lógica: sólo
+       modifica longitud de paso, elevación, torsión y balanceo para que
+       backpedal/strafe/diagonal no sean el mismo ciclo reproducido de lado. */
+    directional: {
+      forward:  { stride: 1.00, lift: 1.00, duty: 1.00, arm: 1.00, twist: 1.00, hip: 1.00 },
+      backward: { stride: 0.78, lift: 0.72, duty: 1.08, arm: 0.58, twist: 0.48, hip: 0.82 },
+      strafe:   { stride: 0.82, lift: 0.82, duty: 1.05, arm: 0.46, twist: 0.38, hip: 1.10 },
+      diagonal: { stride: 0.92, lift: 0.92, duty: 1.02, arm: 0.76, twist: 0.72, hip: 1.04 }
+    },
+
     /* Ciclo de paso -------------------------------------------------------
      *
      * `strideLength` es el RECORRIDO DEL PIE DURANTE EL APOYO: cuánto retrocede
@@ -121,16 +131,21 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     /* Acciones: los tiempos son fracciones de la duración total de la acción,
        no segundos. La duración la fija actionTime. */
     actionTime: {
-      light: 0.42, heavy: 0.68, thrust: 0.46, ranged: 0.58,
-      pulse: 0.40,   // ataque normal del mago
-      cast: 0.44     // liberación del hechizo: recuperación corta, esto es PvP
+      light: 0.44, heavy: 0.70, thrust: 0.48, ranged: 0.60,
+      kick: 0.48, shield: 0.46, charge: 0.52, cry: 0.54,
+      pulse: 0.42,   // ataque normal del mago
+      cast: 0.46     // liberación del hechizo: recuperación corta, esto es PvP
     },
     phases: {
       light:  { anticipation: 0.00, active: 0.30, impact: 0.42, recovery: 0.55, end: 1.0 },
       heavy:  { anticipation: 0.00, active: 0.44, impact: 0.58, recovery: 0.68, end: 1.0 },
-      thrust: { anticipation: 0.00, active: 0.34, impact: 0.46, recovery: 0.58, end: 1.0 },
-      ranged: { anticipation: 0.00, active: 0.22, impact: 0.58, recovery: 0.68, end: 1.0 },
-      pulse:  { anticipation: 0.00, active: 0.30, impact: 0.46, recovery: 0.62, end: 1.0 },
+      thrust: { anticipation: 0.00, active: 0.34, impact: 0.46, recovery: 0.60, end: 1.0 },
+      ranged: { anticipation: 0.00, active: 0.20, impact: 0.58, recovery: 0.72, end: 1.0 },
+      kick:   { anticipation: 0.00, active: 0.24, impact: 0.46, recovery: 0.62, end: 1.0 },
+      shield: { anticipation: 0.00, active: 0.22, impact: 0.44, recovery: 0.60, end: 1.0 },
+      charge: { anticipation: 0.00, active: 0.18, impact: 0.52, recovery: 0.68, end: 1.0 },
+      cry:    { anticipation: 0.00, active: 0.30, impact: 0.52, recovery: 0.68, end: 1.0 },
+      pulse:  { anticipation: 0.00, active: 0.28, impact: 0.48, recovery: 0.66, end: 1.0 },
       // `active` bajo a propósito: la cadena cinética arranca casi al instante
       // y se escalona sola con los retardos por eslabón.
       cast:   { anticipation: 0.00, active: 0.14, impact: 0.52, recovery: 0.66, end: 1.0 }
@@ -166,7 +181,11 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
       dutyFactor: 0.62, dutyFactorRun: 0.40, stanceWidth: 0.135,
       hipShiftAmount: 0.042, accelLean: 0.18,
       armSwing: 0.48, elbowBaseBend: 0.38,
-      weaponLagRate: 20.0,
+      weaponLagRate: 18.0,
+      directional: {
+        backward: { stride: 0.74, lift: 0.68, arm: 0.52, twist: 0.42, hip: 0.90 },
+        strafe:   { stride: 0.78, lift: 0.78, arm: 0.40, twist: 0.30, hip: 1.16 }
+      },
       idle: {
         stanceWidth: 0.16, kneeBend: 0.20, chestLean: 0.10,
         pelvisDrop: 0.030, guardHeight: 0.42
@@ -178,7 +197,12 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
       dutyFactor: 0.56, dutyFactorRun: 0.32, stanceWidth: 0.100,
       hipShiftAmount: 0.032, accelLean: 0.15,
       armSwing: 0.42, elbowBaseBend: 0.32,
-      weaponLagRate: 22.0,
+      weaponLagRate: 21.0,
+      directional: {
+        backward: { stride: 0.82, lift: 0.82, arm: 0.62, twist: 0.58, hip: 0.88 },
+        strafe:   { stride: 0.88, lift: 0.92, arm: 0.54, twist: 0.48, hip: 1.08 },
+        diagonal: { stride: 0.96, lift: 0.97, arm: 0.76, twist: 0.78, hip: 1.02 }
+      },
       idle: {
         stanceWidth: 0.115, kneeBend: 0.14, chestLean: 0.05,
         pelvisDrop: 0.014, guardHeight: 0.30, weightOnLeg: 0.4
@@ -189,18 +213,33 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
          protege el equilibrio de su báculo y conserva una postura lista para
          reaccionar: base algo más ancha de lo que pide su peso, pasos cortos,
          torso vertical, y un arma larga que pesa y se retrasa. */
-      strideLength: 0.68, strideSpeedGain: 0.36, stepHeight: 0.125, stepFrequency: 1.45,
-      dutyFactor: 0.66, dutyFactorRun: 0.44, stanceWidth: 0.112,
-      hipShiftAmount: 0.030, hipRollAmount: 0.042, accelLean: 0.13, decelLean: 0.16,
-      armSwing: 0.22,          // el brazo del báculo casi no balancea
-      armSwingRun: 0.18,
-      elbowBaseBend: 0.30,
-      torsoTwist: 0.075,       // el tronco se mantiene: el báculo no puede bailar
-      torsoCounterRate: 0.62,
-      chestTrackRatio: 0.42,   // el pecho asume más seguimiento: postura de duelo
-      // El báculo es largo y pesado: se retrasa mucho más que una espada.
-      weaponLagRate: 7.5,
-      weaponLagAmount: 1.0,
+      // Zancada ligeramente más amplia y pie un poco más alto: quita el “shuffle”
+      // sin convertir al caster en arquero. La cadencia baja un toque para que
+      // el báculo y el torso tengan tiempo de vender el peso del paso.
+      /* PASS v0.5: paso más humano. Antes el caster tenía una zancada muy
+         corta y una cadencia baja: a velocidad de juego los pies parecían
+         barajar bajo la túnica. Ahora cubre más terreno por apoyo, levanta algo
+         más el pie y deja que pelvis/pecho contrapesen el báculo. */
+      strideLength: 0.79, strideSpeedGain: 0.44, stepHeight: 0.175, stepFrequency: 1.54,
+      dutyFactor: 0.60, dutyFactorRun: 0.37, stanceWidth: 0.120,
+      hipShiftAmount: 0.041, hipRollAmount: 0.052, accelLean: 0.16, decelLean: 0.18,
+      armSwing: 0.34,
+      armSwingRun: 0.24,
+      elbowBaseBend: 0.34,
+      torsoTwist: 0.125,
+      torsoCounterRate: 0.61,
+      chestTrackRatio: 0.40,
+      // Menos goma: el báculo conserva masa, pero obedece a la mano antes.
+      weaponLagRate: 11.5,
+      weaponLagAmount: 0.52,
+      staffWalkCounter: 0.46,
+      staffStrideInertia: 0.22,
+      staffGripLift: 0.028,
+      directional: {
+        backward: { stride: 0.72, lift: 0.66, arm: 0.42, twist: 0.34, hip: 0.78 },
+        strafe:   { stride: 0.78, lift: 0.78, arm: 0.36, twist: 0.28, hip: 1.02 },
+        diagonal: { stride: 0.88, lift: 0.88, arm: 0.58, twist: 0.50, hip: 0.96 }
+      },
       // Respiración algo más marcada: el mago está quieto casi todo el tiempo y
       // sin ella se lee como una estatua.
       breathAmount: 0.014, idleSwayAmount: 0.020, idleHeadAmount: 0.038,
@@ -216,7 +255,7 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
     guardian: { strideLength: 0.72, stepFrequency: 1.42, stanceWidth: 0.145 },
     devastador: { accelLean: 0.20, armSwing: 0.54 },
     centinela: { strideLength: 0.90 },
-    vinculador: { stepFrequency: 1.40 }
+    vinculador: { stepFrequency: 1.50, strideLength: 0.76 }
   };
 
   function merge(a, b) {

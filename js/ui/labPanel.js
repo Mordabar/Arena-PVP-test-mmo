@@ -81,7 +81,8 @@ Arena.define('ui/labPanel', ['ui/combatLog', 'ai/dummyAI'], function (Arena) {
       ['dummies', 'Sacos de daño'],
       ['duel', 'Duelo 1v1'],
       ['team', 'Combate 2v2'],
-      ['counters', 'Sala de counters']
+      ['counters', 'Sala de counters'],
+      ['timing', 'Timing Lab']
     ].forEach(function (s) {
       var b = el('button', 'btn', row2);
       b.textContent = s[1];

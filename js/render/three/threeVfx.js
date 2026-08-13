@@ -26,6 +26,10 @@ export function createVfxRenderer(Arena, scene) {
   /* Una sola geometría para todas las partículas. El tamaño va en la escala del
      objeto, no en geometrías distintas. */
   var sphereGeo = new THREE.IcosahedronGeometry(0.5, 0);
+  var shardGeo = new THREE.OctahedronGeometry(0.52, 0);
+  var sparkGeo = new THREE.ConeGeometry(0.22, 1.0, 5);
+  var runeGeo = new THREE.TorusGeometry(0.40, 0.08, 5, 14);
+  var GEOS = { orb: sphereGeo, wisp: sphereGeo, shard: shardGeo, spark: sparkGeo, rune: runeGeo };
 
   /* InstancedMesh sería más rápido, pero exige color por instancia y aquí el
      color cambia por partícula y por fotograma. Con 600 mallas sencillas y
@@ -82,8 +86,13 @@ export function createVfxRenderer(Arena, scene) {
         var size = p.size + (p.endSize - p.size) * t;
 
         mesh.visible = true;
+        var style = p.style || 'orb';
+        mesh.geometry = GEOS[style] || sphereGeo;
         _pos.set(p.x, p.y, p.z);
-        _scale.set(size, size, size);
+        if (style === 'spark') _scale.set(size * 0.45, size * 1.9, size * 0.45);
+        else if (style === 'rune') _scale.set(size * 1.7, size * 1.7, size * 1.7);
+        else if (style === 'wisp') _scale.set(size * 0.75, size * 1.15, size * 0.75);
+        else _scale.set(size, size, size);
         mesh.matrix.compose(_pos, _quat, _scale);
         mesh.matrixWorldNeedsUpdate = true;
 
@@ -103,7 +112,103 @@ export function createVfxRenderer(Arena, scene) {
     dispose: function () {
       for (var i = 0; i < pool.length; i++) scene.remove(pool[i]);
       pool.length = 0;
-      sphereGeo.dispose();
+      sphereGeo.dispose(); shardGeo.dispose(); sparkGeo.dispose(); runeGeo.dispose();
+    }
+  };
+}
+
+
+/* =============================================================================
+ * Proyectiles visibles — flechas y magia con estela.
+ *
+ * La simulación ya mantiene world.projectiles y decide impacto/velocidad. Aquí
+ * sólo se interpola prevPos→pos y se representa el vuelo. Esto corrige el fallo
+ * perceptual de “pulso sale de la nada y aparece daño”: ahora hay una lectura
+ * continua desde el caster hasta el objetivo.
+ * ========================================================================== */
+export function createProjectileRenderer(Arena, scene) {
+  const MAX = 96;
+  const arrowBodyGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.72, 5);
+  const arrowHeadGeo = new THREE.ConeGeometry(0.055, 0.18, 6);
+  const boltCoreGeo = new THREE.IcosahedronGeometry(0.115, 1);
+  const haloGeo = new THREE.TorusGeometry(0.20, 0.018, 5, 20);
+  const trailGeo = new THREE.IcosahedronGeometry(0.055, 0);
+  const arrowMat = new THREE.MeshStandardMaterial({ color: 0xd6c29a, roughness: 0.72, metalness: 0.05 });
+  const arrowHeadMat = new THREE.MeshStandardMaterial({ color: 0xb8c1ca, roughness: 0.34, metalness: 0.72 });
+
+  function magicColor(id) {
+    if (/invernal|estasis/i.test(id || '')) return 0x79d9ff;
+    if (/impacto_celeste/i.test(id || '')) return 0xc59cff;
+    if (/corrupcion|marca_corrosiva/i.test(id || '')) return 0xc76aff;
+    if (/descarga/i.test(id || '')) return 0xff8b51;
+    return 0x9f8cff;
+  }
+
+  const pool = [];
+  for (let i=0;i<MAX;i++) {
+    const root = new THREE.Group(); root.visible = false;
+    const arrow = new THREE.Group();
+    const body = new THREE.Mesh(arrowBodyGeo, arrowMat); body.position.y = 0;
+    const head = new THREE.Mesh(arrowHeadGeo, arrowHeadMat); head.position.y = 0.45;
+    body.castShadow = head.castShadow = true; arrow.add(body, head); root.add(arrow);
+
+    const magic = new THREE.Group();
+    const coreMat = new THREE.MeshBasicMaterial({ color: 0x9f8cff, transparent:true, opacity:0.95, blending:THREE.AdditiveBlending, depthWrite:false });
+    const haloMat = new THREE.MeshBasicMaterial({ color: 0xb9b0ff, transparent:true, opacity:0.52, blending:THREE.AdditiveBlending, depthWrite:false });
+    const core = new THREE.Mesh(boltCoreGeo, coreMat); magic.add(core);
+    const halo = new THREE.Mesh(haloGeo, haloMat); halo.rotation.x = Math.PI/2; magic.add(halo);
+    const trails=[];
+    for (let t=0;t<4;t++) {
+      const tm = new THREE.MeshBasicMaterial({ color:0x9f8cff, transparent:true, opacity:0.35 - t*0.055, blending:THREE.AdditiveBlending, depthWrite:false });
+      const tr = new THREE.Mesh(trailGeo, tm); magic.add(tr); trails.push(tr);
+    }
+    root.add(magic); scene.add(root);
+    pool.push({root,arrow,magic,core,halo,trails,coreMat,haloMat});
+  }
+
+  const pos = new THREE.Vector3(), prev = new THREE.Vector3(), dir = new THREE.Vector3();
+  const yAxis = new THREE.Vector3(0,1,0);
+
+  return {
+    render(world, alpha, time) {
+      let used=0;
+      for (let i=0;i<world.projectiles.length && used<MAX;i++) {
+        const p=world.projectiles[i], h=pool[used++];
+        const x=p.prevPos.x+(p.pos.x-p.prevPos.x)*alpha;
+        const y=p.prevPos.y+(p.pos.y-p.prevPos.y)*alpha;
+        const z=p.prevPos.z+(p.pos.z-p.prevPos.z)*alpha;
+        pos.set(x,y,z); prev.set(p.prevPos.x,p.prevPos.y,p.prevPos.z);
+        dir.copy(pos).sub(prev);
+        if (dir.lengthSq()<1e-6) {
+          const target=world.getEntity(p.targetId);
+          if (target) dir.set(target.pos.x-x, target.pos.y+target.height*.55-y, target.pos.z-z);
+          else dir.set(0,0,1);
+        }
+        dir.normalize();
+        h.root.visible=true; h.root.position.copy(pos);
+        const magic=p.kind==='bolt'; h.magic.visible=magic; h.arrow.visible=!magic;
+        if (!magic) {
+          h.arrow.quaternion.setFromUnitVectors(yAxis,dir);
+          h.arrow.scale.setScalar(1.0);
+        } else {
+          const col=magicColor(p.abilityId);
+          h.coreMat.color.setHex(col); h.haloMat.color.setHex(col);
+          h.core.scale.setScalar(0.90+Math.sin((time||0)*18+i)*0.12);
+          h.halo.rotation.z=(time||0)*7+i*.7;
+          h.halo.scale.setScalar(0.86+Math.sin((time||0)*11+i)*0.12);
+          for (let t=0;t<h.trails.length;t++) {
+            const tr=h.trails[t], d=.16*(t+1);
+            tr.position.set(-dir.x*d,-dir.y*d,-dir.z*d);
+            tr.scale.setScalar(1-t*.14);
+            tr.material.color.setHex(col);
+          }
+        }
+      }
+      for (let i=used;i<pool.length;i++) pool[i].root.visible=false;
+    },
+    dispose() {
+      for (const h of pool) scene.remove(h.root);
+      arrowBodyGeo.dispose(); arrowHeadGeo.dispose(); boltCoreGeo.dispose(); haloGeo.dispose(); trailGeo.dispose();
     }
   };
 }

@@ -36,8 +36,14 @@ Arena.define('core/fixedTick', [], function (Arena) {
 
     this._accumulator += realDelta * this.timeScale;
     var steps = 0;
-    while (this._accumulator >= this.dt) {
+    /* Epsilon minúsculo contra deriva binaria: 3 s entregados como 144
+       fragmentos deben producir exactamente los mismos 90 ticks que 30/60 Hz.
+       No cambia el tiempo de juego; sólo evita perder un tick porque el
+       acumulador quede en dt - 2e-16. */
+    var eps = 1e-10;
+    while (this._accumulator + eps >= this.dt) {
       this._accumulator -= this.dt;
+      if (this._accumulator < 0 && this._accumulator > -eps) this._accumulator = 0;
       this.time += this.dt;
       this.tickCount++;
       this.onTick(this.dt, this.time, this.tickCount);

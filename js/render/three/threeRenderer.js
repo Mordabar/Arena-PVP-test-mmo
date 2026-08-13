@@ -17,9 +17,9 @@
  * su propia sensación y ésa es justo la que no queremos cambiar.
  * ========================================================================== */
 import * as THREE from 'three';
-import { createEnvironment } from './threeEnvironment.js';
-import { createCharacterFactory } from './threeCharacter.js';
-import { createVfxRenderer, createSelectionRings } from './threeVfx.js';
+import { createEnvironment } from './threeEnvironment.js?build=v070-20260812-1051';
+import { createCharacterFactory } from './threeCharacter.js?build=v070-20260812-1051';
+import { createVfxRenderer, createSelectionRings, createProjectileRenderer } from './threeVfx.js?build=v070-20260812-1051';
 
 export function createThreeRenderer(Arena, canvas, world, opts) {
   opts = opts || {};
@@ -34,15 +34,16 @@ export function createThreeRenderer(Arena, canvas, world, opts) {
   // Tone mapping moderado: el brief pide low-poly limpio, no cine. Con ACES a
   // exposición alta los colores planos se lavan y las siluetas pierden borde.
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.22;
+  renderer.toneMappingExposure = 1.08;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   var scene = new THREE.Scene();
   var camera = new THREE.PerspectiveCamera(55, 16 / 9, 0.1, 220);
 
-  createEnvironment(scene, world.arena);
+  var environment = createEnvironment(scene, world.arena);
   var characters = createCharacterFactory(Arena, scene, { glbLoader: opts.glbLoader });
   var vfx = createVfxRenderer(Arena, scene);
+  var projectiles = createProjectileRenderer(Arena, scene);
   var rings = createSelectionRings(Arena, scene);
 
   function ThreeRenderer() {
@@ -134,6 +135,8 @@ export function createThreeRenderer(Arena, canvas, world, opts) {
       ch.root.visible = true;
 
       var pos = V.lerp(V.create(), e.prevPos, e.pos, alpha);
+      var jumpY = (e.prevJumpOffset || 0) + ((e.jumpOffset || 0) - (e.prevJumpOffset || 0)) * alpha;
+      pos.y += jumpY;
       var yaw = e.prevYaw + V.angleDelta(e.prevYaw, e.yaw) * alpha;
       var palette = Arena.Render.CharacterBackend.current.paletteFor(e, friendly);
 
@@ -142,8 +145,10 @@ export function createThreeRenderer(Arena, canvas, world, opts) {
       ch.applyPose(e, pos, yaw, palette, fade * deadFade, ch.handle.hurt || 0);
     }
 
+    if (environment && environment.update) environment.update(this.time, dt);
     rings.render(world, this.playerId, this.selectedId, this.hoverId, alpha);
     vfx.render();
+    projectiles.render(world, alpha, this.time);
 
     renderer.render(scene, camera);
     var info = renderer.info.render;
@@ -155,6 +160,7 @@ export function createThreeRenderer(Arena, canvas, world, opts) {
     for (var id in this.visuals) this.visuals[id].dispose();
     this.visuals = Object.create(null);
     vfx.dispose();
+    projectiles.dispose();
     renderer.dispose();
   };
 

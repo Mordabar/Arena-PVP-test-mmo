@@ -284,9 +284,9 @@ Cualquier alteración de este orden cambia el metajuego entero.
 | Paso | Dónde | Qué |
 |---|---|---|
 | 1 | `abilitySystem.canUse` | ¿Lanzador vivo y habilitado? |
-| 2 | `abilitySystem.canUse` | ¿Recurso, GCD y cooldown disponibles? |
+| 2 | `abilitySystem.canUse` | ¿Recurso, GCD, cooldown e intervalo de arma disponibles para **comenzar**? |
 | 3 | `abilitySystem.canUse` | ¿Target válido, rango, orientación, línea de visión? |
-| 4 | `abilitySystem._commit` | Casteo: iniciar, permitir interrupción, revalidar al terminar |
+| 4 | `abilitySystem._begin` / `_release` | BEGIN prepara sin pagar; RELEASE revalida y hace commit de recurso, cooldown y GCD |
 | 5 | `resolver.resolveHit` | **Estasis → Intervención → Reflejo → Bloqueo** |
 | 6 | `damageSystem` / `healingSystem` | Mitigación, redirección, barreras, vida |
 | 7 | `statusSystem.apply` | Estados permitidos, con DR |
@@ -342,8 +342,8 @@ Todas están además comentadas en el punto del código donde viven.
 | Ataque normal: ¿auto-repeat o manual? | **Auto-repeat conmutable (tecla T)** | Es el latido del ritmo; obligar a pulsarlo convertiría el combate en spam de clic. No consume GCD. |
 | ¿DR como regla competitiva o de modo? | **Interruptor de laboratorio, activado por defecto** | El documento lo pide explícitamente como toggle para comparar MMO clásico y moderno. |
 | Resistencias y bloqueo | **Deterministas** | §19 pide RNG desactivado en la fase de game feel. El RNG existe como interruptor, apagado por defecto. |
-| Validación de orientación | **Auto-encarar en objetivo único; cono real en AoE** | Rechazar una habilidad porque el personaje mira 10° de más rompe "respuesta inmediata". La orientación sigue decidiendo donde importa: los conos. |
-| Ataque normal a distancia | **Impacto inmediato, sin proyectil** | El ataque normal es el latido y debe ser predecible; sólo las habilidades marcadas viajan. |
+| Validación de orientación | **Sin auto-facing; ofensivas targeteadas del jugador requieren arco frontal por defecto** | La orientación es parte del posicionamiento táctico. Seleccionar o pulsar un poder nunca gira mágicamente el cuerpo; el mouse/Q/E mandan. |
+| Ataque normal a distancia | **Proyectil creado exactamente en RELEASE** | El draw/pulso debe coincidir con la salida física de flecha/energía. Una vez liberado, el proyectil existe aunque el lanzador se mueva o pierda LoS. |
 
 ### Divergencias numéricas respecto al documento
 
@@ -360,7 +360,27 @@ Todas están comentadas en el código, en el punto exacto donde se aplican:
 
 ---
 
-## 6. Verificación
+## 6. Tactical Rhythm v0.6 — BEGIN, RELEASE y weaving
+
+El combate ya no entiende una pulsación como “ejecutar ahora”. `Entity` conserva
+`weaponState`, `actionState`, `pendingCast` y una única `queuedAction`. El normal
+tiene su propio reloj `READY → WINDUP → RELEASE → RECOVERY`; un cast usa
+`BEGIN → CASTING → RELEASE`. **RELEASE es irreversible**: antes puede cancelarse
+o reemplazarse; después el daño/proyectil/commit ya ocurrió.
+
+Los casteos estacionarios no pagan recurso, cooldown ni GCD al comenzar. Movimiento,
+salto, cancelación manual o una invalidación antes de RELEASE los eliminan sin coste.
+Al completar, `_release` revalida target/rango/LoS/facing, paga y recién entonces
+crea/resuelve el poder. El GCD nace en ese instante.
+
+La relación entre poderes y normal vive en `ability.combatTiming`: `weaveAfterNormal`,
+`replacesNormal`, `blocksNormal` e `independent`, junto con `weaponIntervalPolicy`.
+La matriz completa está en `docs/COMBAT_TIMING_MATRIX.md`.
+
+`Timing Lab` permite auditar stop-shot, weave, replace, cancelación y cadena de GCD.
+El Combat Log registra WINDUP/RELEASE/QUEUE usando `world.time`.
+
+## 7. Verificación
 
 ```bash
 node tools/run-tests.js        # 80 pruebas, headless
@@ -384,7 +404,7 @@ La batería cubre:
 
 ---
 
-## 7. Cómo añadir contenido
+## 8. Cómo añadir contenido
 
 **Un poder nuevo** se escribe como datos en `js/data/abilities.js`. El motor ya
 implementa los efectos genéricos una sola vez en `resolver.js`
@@ -403,7 +423,7 @@ seguir.
 
 ---
 
-## 8. Ruta a Unity (§27)
+## 9. Ruta a Unity (§27)
 
 Lo que debe sobrevivir al port no es el JavaScript, sino la especificación:
 
@@ -421,3 +441,11 @@ Lo que debe sobrevivir al port no es el JavaScript, sino la especificación:
 
 Si los datos, las reglas y los casos de prueba son estables, el port es una
 reimplementación controlada y no un rediseño.
+
+## 10. Animation Reference Pass v0.7
+
+La capa visual distingue ahora locomoción por dirección mediante perfiles data-driven (`directional` en `animConfig.js`). `AnimationIntent` transporta `actionVariant` y `visualAction`, por lo que el futuro backend skinned no necesitará conocer ids de poderes.
+
+Los poderes declaran `combatTiming.visualAction`; presentación mapea categorías como `kick`, `shield`, `charge`, `archer`, `cast` o `none` a familias corporales. Las utilidades visualmente pasivas no reproducen falsos ataques.
+
+El reloj de `weaponState` sigue siendo autoridad del normal. Durante WINDUP la pose queda por debajo del marker `impact`; sólo RELEASE puede cruzarlo. Para poderes casteados, arqueros y melee poseen pre-release propio en vez de reutilizar la pose del caster.

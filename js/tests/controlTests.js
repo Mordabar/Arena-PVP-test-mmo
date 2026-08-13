@@ -71,10 +71,10 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       p._moveIntent = moveIntentFor(p, 0, 1);   // D
       for (var i = 0; i < 15; i++) w.step(1);
 
-      /* Mirando a +Z, la derecha es −X: R = F × arriba. Esta aserción es la que
-         habría cazado que A y D estuvieran intercambiados, y por eso mide el
-         signo concreto en vez de conformarse con "se movió de lado". */
-      T.assert(p.pos.x < -0.8, 'strafe derecha va a −X, fue a ' + p.pos.x.toFixed(2));
+      /* Mirando a +Z con la cámara detrás, la derecha visible en pantalla es
+         −X. Este test protege el bug REAL que el usuario detecta jugando: D no
+         puede desplazar el avatar hacia la izquierda de la pantalla. */
+      T.assert(p.pos.x < -0.8, 'strafe derecha visual va a −X, fue a ' + p.pos.x.toFixed(2));
       T.assertNear(p.pos.z, 0, 0.05, 'sin componente frontal');
       T.assertEqual(p.yaw, yaw0, 'strafe NO puede cambiar la orientación');
 
@@ -84,7 +84,7 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       q.yaw = 0;
       q._moveIntent = moveIntentFor(q, 0, -1);   // A
       for (var j = 0; j < 15; j++) w2.step(1);
-      T.assert(q.pos.x > 0.8, 'strafe izquierda va a +X');
+      T.assert(q.pos.x > 0.8, 'strafe izquierda visual va a +X');
     });
 
     T.test('Q y E giran sin desplazar', function () {
@@ -307,6 +307,43 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
     });
   });
 
+  T.suite('Control · salto', function () {
+    T.test('Space/request inicia un arco autoritativo y vuelve al suelo', function () {
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      p._jumpRequested = true;
+      w.step(1);
+      T.assert(p.jumpActive, 'el salto debe arrancar');
+      T.assert(p.jumpOffset > 0, 'debe elevarse por encima del suelo');
+      var peak = p.jumpOffset;
+      for (var i=0;i<Math.ceil(B.JUMP.duration*B.TICK_RATE)+4;i++) {
+        w.step(1); peak = Math.max(peak, p.jumpOffset);
+      }
+      T.assert(peak > B.JUMP.height * 0.90, 'alcanza un ápice cercano a la altura configurada');
+      T.assertFalse(p.jumpActive, 'termina el salto');
+      T.assertNear(p.jumpOffset, 0, 1e-6, 'vuelve al suelo');
+    });
+
+    T.test('un enraizado/aturdido no puede iniciar salto', function () {
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      Arena.Combat.StatusSystem.apply(w, p, { effect: 'root', duration: 3 }, p);
+      p._jumpRequested = true; w.step(1);
+      T.assertFalse(p.jumpActive, 'root bloquea salto porque clava los pies');
+    });
+
+    T.test('saltar cancela un casteo estacionario sin aplicar lockout', function () {
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'arcanista', { team: 0, x: 0, z: 0 });
+      p.cast = { abilityId: 'arcanista_descarga', startTime: w.time, endTime: w.time + 1, duration: 1,
+                 startPos: V.clone(p.pos), movable: false, interruptible: true, school: 'arcane' };
+      p._jumpRequested = true; w.step(1);
+      T.assert(p.jumpActive, 'el salto sí arranca');
+      T.assertEqual(p.cast, null, 'el cuerpo no sigue canalizando en el aire');
+      T.assertEqual(p.schoolLockouts.arcane || 0, 0, 'moverse no penaliza la escuela');
+    });
+  });
+
   T.suite('Control · la cámara no escribe simulación', function () {
 
     T.test('el free look no toca el yaw del personaje', function () {
@@ -333,6 +370,32 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       p._faceIntent = 2.5;                 // giro grande de un solo gesto
       w.step(1);
       T.assertNear(p.yaw, 2.5, 1e-6, 'un solo tick basta: es directo');
+    });
+
+    T.test('el delta del ratón se aplica exactamente una vez y 1:1', function () {
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      p.yaw = 0.4;
+      p._mouseTurnDelta = 0.73;
+      w.step(1);
+      T.assertNear(V.angleDelta(0.4, p.yaw), 0.73, 1e-6, 'mismo delta que la cámara');
+      var after = p.yaw;
+      w.step(1);
+      T.assertNear(p.yaw, after, 1e-6, 'el delta se consume y no se repite por tick');
+    });
+
+    T.test('el mismo gesto horizontal produce exactamente el mismo delta en cámara y cuerpo', function () {
+      var cam = new Arena.Render.Camera3D();
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      cam.yaw = -0.35; p.yaw = 1.10;
+      var camBefore = cam.yaw, bodyBefore = p.yaw;
+      cam.orbit(117, 0);
+      var mouseDelta = V.angleDelta(camBefore, cam.yaw);
+      p._mouseTurnDelta = mouseDelta;
+      w.step(1);
+      T.assertNear(V.angleDelta(bodyBefore, p.yaw), mouseDelta, 1e-6,
+        'el cuerpo no persigue la cámara: copia el desplazamiento angular del mouse');
     });
 
     T.test('el giro por ratón sigue respetando el control', function () {

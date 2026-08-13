@@ -24,7 +24,7 @@
  * ========================================================================== */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createThreeRenderer } from './threeRenderer.js';
+import { createThreeRenderer } from './threeRenderer.js?build=v070-20260812-1051';
 
 var Arena = window.Arena;
 
