@@ -252,7 +252,24 @@ const cmd = process.argv[2] || 'smoke';
     if (cmd === 'play' && arg) {
       const script = JSON.parse(fs.readFileSync(arg, 'utf8'));
       for (const step of script) {
-        if (step.eval) console.log('  eval →', JSON.stringify(await session.evaluate(step.eval)));
+        if (step.eval) {
+          const value = await session.evaluate(step.eval);
+          console.log('  eval →', JSON.stringify(value));
+          /* Un guion puede ser una comprobación, no sólo una sonda. Si devuelve
+             `{ assert:false }` o `{ fail:[...] }` el proceso termina en rojo,
+             que es lo que convierte una observación en una puerta de calidad
+             repetible en vez de en una captura que alguien tiene que mirar. */
+          if (value && typeof value === 'object') {
+            const failed = value.assert === false ||
+              (Array.isArray(value.fail) && value.fail.length > 0);
+            if (failed) {
+              console.log('  ✗ ASERCIÓN FALLIDA' + (step.name ? ': ' + step.name : ''));
+              exitCode = 1;
+            } else if (value.assert === true) {
+              console.log('  ✓ ' + (step.name || 'aserción'));
+            }
+          }
+        }
         if (step.key) { const k = KEYS[step.key]; if (k) await session.key(...k); }
         if (step.hold) { const k = KEYS[step.hold]; if (k) await session.holdKey(...k, step.ms || 400); }
         if (step.wait) await sleep(step.wait);

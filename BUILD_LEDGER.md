@@ -34,14 +34,14 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **17** |
-| TESTED (implementado + suite verde, sin barrido observable) | **113** |
+| VERIFIED | **18** |
+| TESTED (implementado + suite verde, sin barrido observable) | **112** |
 | IMPLEMENTED | **8** |
 | TODO / BLOCKED | **8** |
 
-**17 / 146 VERIFIED — este build NO está terminado.**
+**18 / 146 VERIFIED — este build NO está terminado.**
 
-Suite: **219/219 verdes** (4 pruebas de iconografía añadidas esta sesión).
+Suite: **219/219 verdes**. Puertas observables: `hud-layout-audit` en verde.
 
 ---
 
@@ -145,6 +145,7 @@ Filas 139–143. Estado: **TESTED**, iconografía **VERIFIED**.
 | lenguaje visual por clase | VERIFIED | seis paletas, test de unicidad |
 | selector de clase | VERIFIED | `docs/shots/p-01-lobby.png` |
 | pantalla de resultado | TESTED | `productTests` |
+| composición del HUD sin solapes | VERIFIED | `hud-layout-audit`: 0 colisiones en LOBBY, PARTIDA, COMBAT LAB y vuelta a LOBBY |
 
 **D2 cerrado.** Había **seis grupos en colisión** y 14 habilidades compartiendo
 icono con una hermana de su clase; el Guardián tenía CUATRO idénticos. Un icono
@@ -167,5 +168,39 @@ forma. Se añadieron 10 glifos (`rend`, `aegis`, `bond`, `stance`, `rain`,
 | Defecto | Sev | Estado |
 |---|---|---|
 | Reloj de producto ligado a fps por el tope de `realDt` | P2 | ABIERTO, documentado |
-| Panel de Combat Lab superpuesto al HUD de partida | P2 | SIN CONFIRMAR |
-| Entrypoint por defecto es el renderer nativo, no el de Three.js | — | DECISIÓN PENDIENTE |
+| Panel de Combat Lab superpuesto al HUD de partida | P1 | **CERRADO** — ver abajo |
+| Roster de equipo pisando el marco del jugador en partida | P1 | **CERRADO** — hallado por el propio audit |
+| Roster reconstruido con `innerHTML` cada frame | P2 | **CERRADO** — se reestructura sólo al cambiar composición |
+| `favicon.ico` 404 en cada carga | P3 | **CERRADO** — icono SVG embebido |
+| Entrypoint por defecto es el renderer nativo, no el de Three.js | — | RESUELTO: `index.html` es Three.js |
+
+### D1 cerrado, y era mayor de lo reportado
+
+Reportado como «el panel de laboratorio se superpone al HUD de partida». En
+partida de ladder **no ocurre**: la barra superior y el panel se ocultan. Ocurre
+en el **Combat Lab**, donde la barra superior tiene que quedarse porque es la
+única vuelta al lobby, y sus 74 px se comían la fila superior del HUD.
+
+Medido a 1600×760, **seis solapes**, no uno:
+
+```
+#player-frame ∩ .arena-topbar = 252x56
+#target-frame ∩ .arena-topbar = 252x56
+#lab          ∩ .arena-topbar = 300x56
+#brand        ∩ .arena-topbar = 560x38
+#target-frame ∩ #brand        =  14x36
+#action-bar   ∩ #help         =  17x84
+```
+
+Y al convertir la medición en puerta repetible apareció un **séptimo, en la
+partida real**: `#player-frame ∩ .team-panel = 232x40`. El roster se colocaba en
+`top:92px` fijo mientras el marco del jugador crece con los estados activos. Se
+cuelga ahora del borde inferior real del marco.
+
+La comprobación es ejecutable, no una captura que alguien tenga que mirar:
+
+```
+node tools/browser.js play tools/scripts/hud-layout-audit.json
+```
+
+Devuelve código de salida 1 si aparece cualquier solape o cualquier 404.

@@ -1,0 +1,12 @@
+[
+  { "wait": 600 },
+  { "eval": "(function(){function r(s){var n=document.querySelector(s);if(!n)return null;var b=n.getBoundingClientRect();var st=getComputedStyle(n);return {vis:st.display!=='none'&&st.visibility!=='hidden'&&+st.opacity>0.02,x:Math.round(b.x),y:Math.round(b.y),w:Math.round(b.width),h:Math.round(b.height)};}return {phase:Arena.Game.flow.phase,lab:r('#lab'),clock:r('.match-header'),team0:r('.team-panel'),bar:r('#action-bar'),log:r('#combat-log'),topbar:r('.arena-topbar')};})()" },
+  { "eval": "Arena.Game.startMatch('1v1','devastador'), Arena.Game.flow.phase" },
+  { "wait": 5000 },
+  { "eval": "(function(){function r(s){var n=document.querySelector(s);if(!n)return null;var b=n.getBoundingClientRect();var st=getComputedStyle(n);return {vis:st.display!=='none'&&st.visibility!=='hidden'&&+st.opacity>0.02,x:Math.round(b.x),y:Math.round(b.y),w:Math.round(b.width),h:Math.round(b.height)};}return {phase:Arena.Game.flow.phase,lab:r('#lab'),clock:r('.match-header'),team0:r('.team-panel'),bar:r('#action-bar'),log:r('#combat-log'),topbar:r('.arena-topbar')};})()" },
+  { "shot": "docs/shots/d1-match.png" },
+  { "eval": "Arena.Game.openTraining(), Arena.Game.flow.phase" },
+  { "wait": 2500 },
+  { "eval": "(function(){function r(s){var n=document.querySelector(s);if(!n)return null;var b=n.getBoundingClientRect();var st=getComputedStyle(n);return {vis:st.display!=='none'&&st.visibility!=='hidden'&&+st.opacity>0.02,x:Math.round(b.x),y:Math.round(b.y),w:Math.round(b.width),h:Math.round(b.height)};}function ov(a,b){if(!a||!b||!a.vis||!b.vis)return 0;var w=Math.max(0,Math.min(a.x+a.w,b.x+b.w)-Math.max(a.x,b.x));var h=Math.max(0,Math.min(a.y+a.h,b.y+b.h)-Math.max(a.y,b.y));return w*h;}var lab=r('#lab');var out={phase:Arena.Game.flow.phase,lab:lab,topbar:r('.arena-topbar'),bar:r('#action-bar'),log:r('#combat-log'),player:r('#player-frame'),chrome:r('.arena-match-chrome')};out.ovTopbar=ov(lab,out.topbar);out.ovBar=ov(lab,out.bar);out.ovLog=ov(lab,out.log);out.ovPlayer=ov(lab,out.player);return out;})()" },
+  { "shot": "docs/shots/d1-training.png" }
+]

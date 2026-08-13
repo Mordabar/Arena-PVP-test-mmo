@@ -39,6 +39,12 @@
 
   --radius: 7px;
   --shadow: 0 6px 22px rgba(0, 0, 0, 0.55);
+
+  /* Alturas de las bandas de chrome que el HUD táctico no puede invadir.
+     La barra superior de producto y la barra de acción son fijas: cualquier
+     panel que se coloque en esas bandas queda medio enterrado. */
+  --topbar-h: 74px;
+  --actionbar-guard: 124px;
   --ui-font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --num-font: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
 }
@@ -822,7 +828,7 @@ select.lab-select {
 }
 .arena-shell .hidden { display: none !important; }
 .arena-topbar {
-  position: fixed; z-index: 46; left: 0; right: 0; top: 0; height: 74px;
+  position: fixed; z-index: 46; left: 0; right: 0; top: 0; height: var(--topbar-h);
   display: flex; align-items: center; justify-content: space-between; padding: 0 34px;
   pointer-events: auto; border-bottom: 1px solid rgba(230,242,235,.08);
   background: linear-gradient(180deg, rgba(8,16,15,.88), rgba(8,16,15,.42), transparent);
@@ -976,3 +982,31 @@ body.arena-training .team-panel, body.arena-training .match-header { display:non
 .recent-line i.draw { color:#d6bd7d;background:rgba(160,128,61,.16);border:1px solid rgba(191,155,78,.24); }
 body.arena-product-match:not(.arena-training) .arena-topbar { display:none; }
 body.arena-training .arena-topbar { display:flex; }
+
+/* =============================================================================
+ * Combat Lab: convivencia del HUD táctico con el chrome de producto.
+ *
+ * En partida de ladder la barra superior se oculta y el HUD tiene la pantalla
+ * entera. En el Combat Lab NO: la barra superior se queda porque desde ahí se
+ * vuelve al lobby, y entonces sus 74 px se comen la fila superior del HUD.
+ * Medido en 1600x760: el marco del jugador, el del objetivo y el panel de
+ * laboratorio quedaban con 56 px enterrados bajo ella, y la marca central se
+ * solapaba con la barra y con el marco del objetivo.
+ *
+ * La corrección es de composición, no de contenido: el HUD arranca por debajo
+ * de la banda ocupada. Nada de esto toca lo que el HUD muestra.
+ * ========================================================================== */
+body.arena-training #player-frame,
+body.arena-training #target-frame { top: calc(var(--topbar-h) + 12px); }
+
+body.arena-training #lab {
+  top: calc(var(--topbar-h) + 12px);
+  max-height: calc(100vh - var(--topbar-h) - 30px);
+}
+
+/* La barra superior ya dice PROJECT ARENA. Repetirlo en el centro duplica la
+   marca y además choca con el marco del objetivo. */
+body.arena-training #brand { display: none; }
+
+/* El panel de ayuda vive sobre la banda de la barra de acción, no dentro. */
+#help, .three-theme #help { bottom: var(--actionbar-guard); }

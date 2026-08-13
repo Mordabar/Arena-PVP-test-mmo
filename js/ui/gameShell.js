@@ -160,6 +160,10 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
     this.results.classList.add('hidden');
     this.matchChrome.classList.remove('hidden');
     this.matchMode.textContent = state.mode === '2v2' ? 'SKIRMISH 2v2' : (state.mode==='training'?'COMBAT LAB':'DUELO LADDER');
+    // El roster acaba de hacerse visible: recolocarlo en el primer frame, no al
+    // cabo de doce, para que no aparezca pisando el marco del jugador.
+    this._placeTick = 0;
+    this._teamPanelTop = 0;
   };
 
   GameShell.prototype.showResults = function (result) {
@@ -210,15 +214,76 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
     }
     this._renderTeam(this.team0, teams[0], false);
     this._renderTeam(this.team1, teams[1], true);
+    this._placeTeamPanels();
   };
 
-  GameShell.prototype._renderTeam = function (root, team, hostile) {
-    var html='';
-    for(var i=0;i<team.length;i++){
-      var e=team[i], c=Arena.Data.classes[e.classId];
-      html += '<div class="team-unit '+(!e.alive?'dead ':'')+(hostile?'hostile':'friendly')+'"><div class="team-unit-head"><span>'+this._classGlyph(e.classId)+'</span><b>'+esc(e.name)+'</b><small>'+esc(c?c.name:e.classId)+'</small></div><div class="team-hp"><span style="width:'+pct(e.hpPct())+'%"></span></div><div class="team-res"><span style="width:'+pct(e.resourcePct())+'%"></span></div></div>';
+  /* El marco del jugador crece con los estados activos: con seis debuffs la fila
+     de iconos envuelve y el marco baja. Un `top` fijo para el roster funciona en
+     la captura de un momento y se solapa en cuanto empieza el combate, así que
+     el roster se cuelga del borde inferior real del marco. Es composición, no
+     contenido: no lee ni decide nada de la simulación. */
+  GameShell.prototype._placeTeamPanels = function () {
+    /* Medir obliga a recalcular el layout. Cinco veces por segundo basta: el
+       marco crece cuando entra o sale un estado, no dentro de un frame. */
+    this._placeTick = (this._placeTick || 0) + 1;
+    if (this._placeTick % 12 !== 1) return;
+    var frame = document.getElementById('player-frame');
+    var top = 92;
+    if (frame) {
+      var st = window.getComputedStyle(frame);
+      if (st.display !== 'none') {
+        var b = frame.getBoundingClientRect();
+        if (b.height > 1) top = Math.max(top, Math.round(b.bottom) + 14);
+      }
     }
-    root.innerHTML=html;
+    if (top === this._teamPanelTop) return;
+    this._teamPanelTop = top;
+    this.team0.style.top = top + 'px';
+    this.team1.style.top = top + 'px';
+  };
+
+  /* El roster se REESTRUCTURA sólo cuando cambia su composición. Reconstruirlo
+     con innerHTML sesenta veces por segundo tira los nodos, obliga a recalcular
+     el layout entero de la columna y hace que cualquier medida tomada después
+     sea un reflujo forzado. Lo que cambia continuamente son dos anchuras. */
+  GameShell.prototype._renderTeam = function (root, team, hostile) {
+    var i, key = '';
+    for (i = 0; i < team.length; i++) key += team[i].id + ':' + team[i].classId + '|';
+
+    if (root._rosterKey !== key) {
+      var html = '';
+      for (i = 0; i < team.length; i++) {
+        var e = team[i], c = Arena.Data.classes[e.classId];
+        html += '<div class="team-unit ' + (hostile ? 'hostile' : 'friendly') + '">' +
+          '<div class="team-unit-head"><span>' + this._classGlyph(e.classId) + '</span><b>' +
+          esc(e.name) + '</b><small>' + esc(c ? c.name : e.classId) + '</small></div>' +
+          '<div class="team-hp"><span></span></div><div class="team-res"><span></span></div></div>';
+      }
+      root.innerHTML = html;
+      root._rosterKey = key;
+      root._units = [];
+      var nodes = root.querySelectorAll('.team-unit');
+      for (i = 0; i < nodes.length; i++) {
+        root._units.push({
+          node: nodes[i],
+          hp: nodes[i].querySelector('.team-hp span'),
+          res: nodes[i].querySelector('.team-res span'),
+          lastHp: -1, lastRes: -1, lastDead: null
+        });
+      }
+    }
+
+    for (i = 0; i < team.length; i++) {
+      var u = root._units[i];
+      if (!u) continue;
+      var ent = team[i];
+      var hp = Math.round(pct(ent.hpPct()) * 2) / 2;
+      var rs = Math.round(pct(ent.resourcePct()) * 2) / 2;
+      var dead = !ent.alive;
+      if (u.lastHp !== hp) { u.hp.style.width = hp + '%'; u.lastHp = hp; }
+      if (u.lastRes !== rs) { u.res.style.width = rs + '%'; u.lastRes = rs; }
+      if (u.lastDead !== dead) { u.node.classList.toggle('dead', dead); u.lastDead = dead; }
+    }
   };
 
   Arena.UI.GameShell = GameShell;
