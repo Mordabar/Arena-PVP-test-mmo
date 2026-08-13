@@ -4,7 +4,7 @@
 > Si una ejecución se interrumpe, el siguiente agente continúa **desde aquí**
 > sin volver a descubrir el proyecto.
 
-**Wave actual:** WAVE 0 — Reconciliación e inventario
+**Wave actual:** WAVE 1 — Barrido observable (en curso)
 **Build importado:** Vertical Slice v0.8 (zip del usuario)
 **Commit de importación:** `07339a4`
 **Rama:** `claude/arena-mmo-concept-qeboc7`
@@ -59,26 +59,34 @@ bloqueante, anotado en el ledger.
 
 | # | Sev | Descripción | Estado |
 |---|---|---|---|
-| D1 | P2 | El panel del Combat Lab se superpone al HUD de partida en `index.html` | SIN CONFIRMAR |
-| D2 | P2 | Iconos de habilidad: dos slots del Devastador se ven casi idénticos | SIN CONFIRMAR |
-| D3 | P2 | Reloj de producto ligado a fps por el tope de `realDt` | CONFIRMADO |
-| D4 | ? | `index.html` (WebGL2 nativo) es el entrypoint por defecto; la presentación buena está en `index-three.html` | DECISIÓN DE PRODUCTO PENDIENTE |
+| D1 | P2 | Panel del Combat Lab superpuesto al HUD de partida | ABIERTO |
+| D2 | P1 | Iconos repetidos dentro de una misma clase | **CERRADO** — 6 colisiones, 10 glifos nuevos, 4 tests |
+| D3 | P2 | Reloj de producto ligado a fps por el tope de `realDt` | ABIERTO, documentado |
+| D4 | — | Entrypoint por defecto | **RESUELTO** |
+| D5 | — | «El jugador no hace daño» | **DESCARTADO** — era melee parado frente a arquero que kitea |
 
-D4 es la más importante y **necesita decisión, no código**: si el Vertical Slice
-se enseña con la versión de Three.js, el entrypoint por defecto debería ser ésa.
+**D4 resuelto en autónomo.** `index.html` es ahora la presentación de Three.js
+—la que tiene cielo con degradado, sombras de contacto, braseros y jerarquía de
+valores— y el renderer nativo pasa a `index-webgl2.html` como respaldo sin
+dependencias que sigue abriéndose con doble clic. El producto se enseña con su
+mejor cara; el respaldo existe para quien no pueda servir por HTTP.
 
 ---
 
 ## Siguiente tarea inmediata
 
-1. Confirmar o descartar D1 y D2 con evidencia.
-2. Resolver D4 (decisión de producto).
-3. Auditar el resto de la Completion Matrix contra el juego **en ejecución**,
-   no contra el código: es donde aparecen los defectos que los tests no ven.
+1. **D1**: confirmar la superposición del panel de laboratorio sobre el HUD de
+   partida y ocultarlo cuando `flow.phase !== 'LOBBY'`.
+2. Barrido observable de CASTING (prepare/release/GCD/queue/cancel) y de las
+   seis clases jugadas una a una.
+3. WAVE 5 (arena como diseño de nivel PvP) sigue sin empezar: la arena tiene
+   obstáculos pero no responde a «dónde entra melee / dónde kitea el arquero /
+   dónde rompe LoS el mago».
+4. Jump / airborne / landing siguen en TODO.
 
 ## Tests fallando
 
-Ninguno. 215/215.
+Ninguno. **219/219.**
 
 ## Último resultado de árbitro
 

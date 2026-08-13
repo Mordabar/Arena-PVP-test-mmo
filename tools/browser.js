@@ -216,7 +216,9 @@ const cmd = process.argv[2] || 'smoke';
        hará el hosting real. */
     const page = process.env.ARENA_PAGE || 'index.html';
     let url;
-    if (page.indexOf('three') >= 0 || process.env.ARENA_HTTP) {
+    // index.html es ahora la presentación de Three.js y usa módulos ES, que el
+    // navegador bloquea sobre file://. Sólo index-webgl2.html puede ir por file.
+    if (page.indexOf('webgl2') < 0 || process.env.ARENA_HTTP) {
       const port = await startServer();
       url = 'http://' + (process.env.ARENA_HOST || '127.0.0.1') + ':' + port + '/' + page;
     } else {

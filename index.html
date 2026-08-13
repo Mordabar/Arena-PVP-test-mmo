@@ -3,17 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script>
-/* En hosting usamos Three.js por defecto. Al abrir el ZIP con doble clic se
-   conserva el renderer WebGL2 nativo, que no necesita módulos ES ni servidor. */
-if (location.protocol === 'http:' || location.protocol === 'https:') {
-  location.replace('index-three.html?build=v080-20260813-1006' + location.hash);
-}
-</script>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+
 <title>Project Arena · Ladder Vertical Slice v0.8</title>
-<link rel="stylesheet" href="css/arena.css">
+<link rel="stylesheet" href="css/arena.css?build=v080-20260813-1006">
 </head>
-<body>
+<body class="three-theme">
 
 <div id="viewport">
   <canvas id="gl"></canvas>
@@ -22,13 +17,13 @@ if (location.protocol === 'http:' || location.protocol === 'https:') {
 <div id="hud">
   <div id="brand" class="passthrough">
     <div class="t">Project Arena</div>
-    <div class="s">Ladder PvP · v0.8 · fallback WebGL2 nativo</div>
+    <div class="s">Ladder Vertical Slice · v0.8 · Tactical Rhythm · Three.js 0.160 · locomotion + combat poses</div>
   </div>
 
   <div id="help">
     <div class="head">Controles ▾</div>
     <div class="rows">
-      <b>Mover</b> <kbd>W</kbd><kbd>S</kbd> · <b>Strafe</b> <kbd>A</kbd><kbd>D</kbd><br>
+      <b>Mover</b> <kbd>W</kbd><kbd>S</kbd> · <b>Strafe</b> <kbd>A</kbd> izquierda · <kbd>D</kbd> derecha<br>
       <b>Girar</b> <kbd>Q</kbd><kbd>E</kbd> · relativo a tu propio frente<br>
       <b>Cámara + girar</b> mantener botón izquierdo<br>
       <b>Mirar libre</b> mantener botón derecho · no gira el cuerpo<br>
@@ -48,9 +43,9 @@ if (location.protocol === 'http:' || location.protocol === 'https:') {
 <div id="fatal">
   <div class="box">
     <h2>El Combat Lab no ha podido arrancar</h2>
-    <p>Necesita un navegador con WebGL2 (Chrome, Edge, Firefox o Safari recientes).
-       Si lo has abierto desde <code>file://</code> y falla, prueba con otro navegador:
-       el prototipo no necesita servidor, pero sí WebGL2.</p>
+    <p>Necesita WebGL2 y debe servirse por HTTP/HTTPS porque Three.js usa módulos ES.
+       En Hostinger basta con subir la carpeta completa y abrir el dominio; en local usa
+       <code>node tools/serve.js</code> si ya tienes Node, o abre <code>index.html</code> para el fallback nativo.</p>
     <pre></pre>
   </div>
 </div>
@@ -63,66 +58,93 @@ if (location.protocol === 'http:' || location.protocol === 'https:') {
      ====================================================================== -->
 
 <!-- Núcleo -->
-<script src="js/namespace.js"></script>
-<script src="js/math/vec3.js"></script>
-<script src="js/math/mat4.js"></script>
-<script src="js/math/ray.js"></script>
-<script src="js/core/eventBus.js"></script>
-<script src="js/core/rng.js"></script>
-<script src="js/core/fixedTick.js"></script>
+<script src="js/namespace.js?build=v080-20260813-1006"></script>
+<script src="js/math/vec3.js?build=v080-20260813-1006"></script>
+<script src="js/math/mat4.js?build=v080-20260813-1006"></script>
+<script src="js/math/ray.js?build=v080-20260813-1006"></script>
+<script src="js/core/eventBus.js?build=v080-20260813-1006"></script>
+<script src="js/core/rng.js?build=v080-20260813-1006"></script>
+<script src="js/core/fixedTick.js?build=v080-20260813-1006"></script>
 
 <!-- Datos y reglas -->
-<script src="js/data/balance.js"></script>
-<script src="js/data/effects.js"></script>
-<script src="js/core/entity.js"></script>
-<script src="js/combat/statusSystem.js"></script>
-<script src="js/combat/damageSystem.js"></script>
-<script src="js/combat/healingSystem.js"></script>
-<script src="js/combat/resolver.js"></script>
-<script src="js/combat/abilitySystem.js"></script>
-<script src="js/data/races.js"></script>
-<script src="js/data/animConfig.js"></script>
-<script src="js/data/classes.js"></script>
-<script src="js/data/abilities.js"></script>
-<script src="js/data/passives.js"></script>
-<script src="js/data/castFamilies.js"></script>
-<script src="js/anim/animationIntent.js"></script>
-<script src="js/product/ladder.js"></script>
-<script src="js/product/matchFlow.js"></script>
+<script src="js/data/balance.js?build=v080-20260813-1006"></script>
+<script src="js/data/effects.js?build=v080-20260813-1006"></script>
+<script src="js/core/entity.js?build=v080-20260813-1006"></script>
+<script src="js/combat/statusSystem.js?build=v080-20260813-1006"></script>
+<script src="js/combat/damageSystem.js?build=v080-20260813-1006"></script>
+<script src="js/combat/healingSystem.js?build=v080-20260813-1006"></script>
+<script src="js/combat/resolver.js?build=v080-20260813-1006"></script>
+<script src="js/combat/abilitySystem.js?build=v080-20260813-1006"></script>
+<script src="js/data/races.js?build=v080-20260813-1006"></script>
+<script src="js/data/animConfig.js?build=v080-20260813-1006"></script>
+<script src="js/data/classes.js?build=v080-20260813-1006"></script>
+<script src="js/data/abilities.js?build=v080-20260813-1006"></script>
+<script src="js/data/passives.js?build=v080-20260813-1006"></script>
+<script src="js/data/castFamilies.js?build=v080-20260813-1006"></script>
+<script src="js/anim/animationIntent.js?build=v080-20260813-1006"></script>
+<script src="js/product/ladder.js?build=v080-20260813-1006"></script>
+<script src="js/product/matchFlow.js?build=v080-20260813-1006"></script>
 
 <!-- Simulación -->
-<script src="js/sim/arena.js"></script>
-<script src="js/sim/world.js"></script>
-<script src="js/ai/dummyAI.js"></script>
+<script src="js/sim/arena.js?build=v080-20260813-1006"></script>
+<script src="js/sim/world.js?build=v080-20260813-1006"></script>
+<script src="js/ai/dummyAI.js?build=v080-20260813-1006"></script>
 
 <!-- Presentación 3D -->
-<script src="js/render/rendererBackend.js"></script>
-<script src="js/render/shaders.js"></script>
-<script src="js/render/primitives.js"></script>
-<script src="js/render/camera3d.js"></script>
-<script src="js/render/anim/skeleton.js"></script>
-<script src="js/render/anim/locomotion.js"></script>
-<script src="js/render/anim/actions.js"></script>
-<script src="js/render/characterVisual.js"></script>
-<script src="js/render/characterBackend.js"></script>
-<script src="js/render/animDebug.js"></script>
-<script src="js/render/webglRenderer.js"></script>
-<script src="js/render/vfx.js"></script>
-<script src="js/render/picking.js"></script>
+<script src="js/render/rendererBackend.js?build=v080-20260813-1006"></script>
+<script src="js/render/shaders.js?build=v080-20260813-1006"></script>
+<script src="js/render/primitives.js?build=v080-20260813-1006"></script>
+<script src="js/render/camera3d.js?build=v080-20260813-1006"></script>
+<script src="js/render/anim/skeleton.js?build=v080-20260813-1006"></script>
+<script src="js/render/anim/locomotion.js?build=v080-20260813-1006"></script>
+<script src="js/render/anim/actions.js?build=v080-20260813-1006"></script>
+<script src="js/render/characterVisual.js?build=v080-20260813-1006"></script>
+<script src="js/render/characterBackend.js?build=v080-20260813-1006"></script>
+<script src="js/render/animDebug.js?build=v080-20260813-1006"></script>
+<script src="js/render/webglRenderer.js?build=v080-20260813-1006"></script>
+<script src="js/render/vfx.js?build=v080-20260813-1006"></script>
+<script src="js/render/picking.js?build=v080-20260813-1006"></script>
 
 <!-- Interfaz -->
-<script src="js/ui/abilityIcons.js"></script>
-<script src="js/ui/gameShell.js"></script>
-<script src="js/ui/hud.js"></script>
-<script src="js/ui/combatLog.js"></script>
-<script src="js/ui/labPanel.js"></script>
-<script src="js/ui/tooltips.js"></script>
+<script src="js/ui/abilityIcons.js?build=v080-20260813-1006"></script>
+<script src="js/ui/gameShell.js?build=v080-20260813-1006"></script>
+<script src="js/ui/hud.js?build=v080-20260813-1006"></script>
+<script src="js/ui/combatLog.js?build=v080-20260813-1006"></script>
+<script src="js/ui/labPanel.js?build=v080-20260813-1006"></script>
+<script src="js/ui/tooltips.js?build=v080-20260813-1006"></script>
 
 <!-- Audio -->
-<script src="js/audio/audio.js"></script>
+<script src="js/audio/audio.js?build=v080-20260813-1006"></script>
 
 <!-- Arranque -->
-<script src="js/main.js"></script>
+<!-- =========================================================================
+     ARRANQUE THREE.JS
+
+     `ARENA_DEFER_BOOT` impide que main.js arranque el juego al cargarse: el
+     renderer de Three.js es un módulo ES y llega después. Quien da la salida es
+     js/render/three/bootstrap.js, cuando ya tiene la escena montada.
+
+     El import map apunta al Three.js VENDORIZADO en el propio proyecto. Para
+     usar un CDN en su lugar bastaría con cambiar estas dos rutas por
+     https://unpkg.com/three@0.160.0/build/three.module.js y
+     https://unpkg.com/three@0.160.0/examples/jsm/ — mismo número de versión en
+     las dos, que es la parte que importa.
+
+     Todas las rutas son RELATIVAS: esto funciona igual en
+     https://dominio.com/arena/ que en https://arena.dominio.com/.
+     ====================================================================== -->
+<script>window.ARENA_DEFER_BOOT = true;</script>
+<script src="js/main.js?build=v080-20260813-1006"></script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three-0.160.0/three.module.js",
+    "three/addons/": "./vendor/three-0.160.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module" src="js/render/three/bootstrap.js?build=v080-20260813-1006"></script>
 
 <script>
 (function () {

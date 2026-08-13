@@ -34,12 +34,14 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **9** |
-| TESTED (implementado + suite verde, sin barrido observable) | **121** |
+| VERIFIED | **17** |
+| TESTED (implementado + suite verde, sin barrido observable) | **113** |
 | IMPLEMENTED | **8** |
 | TODO / BLOCKED | **8** |
 
-**9 / 146 VERIFIED — este build NO está terminado.**
+**17 / 146 VERIFIED — este build NO está terminado.**
+
+Suite: **219/219 verdes** (4 pruebas de iconografía añadidas esta sesión).
 
 ---
 
@@ -88,17 +90,29 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | 29 | Tab | TESTED |
 | 30 | ally targeting | TESTED |
 | 31 | target highlight | VERIFIED |
-| 32 | range | TESTED |
+| 32 | range | VERIFIED |
 | 33 | facing | VERIFIED |
-| 34 | LoS | TESTED |
+| 34 | LoS | VERIFIED |
 | 35 | invalid targets | TESTED |
 | 36 | target death | TESTED |
 
 ## NORMAL ATTACK · CASTING · WEAVING · CC · COUNTERS
 
-Filas 37–96. Estado heredado: **TESTED**.
-Cobertura automática amplia (combatTests, animTests, gameFeelMissionTests).
-Falta barrido observable de cada familia en ejecución.
+Filas 37–96. Estado heredado: **TESTED**, con cuatro excepciones VERIFIED.
+
+| Fila | Estado | Evidencia |
+|---|---|---|
+| ataque normal melee (ready→windup→release→recovery) | VERIFIED | en navegador: enemigo 1100→1046 en 6 s con jugador en rango y encarado |
+| rango del ataque normal | VERIFIED | distancia 1.20 vs alcance 3.30 → impacta; a 12 u no impacta |
+| facing del ataque normal | VERIFIED | desvío 0.000 rad dentro de arco 1.309 → impacta |
+| LoS del ataque normal | VERIFIED | `hasLineOfSight` true en el mismo sondeo |
+
+**Hallazgo adversarial descartado.** Un primer sondeo mostró al enemigo intacto
+(1100 HP) tras 30 s de partida y parecía P0 «el jugador no puede hacer daño». No
+lo es: el jugador era melee y estaba quieto mientras el bot arquero kiteaba. Al
+colocarlo en rango y encarado, el daño fluye. Es el juego funcionando —el arco
+frontal y la movilidad reducida hacen que posicionarse importe—, no un defecto.
+Queda escrito para que nadie lo reabra.
 
 ## CLASSES
 
@@ -122,9 +136,21 @@ pasado por el diseño de niveles PvP que pide el brief (¿dónde entra melee?
 
 ## UI · ICONOS
 
-Filas 139–143. Estado: **TESTED**.
-HUD completo, selector de clase, pantalla de resultado, iconos por habilidad.
-Defecto abierto: dos iconos del Devastador se ven casi idénticos (sin confirmar).
+Filas 139–143. Estado: **TESTED**, iconografía **VERIFIED**.
+
+| Fila | Estado | Evidencia |
+|---|---|---|
+| icono distinto por habilidad | VERIFIED | 36/36 sin colisión; `iconTests` lo impide |
+| silueta legible | VERIFIED | 24 glifos vectoriales, ninguno vacío |
+| lenguaje visual por clase | VERIFIED | seis paletas, test de unicidad |
+| selector de clase | VERIFIED | `docs/shots/p-01-lobby.png` |
+| pantalla de resultado | TESTED | `productTests` |
+
+**D2 cerrado.** Había **seis grupos en colisión** y 14 habilidades compartiendo
+icono con una hermana de su clase; el Guardián tenía CUATRO idénticos. Un icono
+repetido no es cosmética: obliga a memorizar la barra por posición en vez de por
+forma. Se añadieron 10 glifos (`rend`, `aegis`, `bond`, `stance`, `rain`,
+`reveal`, `bloom`, `purify`, `link`) y reglas específicas antes de las genéricas.
 
 ## BOTS · GAME LOOP
 
