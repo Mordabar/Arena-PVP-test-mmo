@@ -14,6 +14,13 @@ Este documento recoge la auditoría que sí lo mira:
 node tools/browser.js play tools/scripts/anim-vfx-sweep.json
 ```
 
+El barrido está partido en once sondas —una por clase para acciones y una por
+clase para VFX— por una razón práctica: como un solo `Runtime.evaluate`, la
+parte de acciones simulaba unos 3600 pasos y pintaba cientos de veces por
+software, y moría por el reloj del driver CDP en vez de por el juego. Partida,
+ninguna llamada se acerca al tope y un fallo señala a la clase culpable en vez
+de a un bloque de treinta y seis habilidades.
+
 ---
 
 ## 1. El P0 que motivó todo esto

@@ -127,9 +127,19 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 Ninguno. **241/241.**
 
 Puertas observables: las cinco primeras en verde y reproducidas varias veces.
-La sexta —animación y VFX— tiene sus siete sondas verdes **medidas**, pero la
-ejecución completa de punta a punta en una sola pasada está pendiente de
-confirmar: es la más pesada del conjunto (pinta por software) y en la última
-tirada el filtro de salida se comió lo que hubiera después de la segunda sonda.
-Los resultados de cada sonda están en `docs/ANIMATION_VFX_AUDIT.md` con sus
-números; lo que falta es verlas las seis seguidas sin cortes.
+
+La sexta —animación y VFX— tiene todas sus sondas medidas en verde, pero la
+ejecución seguida **moría por reloj**, no por el juego: la sonda de acciones era
+un único `Runtime.evaluate` que simulaba ~3600 pasos y pintaba cientos de veces
+por software, y rozaba el tope del driver CDP. Con `EXIT=2` y
+`FALLO: Timeout en Runtime.evaluate`.
+
+Partida en once sondas —una por clase para acciones, una por clase para VFX—
+ninguna llamada individual se acerca al tope, y además un fallo señala a la
+clase culpable en vez de a un bloque de treinta y seis habilidades. Pendiente de
+ver la tirada completa con el nuevo reparto.
+
+**Lección de arnés, no de producto:** un filtro `grep ✓|✗` en la tubería se
+comió el mensaje de timeout, y el código de salida que leí venía del final de la
+tubería (`cut`), no del driver. Una puerta que se lee a través de un filtro
+puede estar mintiendo por omisión.
