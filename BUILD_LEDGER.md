@@ -34,12 +34,12 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **45** |
-| TESTED (implementado + suite verde, sin barrido observable) | **91** |
+| VERIFIED | **51** |
+| TESTED (implementado + suite verde, sin barrido observable) | **85** |
 | IMPLEMENTED | **4** |
 | TODO / BLOCKED | **6** |
 
-**45 / 146 VERIFIED — este build NO está terminado.**
+**51 / 146 VERIFIED — este build NO está terminado.**
 
 La cuenta, para que sea auditable y no una cifra de confianza:
 
@@ -50,17 +50,17 @@ La cuenta, para que sea auditable y no una cifra de confianza:
 | TARGETING §5 | 10 | 5 | selección por clic, resaltado, rango, facing, LoS |
 | NORMAL · CASTING · CC | 60 | 11 | 4 del ataque normal + 7 puertas de casteo |
 | CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
-| CHARACTERS · ANIM · VFX | 24 | 0 | pendiente del juicio de los árbitros |
+| CHARACTERS · ANIM · VFX | 24 | 6 | locomoción, pose, acciones, control, reacción y VFX medidos en ejecución |
 | ARENA | 6 | 6 | diseño de nivel medido |
 | UI · ICONOS | 5 | 4 | iconografía y selector |
 | BOTS · GAME LOOP | 3 | 1 | lobby → partida → resultado |
 
-Suite: **240/240 verdes**. Todas las puertas observables en verde.
+Suite: **241/241 verdes**.
 
 ### Cómo se reproduce todo esto
 
 ```
-node tools/run-gates.js          # batería + arena + HUD + casteo + seis clases
+node tools/run-gates.js          # batería + arena + HUD + casteo + clases + animación
 node tools/run-gates.js --rapido # sólo lo que no necesita navegador
 ```
 
@@ -182,10 +182,42 @@ exactamente el reembolso del 8 % de «Flujo compartido».
 
 ## CHARACTERS · ANIMATION · VFX
 
-Filas 109–132. Estado: **TESTED** / **IMPLEMENTED**.
-Los tres arquetipos tienen silueta coherente, arma y equipo. Las familias de
-animación y VFX existen. Falta el juicio del Animation Arbiter y el Visual
-Arbiter sobre cada una.
+Filas 109–132. Detalle en `docs/ANIMATION_VFX_AUDIT.md`; se reproduce con
+`node tools/browser.js play tools/scripts/anim-vfx-sweep.json`.
+
+Las 32 pruebas unitarias de animación llevaban tiempo verdes **mientras el
+entrypoint del producto no disparaba ni una animación de combate**. Eso es
+exactamente la distancia entre TESTED y VERIFIED, y por eso estas filas no
+subían con la suite.
+
+| Fila | Estado | Evidencia en ejecución |
+|---|---|---|
+| locomoción direccional | VERIFIED | parado 0.00; adelante, atrás, strafe izq./der. y diagonal a pico 1.20; cinco ciclos distintos |
+| pose sin corrupción | VERIFIED | 53 piezas por personaje, ningún valor no finito ni fuera de rango en ninguna fase |
+| acción de combate por poder | VERIFIED | 36/36 habilidades mueven el cuerpo; 3–10 gestos distintos por clase, contando familia de acción y de casteo |
+| lenguaje corporal del control | VERIFIED | KNOCKDOWN, STUN y ROOT distintos entre sí y presentes en la intención |
+| reacción al daño aditiva | VERIFIED | pico 0.942, se disuelve sola, la locomoción no baja de 1.20 durante el impacto |
+| familias de VFX | VERIFIED | ninguna de 24 habilidades muda; 14 partículas en pico → 0 a los 6 s |
+| muerte con prioridad sobre control | **EN MEDICIÓN** | ver abajo |
+
+**Seis filas suben, la séptima no.** La sonda de muerte leía `alive: true`,
+`intent.alive: true` e `intent.crowdControl: 'DEATH'` a la vez, con el
+`entityId` de la intención igual al esperado — algo que `AI.build` no puede
+producir en una sola llamada.
+
+En contexto limpio la cadena es correcta de punta a punta, comprobado en un 1v1
+aislado: entidad viva → `crowdControlOf: null` → `intent.crowdControl: null`; con
+aturdimiento → `STUN` en los dos. La contradicción sólo aparecía **dentro del
+barrido largo**, tras cinco reconstrucciones de escenario con el bucle
+congelado. Es casi seguro un artefacto del arnés, pero «casi seguro» no es
+«demostrado»: la sonda se ha movido al principio del barrido, donde el montaje
+está limpio, y falla en voz alta con el prefijo `ARNÉS:` si vuelve a llegar
+sucia. Hasta que esa medición esté verde, la fila no sube.
+
+**Sin juicio artístico.** Que la pose no tenga NaN y que cada poder mueva el
+cuerpo no dice que se vea bien. El peso de un mandoble o la legibilidad de un
+telegraph a distancia de duelo siguen necesitando ojos humanos, y eso no se
+cuenta como verificado.
 
 ## ARENA
 

@@ -48,6 +48,13 @@ const GATES = [
     nombre: 'Barrido de las seis clases · 36 habilidades',
     cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/class-sweep.json']],
     navegador: true
+  },
+  {
+    nombre: 'Animación y VFX · lo que sale por pantalla',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/anim-vfx-sweep.json']],
+    navegador: true,
+    // Pinta de verdad por software: es la puerta más lenta de todas.
+    lenta: true
   }
 ];
 
@@ -59,10 +66,15 @@ for (const gate of GATES) {
     resumen.push(['—', gate.nombre, 'omitida (--rapido)']);
     continue;
   }
-  process.stdout.write('\n\x1b[1m▸ ' + gate.nombre + '\x1b[0m\n');
+  process.stdout.write('\n\x1b[1m▸ ' + gate.nombre + '\x1b[0m' +
+    (gate.lenta ? '  \x1b[2m(pinta por software: varios minutos)\x1b[0m' : '') + '\n');
   const r = spawnSync(gate.cmd[0], gate.cmd[1], {
     cwd: ROOT,
     encoding: 'utf8',
+    // Las puertas que pintan tardan bastante más que el tope por defecto del
+    // driver CDP; sin esto la puerta falla por reloj, no por el juego.
+    env: Object.assign({}, process.env,
+      gate.lenta ? { CDP_TIMEOUT_MS: process.env.CDP_TIMEOUT_MS || '300000' } : null),
     stdio: gate.silencioso ? ['ignore', 'pipe', 'pipe'] : 'inherit'
   });
   if (gate.silencioso && r.stdout) {

@@ -4,22 +4,27 @@
 > Si una ejecución se interrumpe, el siguiente agente continúa **desde aquí**
 > sin volver a descubrir el proyecto.
 
-**Wave actual:** WAVE 5 cerrada · barrido observable de clases y casteo cerrado
+**Wave actual:** WAVE 5 cerrada · barridos observables de clases, casteo y animación
 **Build importado:** Vertical Slice v0.8 (zip del usuario), commit `07339a4`
 **Rama:** `claude/arena-mmo-concept-qeboc7`
-**Ledger:** 45 / 146 VERIFIED — **el build NO está terminado**
+**Ledger:** 51 / 146 VERIFIED — **el build NO está terminado**
 
 ---
 
 ## Reproducir el estado en un comando
 
 ```
-node tools/run-gates.js
+node tools/run-gates.js            # todo
+node tools/run-gates.js --rapido   # sólo lo que no necesita navegador
 ```
 
 Ejecuta la batería sin navegador, los números de la arena, la composición del
-HUD en las tres fases, el barrido de casteo y el de las seis clases. Termina en
-rojo si algo falla. Ahora mismo: **todo en verde, 240/240 pruebas**.
+HUD en las tres fases, el barrido de casteo, el de las seis clases y el de
+animación/VFX. Termina en rojo si algo falla. Ahora mismo: **todo en verde,
+241/241 pruebas**.
+
+La última puerta pinta por software y tarda varios minutos: es la única forma
+de comprobar que lo que la simulación decide llega de verdad a la pantalla.
 
 ---
 
@@ -57,6 +62,18 @@ columnas, y un TTK fuera de banda que se corrigió moviendo el mapa, no la banda
 cobran, enfrían, castean si declaran casteo y aplican sus estados. Siete puertas
 de casteo (prepare, release, GCD, cola, tres cancelaciones) en verde.
 
+### P0 — el entrypoint del producto no animaba ningún combate
+`visuals[id]` estaba en el contrato del renderer; su contenido no. El nativo
+guardaba ahí el handle del backend de personaje y el de Three.js un envoltorio
+de escena. `vfx.js` pasaba el envoltorio a `triggerAttack`, que empieza con
+`if (!st.cfg) return;`. Resultado: cero ataques, cero casteos y cero reacciones
+al daño en la presentación de Three.js, durante commits enteros, con la suite
+verde. La locomoción va por otro camino y por eso los personajes seguían
+andando con normalidad.
+
+Corregido añadiendo `characterHandleOf(id)` al contrato, no parcheando la
+llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
+
 ---
 
 ## Falsos positivos ya descartados — no reabrir
@@ -74,25 +91,36 @@ de casteo (prepare, release, GCD, cola, tres cancelaciones) en verde.
    sondas, `pendingCast = null` a mano dejando el estado a medias, y medir antes
    de que llegue el proyectil. Los tres habrían sido informes falsos.
 
+4. **«La estasis no llega a la animación».** Era la fatiga global de control
+   rechazando la cuarta aplicación seguida. Comprobado en aislado:
+   `stasis → STASIS`, `silence → SILENCE`, `disarm → DISARM`.
+
+5. **«La pose está vacía».** `pose` se rellena en `render()`, no en
+   `syncVisuals()`. Una sonda que no pinta mide cero piezas y pasa en vacío.
+
 ---
 
 ## Siguiente tarea inmediata
 
-1. **WAVES 2–4 y 6–10 del master prompt**, que siguen sin barrido observable:
-   character feel, visuales de personaje, familias de VFX, bots y game loop
-   completos, pulido y asalto final de calidad.
-2. **CHARACTERS · ANIMATION · VFX (filas 109–132): 0 VERIFIED.** Es el bloque más
-   grande sin verificar. Necesita el juicio del Animation Arbiter y del Visual
-   Arbiter sobre cada arquetipo y cada familia.
+1. **Juicio artístico, que es lo que ninguna medición da.** La animación y los
+   VFX responden —36/36 poderes mueven el cuerpo, ninguna pose se corrompe— pero
+   nadie ha dicho si el mandoble pesa, si el telegraph se lee a distancia de
+   duelo o si el Guardián con tres gestos se siente pobre en la mano.
+2. **Bots y game loop (WAVE 8).** El bucle lobby → partida → resultado está
+   verificado, pero la IA **no usa las rutas de cobertura** que la arena ahora
+   ofrece: los carriles existen y el bot va en línea recta.
 3. **Jump / airborne / landing** siguen en TODO (filas 11–13).
-4. **La IA no usa las rutas de cobertura de la arena.** Los carriles existen y un
-   humano puede usarlos; el bot va en línea recta. Carencia de IA, no de nivel.
-5. **Pointer Lock** (fila 22) sigue BLOCKED: headless no lo concede sin gesto
+4. **Pointer Lock** (fila 22) sigue BLOCKED: headless no lo concede sin gesto
    humano. Las filas 20–21 (arrastre izquierdo, mirada libre derecha) siguen
    IMPLEMENTED sin verificación con ratón real.
-6. **Ninguna regla premia la altura.** Las plataformas dan lectura del foso y
+5. **Ninguna regla premia la altura.** Las plataformas dan lectura del foso y
    cuestan tiempo al subir, pero no hay ventaja mecánica de alto.
+6. **Audio.** Existe y no se ha auditado en ejecución.
 
 ## Tests fallando
 
-Ninguno. **240/240.** Todas las puertas observables en verde.
+Ninguno. **241/241.**
+
+Puertas observables: cinco en verde. La sexta —el barrido de animación y VFX—
+sube seis de sus siete sondas; la de muerte está en remedición aislada y hasta
+que cierre no se cuenta.
