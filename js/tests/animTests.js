@@ -30,6 +30,7 @@ Arena.define('tests/animTests',
   var Act = Arena.Render.Actions;
   var cfgFor = Arena.Data.animConfigFor;
   var AI = Arena.Anim.AnimationIntent;
+  var B = Arena.Data.balance;
 
   /* =========================================================================
    * Utilidades
@@ -780,6 +781,89 @@ Arena.define('tests/animTests',
       }});
       T.assert(r.intent.airborne, 'el backend futuro sabe que está en aire');
       T.assertNear(r.intent.jumpProgress, 0.50, 1e-6, 'transporta fase normalizada');
+    });
+
+    T.test('un salto REAL de la simulación llega al aire y aterriza en la animación', function () {
+      /* La prueba de arriba ceba `loco.airborne` a mano: comprueba que la
+         intención TRANSPORTA el dato, no que la locomoción lo DEDUZCA de un
+         salto de verdad. Sin esta segunda prueba, romper la derivación del
+         salto en `locomotion.js` no rompería nada visible.
+
+         Aquí no se ceba nada: se pide el salto a la simulación y se deja que
+         la cadena entera —tick fijo → locomoción → intención— haga su trabajo. */
+      var w = T.makeWorld();
+      var e = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      var arche = Arena.Data.archetypeOf(e.classId);
+      var cfg = cfgFor(e.classId, arche);
+      var loco = Loco.createState(cfg);
+      var act = Act.createState(11);
+      var it = AI.create();
+      var dt = 1 / 30;
+
+      function frame() {
+        w.step(1);
+        Loco.update(loco, e, dt);
+        Act.update(act, cfg, dt);
+        AI.build(it, e, w, loco, act);
+      }
+
+      frame();
+      T.assertFalse(it.airborne, 'de pie no está en el aire');
+
+      e._jumpRequested = true;
+      frame();
+      T.assert(e.jumpActive, 'la simulación arrancó el salto');
+      T.assert(it.airborne, 'y la animación se entera en el mismo tick');
+
+      var picoFase = 0, vioSubida = false;
+      var limite = Math.ceil(B.JUMP.duration * B.TICK_RATE) + 6;
+      for (var i = 0; i < limite && it.airborne; i++) {
+        frame();
+        if (it.jumpProgress > picoFase) picoFase = it.jumpProgress;
+        if (e.jumpOffset > B.JUMP.height * 0.5) vioSubida = true;
+      }
+
+      T.assert(vioSubida, 'el arco pasa por encima de media altura');
+      T.assert(picoFase > 0.85, 'la fase normalizada recorre casi todo el arco: ' + picoFase.toFixed(2));
+      T.assertFalse(it.airborne, 'al tocar suelo deja de estar en el aire');
+      T.assert(loco.landingAmount > 0.5,
+        'y queda absorción de aterrizaje, que es lo que da peso a la caída: ' +
+        loco.landingAmount.toFixed(2));
+
+      // La absorción se disuelve sola: si se quedara, el personaje andaría
+      // agachado para siempre.
+      for (var k = 0; k < 20; k++) frame();
+      T.assertNear(loco.landingAmount, 0, 1e-6, 'el aterrizaje se disuelve');
+      T.assertNear(it.jumpProgress, 0, 1e-6, 'y la fase vuelve a cero');
+    });
+
+    T.test('saltar no rompe la locomoción: se sigue avanzando en el aire', function () {
+      var w = T.makeWorld();
+      var e = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      var cfg = cfgFor(e.classId, Arena.Data.archetypeOf(e.classId));
+      var loco = Loco.createState(cfg);
+      var act = Act.createState(3);
+      var it = AI.create();
+
+      // Correr de frente y saltar en marcha, que es como se salta de verdad.
+      e._moveIntent = { x: 0, z: 1 };
+      for (var i = 0; i < 30; i++) {
+        w.step(1); Loco.update(loco, e, 1 / 30); Act.update(act, cfg, 1 / 30);
+        AI.build(it, e, w, loco, act);
+      }
+      var vEnSuelo = it.speedNormalized;
+      T.assert(vEnSuelo > 0.5, 'venía corriendo: ' + vEnSuelo.toFixed(2));
+
+      var zAntes = e.pos.z;
+      e._jumpRequested = true;
+      for (var k = 0; k < 8; k++) {
+        w.step(1); Loco.update(loco, e, 1 / 30); Act.update(act, cfg, 1 / 30);
+        AI.build(it, e, w, loco, act);
+      }
+      T.assert(it.airborne, 'está en el aire');
+      T.assert(e.pos.z > zAntes, 'y sigue avanzando: el salto no congela el desplazamiento');
+      T.assert(it.speedNormalized > 0.3,
+        'la animación tampoco se para en seco al despegar: ' + it.speedNormalized.toFixed(2));
     });
 
     T.test('un slow no detiene la locomoción', function () {

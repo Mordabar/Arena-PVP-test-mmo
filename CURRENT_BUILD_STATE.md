@@ -21,7 +21,7 @@ node tools/run-gates.js --rapido   # sólo lo que no necesita navegador
 Ejecuta la batería sin navegador, los números de la arena, la composición del
 HUD en las tres fases, el barrido de casteo, el de las seis clases y el de
 animación/VFX. Termina en rojo si algo falla. Ahora mismo: **todo en verde,
-241/241 pruebas**.
+243/243 pruebas**.
 
 La última puerta pinta por software y tarda varios minutos: es la única forma
 de comprobar que lo que la simulación decide llega de verdad a la pantalla.
@@ -114,7 +114,10 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 2. **Bots y game loop (WAVE 8).** El bucle lobby → partida → resultado está
    verificado, pero la IA **no usa las rutas de cobertura** que la arena ahora
    ofrece: los carriles existen y el bot va en línea recta.
-3. **Jump / airborne / landing** siguen en TODO (filas 11–13).
+3. **Jump / airborne / landing** pasan de TODO a TESTED: la prueba vieja cebaba
+   `loco.airborne` a mano y sólo comprobaba que la intención lo transportara.
+   Ahora se pide el salto a la simulación y se deja que la cadena entera —tick
+   fijo → locomoción → intención— haga su trabajo. Falta verlo en ejecución.
 4. **Pointer Lock** (fila 22) sigue BLOCKED: headless no lo concede sin gesto
    humano. Las filas 20–21 (arrastre izquierdo, mirada libre derecha) siguen
    IMPLEMENTED sin verificación con ratón real.
@@ -124,7 +127,7 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 
 ## Tests fallando
 
-Ninguno. **241/241.**
+Ninguno. **243/243.**
 
 Puertas observables: las cinco primeras en verde y reproducidas varias veces.
 

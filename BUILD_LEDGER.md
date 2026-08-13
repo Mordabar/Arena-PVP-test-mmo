@@ -55,7 +55,7 @@ La cuenta, para que sea auditable y no una cifra de confianza:
 | UI · ICONOS | 5 | 4 | iconografía y selector |
 | BOTS · GAME LOOP | 3 | 1 | lobby → partida → resultado |
 
-Suite: **241/241 verdes**.
+Suite: **243/243 verdes**.
 
 ### Cómo se reproduce todo esto
 
@@ -83,9 +83,9 @@ bien» de algo que otra persona puede repetir.
 | 8 | turn in place | TESTED | |
 | 9 | mouse steer | VERIFIED | `_faceIntent` 1:1; probado en navegador |
 | 10 | free look | TESTED | |
-| 11 | jump | TODO | sin verificar en ejecución |
-| 12 | airborne | TODO | |
-| 13 | landing | TODO | |
+| 11 | jump | TESTED | arco autoritativo en tick fijo; root lo bloquea; cancela casteo estacionario sin lockout |
+| 12 | airborne | TESTED | un salto **real** de la simulación llega a `intent.airborne` en el mismo tick y recorre la fase normalizada |
+| 13 | landing | TESTED | al tocar suelo queda absorción de aterrizaje y se disuelve sola; saltar en marcha no congela el avance |
 | 14 | collision | TESTED | |
 | 15 | movement during combat | TESTED | |
 | 16 | cast movement cancellation | TESTED | `CAST_MOVE_TOLERANCE` |
