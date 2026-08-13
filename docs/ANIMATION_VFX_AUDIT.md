@@ -57,15 +57,14 @@ contenido no es un contrato.
 |---|---|---|
 | Acciones · las 36 habilidades mueven el cuerpo | ✓ verde | 36/36 ejecutadas, de 3 a 10 gestos distintos por clase |
 | Control · lenguaje corporal propio | ✓ verde | KNOCKDOWN, STUN y ROOT distintos entre sí y en la intención |
-| VFX · emiten y se apagan | ✓ verde | ninguna de 24 habilidades muda; pico 13 partículas → 0 tras 6 s |
-| Locomoción · seis direcciones, seis ciclos | ~ | cinco estados distintos, pico 1.20 en las seis, 53 piezas de pose sin NaN. Falta confirmar el caso «parado» con el montaje asentado |
-| Reacción al daño · aditiva | ~ | pico de reacción 0.942 y se disuelve sola. Falta medir la recuperación en carril despejado |
-| Muerte · gana a cualquier control | ✗ sin resolver | la sonda lee `alive: true` y `crowdControl: 'DEATH'` a la vez, que `AI.build` no puede producir en una sola llamada. Está instrumentada para devolver el `entityId` de la intención y decidir si es handle cruzado (defecto real) o montaje del arnés |
+| VFX · emiten y se apagan | ✓ verde | ninguna de 24 habilidades muda; pico 14 partículas → 0 tras 6 s |
+| Locomoción · seis direcciones, seis ciclos | ✓ verde | parado 0.00, las cinco direcciones a pico 1.20, cinco ciclos distintos, 53 piezas de pose sin NaN |
+| Reacción al daño · aditiva | ✓ verde | pico 0.942, se disuelve sola, la velocidad de locomoción no baja de 1.20 durante el impacto |
+| Muerte · gana a cualquier control | ✗ abierto | la sonda lee `alive: true`, `intent.alive: true` y `intent.crowdControl: 'DEATH'` a la vez, con `entityId` de la intención **igual** al esperado. `AI.build` no puede producir eso en una sola llamada: o la intención no se reconstruye ese frame, o algo la escribe fuera de `build`. En investigación |
 
-**Las tres primeras están confirmadas y son las que cierran el P0.** Las tres
-últimas siguen en medición y NO se dan por buenas: dos por ajuste del arnés
-—ambas medían corriendo contra una barrera del foso— y una por una
-contradicción sin explicar que puede ser un defecto de verdad.
+**Cinco de seis en verde.** La sexta no se maquilla: es una contradicción real
+en los datos que no tiene explicación todavía, y hasta tenerla no se declara ni
+defecto ni falso positivo.
 
 Gestos distintos por clase: Devastador 10, Rastreador 7, Arcanista 6,
 Vinculador 6, Centinela 4, Guardián 3. El Guardián es el más pobre y tiene
@@ -83,8 +82,8 @@ Ninguno de estos era un defecto del juego. Todos parecían serlo.
 | «Ninguna acción produce familia» | cierto la primera vez — era el P0. Después, el arnés |
 | «Las partículas no se apagan: 26 → 26» | el arnés no llamaba a `VFX.update` |
 | «La pose tiene 0 piezas» | `pose` se rellena en `render()`, no en `syncVisuals()` |
-| «Avanzar no anima» | el arnés medía tras correr 1.6 s contra una barrera |
-| «Parado, el ciclo llega a 0.14» | el teletransporte del montaje se lee como arranque (pendiente de confirmar con los frames de asentado) |
+| «Avanzar no anima» | el arnés medía tras correr 1.6 s contra una barrera del foso |
+| «Parado, el ciclo llega a 0.14» | el teletransporte del montaje se lee como arranque. Con 24 frames de asentado: 0.00 |
 | «La estasis no llega a la animación» | la fatiga global de control rechazaba la cuarta aplicación seguida. En aislado: `stasis → STASIS`, `silence → SILENCE`, `disarm → DISARM` |
 | «Las habilidades de aliado fallan por rango» | el arnés colocaba al lanzador junto al enemigo |
 
