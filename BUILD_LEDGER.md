@@ -55,7 +55,8 @@ La cuenta, para que sea auditable y no una cifra de confianza:
 | UI · ICONOS | 5 | 4 | iconografía y selector |
 | BOTS · GAME LOOP | 3 | 1 | lobby → partida → resultado |
 
-Suite: **243/243 verdes**.
+Suite: **243/243 verdes**. Las seis puertas observables en verde, la de
+animación con sus 15 sondas seguidas y `EXIT=0`.
 
 ### Cómo se reproduce todo esto
 

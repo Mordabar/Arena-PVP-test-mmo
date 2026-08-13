@@ -92,6 +92,12 @@ hacía, porque sólo él mataba a la entidad después de guardar la referencia.
 **Coste de esto: seis ejecuciones del barrido.** El beneficio: no se publicó un
 defecto inventado. La sonda guarda ahora una instantánea explícita.
 
+### Tirada completa
+
+Con las once sondas repartidas, el barrido cierra con `EXIT=0` y las 15 sondas
+en verde de una sola pasada: muerte, locomoción, acciones de las seis clases,
+control, VFX de cuatro clases, apagado de partículas y reacción al daño.
+
 Gestos distintos por clase: Devastador 10, Rastreador 7, Arcanista 6,
 Vinculador 6, Centinela 4, Guardián 3. El Guardián es el más pobre y tiene
 explicación: cuatro de sus seis poderes declaran `visualAction: 'none'` a

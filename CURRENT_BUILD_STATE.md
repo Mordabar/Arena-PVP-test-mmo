@@ -129,20 +129,17 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 
 Ninguno. **243/243.**
 
-Puertas observables: las cinco primeras en verde y reproducidas varias veces.
+**Las seis puertas observables en verde.** La de animación y VFX cierra con
+`EXIT=0` y sus 15 sondas seguidas en una sola tirada.
 
-La sexta —animación y VFX— tiene todas sus sondas medidas en verde, pero la
-ejecución seguida **moría por reloj**, no por el juego: la sonda de acciones era
-un único `Runtime.evaluate` que simulaba ~3600 pasos y pintaba cientos de veces
-por software, y rozaba el tope del driver CDP. Con `EXIT=2` y
-`FALLO: Timeout en Runtime.evaluate`.
-
-Partida en once sondas —una por clase para acciones, una por clase para VFX—
-ninguna llamada individual se acerca al tope, y además un fallo señala a la
-clase culpable en vez de a un bloque de treinta y seis habilidades. Pendiente de
-ver la tirada completa con el nuevo reparto.
+Antes moría por reloj, no por el juego: la sonda de acciones era un único
+`Runtime.evaluate` que simulaba ~3600 pasos y pintaba cientos de veces por
+software, y rozaba el tope del driver CDP (`EXIT=2`,
+`FALLO: Timeout en Runtime.evaluate`). Partida en once sondas —una por clase
+para acciones, una por clase para VFX— ninguna llamada se acerca al tope, y un
+fallo señala a la clase culpable en vez de a un bloque de 36 habilidades.
 
 **Lección de arnés, no de producto:** un filtro `grep ✓|✗` en la tubería se
 comió el mensaje de timeout, y el código de salida que leí venía del final de la
-tubería (`cut`), no del driver. Una puerta que se lee a través de un filtro
-puede estar mintiendo por omisión.
+tubería (`cut`), no del driver. Una puerta leída a través de un filtro puede
+mentir por omisión.
