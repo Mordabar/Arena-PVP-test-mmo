@@ -72,10 +72,23 @@ Arena.define('sim/arena', ['math/ray'], function (Arena) {
         ramp: { x: 12.5, z: 5.0, sx: 6.0, sz: 3.2, from: 0, to: 1.5, axis: 'z', dir: 1 } }
     ];
 
+    /* Las plataformas NO son obstáculos: se camina sobre ellas y no cortan la
+       línea de visión de quien está encima. Pero sí son geometría sólida para
+       la cámara, que si no las mira desde dentro y enseña su parte de abajo.
+       De ahí una lista aparte en vez de meterlas en `obstacles`, que rompería
+       tanto el movimiento como el LoS. */
+    var cameraBlockers = obstacles.slice();
+    for (var p = 0; p < platforms.length; p++) {
+      var pf = platforms[p];
+      // `box` toma la base en Y, no el centro: la plataforma va de 0 a su altura.
+      cameraBlockers.push(box(pf.x, 0, pf.z, pf.sx, pf.h, pf.sz, 'platform'));
+    }
+
     return {
       width: W, depth: D, wallHeight: WALL_H,
       bounds: { minX: -W / 2, maxX: W / 2, minZ: -D / 2, maxZ: D / 2 },
       obstacles: obstacles,
+      cameraBlockers: cameraBlockers,
       platforms: platforms,
       spawns: {
         player: { x: -10, z: 0, yaw: Math.PI / 2 },

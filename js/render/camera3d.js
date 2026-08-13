@@ -9,7 +9,7 @@
  *   · colisión: la cámara se acerca si un muro se interpone
  *   · sacudida de impacto, corta y con caída rápida
  * ========================================================================== */
-Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
+Arena.define('render/camera3d', ['math/mat4', 'math/ray', 'sim/arena'], function (Arena) {
   'use strict';
 
   var V = Arena.Math.Vec3;
@@ -164,7 +164,11 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
       var toCam = V.normalize(V.create(), V.sub(V.create(), desired, this.smoothFocus));
       var maxD = this.distance;
       var nearest = maxD;
-      var obs = world.arena.obstacles;
+      /* `obstacles` es lo que corta movimiento y línea de visión. Para la cámara
+         hace falta MÁS: las plataformas elevadas se caminan y no cortan LoS,
+         pero son sólidas para el ojo. Sin ellas la cámara entra dentro de la
+         plataforma y el jugador acaba mirando el reverso del escenario. */
+      var obs = world.arena.cameraBlockers || world.arena.obstacles;
       for (var i = 0; i < obs.length; i++) {
         var t = Ray.rayAABB(this.smoothFocus, toCam, obs[i], maxD);
         if (t !== null && t < nearest) nearest = t;
@@ -175,7 +179,14 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray'], function (Arena) {
         desired.y = this.smoothFocus.y + toCam.y * d;
         desired.z = this.smoothFocus.z + toCam.z * d;
       }
-      if (desired.y < 0.35) desired.y = 0.35;
+      /* Suelo mínimo bajo la cámara, no altura absoluta: sobre una rampa o una
+         plataforma el suelo no está en y=0, y un tope fijo dejaba el ojo por
+         debajo de la superficie que el jugador está pisando. */
+      var floor = 0;
+      if (Arena.Sim && Arena.Sim.Arena && world.arena.platforms) {
+        floor = Arena.Sim.Arena.groundHeightAt(world.arena, desired.x, desired.z);
+      }
+      if (desired.y < floor + 0.45) desired.y = floor + 0.45;
     }
 
     if (this._shake > 0.001) {

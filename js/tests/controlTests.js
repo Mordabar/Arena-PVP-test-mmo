@@ -422,4 +422,90 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
         'la intención se satura: no hay forma de girar más rápido del límite');
     });
   });
+
+  T.suite('Cámara · nunca dentro del escenario', function () {
+
+    /* La cámara entraba dentro de las plataformas elevadas y enseñaba su cara
+       interior: se veía el reverso del nivel desde debajo del suelo. La causa
+       era que la colisión de cámara sólo miraba `obstacles`, y las plataformas
+       viven aparte porque se caminan y no cortan línea de visión. */
+
+    T.test('las plataformas son sólidas para la cámara y transitables para el jugador', function () {
+      var arena = Arena.Sim.Arena.build();
+      T.assert(arena.cameraBlockers.length > arena.obstacles.length,
+        'la lista de la cámara incluye algo más que los obstáculos');
+      T.assertEqual(arena.cameraBlockers.length, arena.obstacles.length + arena.platforms.length,
+        'una caja de cámara por plataforma, ni una más');
+
+      for (var i = 0; i < arena.obstacles.length; i++) {
+        T.assert(arena.cameraBlockers.indexOf(arena.obstacles[i]) >= 0,
+          'todo obstáculo sigue bloqueando la cámara');
+      }
+      for (var j = 0; j < arena.cameraBlockers.length; j++) {
+        if (arena.cameraBlockers[j].kind !== 'platform') continue;
+        T.assert(arena.obstacles.indexOf(arena.cameraBlockers[j]) < 0,
+          'la plataforma NO entra en obstacles: rompería movimiento y LoS');
+      }
+    });
+
+    T.test('la caja de cámara de una plataforma cubre su volumen real', function () {
+      var arena = Arena.Sim.Arena.build();
+      var p = arena.platforms[0];
+      var found = null;
+      for (var i = 0; i < arena.cameraBlockers.length; i++) {
+        var b = arena.cameraBlockers[i];
+        if (b.kind === 'platform' && Math.abs(b.center.x - p.x) < 1e-9) found = b;
+      }
+      T.assert(found, 'la plataforma tiene caja de cámara');
+      T.assertNear(found.min.y, 0, 1e-9, 'apoyada en el suelo');
+      T.assertNear(found.max.y, p.h, 1e-9, 'llega justo hasta su superficie pisable');
+      T.assertNear(found.max.x - found.min.x, p.sx, 1e-9, 'anchura real');
+      T.assertNear(found.max.z - found.min.z, p.sz, 1e-9, 'profundidad real');
+    });
+
+    T.test('el ojo nunca queda por debajo del suelo que el jugador pisa', function () {
+      /* Un tope absoluto en y=0.35 basta en suelo llano y falla en cuanto hay
+         relieve: sobre una plataforma de 1.5 el ojo acababa 1.15 por debajo de
+         la superficie. El mínimo tiene que seguir al terreno. */
+      var w = T.makeWorld();
+      var arena = w.arena;
+      var plat = arena.platforms[0];
+      var cam = new Arena.Render.Camera3D();
+      cam.pitch = cam.minPitch;                  // lo más rasante posible
+      cam.distance = cam.targetDistance = 10;
+
+      var samples = [
+        { x: plat.x, z: plat.z, h: plat.h },
+        { x: plat.ramp.x, z: plat.ramp.z, h: null },
+        { x: 0, z: 0, h: 0 }
+      ];
+
+      for (var s = 0; s < samples.length; s++) {
+        var pt = samples[s];
+        var ground = Arena.Sim.Arena.groundHeightAt(arena, pt.x, pt.z);
+        cam.focus.x = cam.smoothFocus.x = pt.x;
+        cam.focus.z = cam.smoothFocus.z = pt.z;
+        cam.focus.y = cam.smoothFocus.y = ground + 1.4;
+        for (var k = 0; k < 8; k++) cam.update(1 / 60, w, 16 / 9);
+        var floorUnderEye = Arena.Sim.Arena.groundHeightAt(arena, cam.position.x, cam.position.z);
+        T.assert(cam.position.y >= floorUnderEye + 0.44,
+          'el ojo se mantiene sobre el suelo que hay debajo de él');
+      }
+    });
+
+    T.test('la cámara sigue sin escribir nada en la simulación', function () {
+      // La corrección de colisión toca posición de cámara, no de entidades.
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'devastador', { team: 0, x: -12.5, z: -9 });
+      var cam = new Arena.Render.Camera3D();
+      cam.focus.x = cam.smoothFocus.x = p.x;
+      cam.focus.z = cam.smoothFocus.z = p.z;
+      var x0 = p.x, y0 = p.y, z0 = p.z, yaw0 = p.yaw;
+      for (var i = 0; i < 30; i++) cam.update(1 / 60, w, 16 / 9);
+      T.assertEqual(p.x, x0, 'x intacta');
+      T.assertEqual(p.y, y0, 'y intacta');
+      T.assertEqual(p.z, z0, 'z intacta');
+      T.assertEqual(p.yaw, yaw0, 'yaw intacto');
+    });
+  });
 });
