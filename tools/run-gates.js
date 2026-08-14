@@ -65,6 +65,12 @@ const GATES = [
     navegador: true
   },
   {
+    nombre: 'Rendimiento · coste, presupuesto y fugas',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/perf-sweep.json']],
+    navegador: true,
+    lenta: true
+  },
+  {
     nombre: 'Animación y VFX · lo que sale por pantalla',
     cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/anim-vfx-sweep.json']],
     navegador: true,

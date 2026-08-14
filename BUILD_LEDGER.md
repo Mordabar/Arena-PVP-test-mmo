@@ -311,6 +311,28 @@ repetido no es cosmética: obliga a memorizar la barra por posición en vez de p
 forma. Se añadieron 10 glifos (`rend`, `aegis`, `bond`, `stance`, `rain`,
 `reveal`, `bloom`, `purify`, `link`) y reglas específicas antes de las genéricas.
 
+## RENDIMIENTO
+
+Detalle en `docs/PERFORMANCE_V09.md`; se reproduce con
+`node tools/browser.js play tools/scripts/perf-sweep.json` (4 sondas, EXIT=0).
+
+| Medida | Resultado | Techo |
+|---|---|---|
+| Coste de un tick de simulación | **0.135 ms** (0.4 % del presupuesto) | 33.3 ms |
+| Draw calls, pico en 2v2 | 641 | 900 |
+| Triángulos, pico en 2v2 | 37 458 | 400 000 |
+| Partículas vivas 10 s tras parar | **0** | pool estable en 600 |
+| Diez partidas: DOM / oyentes / entidades | 685 → 685, 87 → 87, 0 → 0 | sin crecimiento |
+
+**Lo que esta puerta NO afirma:** no hay GPU en este contenedor, así que no mide
+fotogramas y no se inventan. El objetivo de 60 FPS del spec §19 sigue pendiente
+de una máquina con tarjeta gráfica, y así está anotado.
+
+Un falso positivo comprobado antes de escribirlo: «quedan 30 partículas 10 s
+después de parar» era combate en curso —apagar `aiEnabled` no apaga
+`autoAttackOn`, que es por entidad—, no una fuga. Con el combate detenido de
+verdad la cuenta vuelve a 0.
+
 ## BOTS · GAME LOOP
 
 | # | Fila | Estado | Nota |
