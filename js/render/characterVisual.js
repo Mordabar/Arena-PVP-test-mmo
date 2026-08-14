@@ -30,7 +30,8 @@
  *   caster  normal = estocada de báculo · casteo = báculo en alto y luz
  * ========================================================================== */
 Arena.define('render/characterVisual',
-  ['render/primitives', 'math/mat4', 'data/races',
+  ['render/primitives', 'math/mat4', 'data/races', 'data/classVisuals',
+   'render/equipment',
    'render/anim/skeleton', 'render/anim/locomotion', 'render/anim/actions',
    'anim/animationIntent', 'data/balance'],
   function (Arena) {
@@ -44,8 +45,12 @@ Arena.define('render/characterVisual',
   var Act = Arena.Render.Actions;
   var AI = Arena.Anim.AnimationIntent;
   var B = Arena.Data.balance;
+  var Eq = Arena.Render.Equipment;
 
   var CV = {};
+  /* Compartido y NUNCA mutado: es el valor por defecto de `pos` y `rot` de una
+     pieza de equipo, y se lee decenas de veces por fotograma. */
+  var ZERO3 = [0, 0, 0];
 
   /* Longitudes de hueso, sobre una altura total de ~1.85 */
   var UPPER_ARM = 0.30, LOWER_ARM = 0.29;
@@ -81,9 +86,17 @@ Arena.define('render/characterVisual',
 
   /* =========================================================================
    * Mallas
+   *
+   * Aquí viven SÓLO el cuerpo y las piezas que comparten todas las clases. El
+   * equipo que define la identidad de cada clase —hombreras, petos, faldones,
+   * capas, tocados y armas— se fabrica en `render/equipment.js` a partir de las
+   * medidas declaradas en `data/classVisuals.js`, y se funde al final de esta
+   * función. La razón es simple: mientras las piezas de clase vivían en este
+   * diccionario, distinguir dos clases significaba escribir dos mallas más y
+   * dos condiciones más, y eso no escala más allá de las seis actuales.
    * ====================================================================== */
   CV.buildMeshes = function () {
-    return {
+    var body = {
       /* --- Tronco en tres piezas: da cintura y permite torsión ----------- */
       ribcage: P.merge([
         P.translate(P.scale(P.sphere(0.5, 8, 12), 0.40, 0.32, 0.25), 0, 0.16, 0),
@@ -156,54 +169,20 @@ Arena.define('render/characterVisual',
         P.translate(P.scale(P.sphere(0.5, 6, 8), 0.122, 0.072, 0.10), 0, -0.034, 0.137)
       ]),
 
-      /* --- Atuendo ---------------------------------------------------------
-       * Un personaje no es un maniquí pintado: lo que le da lectura de silueta
-       * son las piezas con VOLUMEN propio —cinturón, hebilla, peto, faldón,
-       * quijotes, rodilleras, caña de bota— porque cada una rompe el contorno
-       * en un sitio distinto y da escala al resto del cuerpo.               */
-      pauldron: P.merge([
-        P.scale(P.sphere(0.5, 8, 11), 0.205, 0.135, 0.190),
-        P.translate(P.scale(P.cylinder(0.098, 0.030, 10, 1.0), 1, 1, 0.92), 0, -0.055, 0)
-      ]),
-      // Hombrera de cuero: una cazoleta, no una bola de acero. Es la primera
-      // pieza que distingue a un explorador de un caballero a veinte unidades.
-      shoulderCap: P.scale(P.sphere(0.5, 7, 10), 0.170, 0.090, 0.160),
-      pauldronSpike: P.scale(P.cone(0.050, 0.16, 6), 1, 1, 0.82),
+      /* --- Piezas comunes a varias clases -----------------------------------
+       * Estas cuatro sobreviven aquí porque NO son identidad: son soporte que
+       * tres o más clases reutilizan con el mismo tamaño. Cualquier cosa que
+       * distinga a una clase de otra vive en data/classVisuals.js.           */
+      // Tira estrecha de color de bando. Va en una pieza ANGOSTA a propósito:
+      // si el tinte lo baña todo, el atuendo deja de contar quién es quién.
+      tabard: P.translate(P.scale(P.box(0.115, 0.40, 0.235), 1, 1, 1), 0, 0.00, 0),
+      stole: P.translate(P.scale(P.box(0.062, 0.46, 0.034), 1, 1, 1), 0, -0.21, 0),
+      strap: P.translate(P.scale(P.box(0.062, 0.44, 0.030), 1, 1, 1), 0, -0.02, 0),
+      bracer: P.translate(P.cylinder(0.060, 0.15, 8, 1), 0, -LOWER_ARM * 0.85, 0),
       chestBadge: P.merge([
         P.scale(P.box(0.085, 0.105, 0.020), 1, 1, 1),
         P.translate(P.scale(P.cone(0.040, 0.070, 4), 1, 1, 0.55), 0, -0.070, 0.008)
       ]),
-      rangerScarf: P.translate(P.scale(P.cylinder(0.215, 0.105, 12, 1.10), 1, 1, 0.88), 0, 0.02, 0),
-      hipPouch: P.merge([
-        P.scale(P.box(0.105, 0.125, 0.055), 1, 1, 1),
-        P.translate(P.box(0.095, 0.024, 0.058), 0, 0.065, 0)
-      ]),
-      mageMantle: P.merge([
-        P.translate(P.scale(P.sphere(0.5, 9, 12), 0.405, 0.105, 0.275), 0, 0.235, -0.020),
-        P.translate(P.scale(P.box(0.320, 0.040, 0.215), 1, 1, 1), 0, 0.215, 0.010)
-      ]),
-      robeCuff: P.translate(P.cylinder(0.070, 0.095, 10, 1.18), 0, -LOWER_ARM * 0.90, 0),
-      hatBand: P.translate(P.scale(P.cylinder(0.205, 0.042, 16, 1.0), 1, 1, 0.90), 0, 0.055, 0),
-      tabard: P.translate(P.scale(P.box(0.115, 0.40, 0.235), 1, 1, 1), 0, 0.00, 0),
-      collar: P.translate(P.scale(P.box(0.31, 0.062, 0.215), 1, 1, 1), 0, 0.30, 0),
-      chestPlate: P.merge([
-        P.scale(P.sphere(0.5, 9, 12), 0.335, 0.285, 0.230),
-        P.translate(P.scale(P.box(0.055, 0.24, 0.045), 1, 1, 1), 0, 0.01, 0.105)
-      ]),
-      /* Carcaj a la espalda con flechas asomando: un arquero sin munición
-         visible parece un tipo con un palo curvo. */
-      quiver: P.merge([
-        P.translate(P.cylinder(0.058, 0.34, 9, 0.86), 0, -0.17, 0),
-        P.translate(P.scale(P.cylinder(0.062, 0.030, 9, 1.0), 1, 1, 1), 0, 0.00, 0)
-      ]),
-      quiverArrows: P.merge([
-        P.translate(P.cylinder(0.010, 0.20, 4, 1), -0.020, 0.02, 0.014),
-        P.translate(P.cylinder(0.010, 0.22, 4, 1), 0.016, 0.02, -0.010),
-        P.translate(P.cylinder(0.010, 0.19, 4, 1), 0.000, 0.02, 0.030)
-      ]),
-      strap: P.translate(P.scale(P.box(0.062, 0.44, 0.030), 1, 1, 1), 0, -0.02, 0),
-      sash: P.translate(P.scale(P.cylinder(0.255, 0.085, 14, 1.0), 1, 1, 0.86), 0, -0.04, 0),
-      stole: P.translate(P.scale(P.box(0.062, 0.46, 0.034), 1, 1, 1), 0, -0.21, 0),
       // Cuerpo de la túnica: cubre el tronco y enlaza con la falda. Sin él, la
       // caja torácica quedaba a la vista como un panel plano encima de la
       // campana de tela, y el mago parecía dos objetos apilados.
@@ -214,92 +193,19 @@ Arena.define('render/characterVisual',
         P.scale(P.cylinder(0.150, 0.40, 14, 1.42), 1, 1, 0.86),
         P.translate(P.scale(P.sphere(0.5, 8, 11), 0.40, 0.20, 0.30), 0, 0.375, 0)
       ]),
-      // El cinturón ciñe la cadera: su radio sale del ancho de la pelvis (0.35
-      // de diámetro), no de un número al azar. Con 0.285 era un disco más ancho
-      // que el propio cuerpo y se leía como un tutú.
-      belt: P.merge([
-        P.translate(P.scale(P.cylinder(0.190, 0.070, 14, 1.0), 1, 1, 0.80), 0, -0.035, 0),
-        P.translate(P.scale(P.cylinder(0.200, 0.020, 14, 1.0), 1, 1, 0.80), 0, -0.012, 0)
-      ]),
-      buckle: P.merge([
-        P.scale(P.box(0.075, 0.070, 0.026), 1, 1, 1),
-        P.translate(P.sphere(0.022, 6, 8), 0, 0, 0.016)
-      ]),
-      // Panel del faldón: cuelga desde la cadera y sigue al muslo al que se ata.
-      skirtPanel: P.translate(P.scale(P.box(0.132, 0.26, 0.050), 1, 1, 1), 0, -0.13, 0.050),
-      thighGuard: P.scale(P.sphere(0.5, 7, 9), 0.115, 0.150, 0.105),
-      kneeGuard: P.scale(P.sphere(0.5, 7, 9), 0.092, 0.082, 0.092),
-      bootCuff: P.translate(P.cylinder(0.098, 0.085, 9, 1.15), 0, -0.042, 0),
-      bracer: P.translate(P.cylinder(0.060, 0.15, 8, 1), 0, -LOWER_ARM * 0.85, 0),
-      /* La túnica llega al SUELO. Flotando a 17 cm, el mago se leía como una
-         pieza de ajedrez sobre un pedestal invisible. */
-      robe: P.translate(P.cylinder(0.290, 1.10, 18, 0.50), 0, -1.10, 0),
-      robeTrim: P.translate(P.cylinder(0.297, 0.050, 18, 1), 0, -1.10, 0),
-      /* Capucha: pico caído hacia ATRÁS, no un cucurucho vertical. El cono
-         apuntando al cielo convertía al arcanista en un sombrero de bruja. */
-      hood: P.merge([
-        P.scale(P.sphere(0.5, 10, 13), 0.330, 0.330, 0.345),
-        P.translate(P.scale(P.sphere(0.5, 8, 10), 0.240, 0.190, 0.320), 0, 0.010, -0.140),
-        P.translate(P.scale(P.sphere(0.5, 7, 9), 0.145, 0.115, 0.190), 0, -0.045, -0.235)
-      ]),
-      /* Sombrero del arcanista: ala ancha + copa inclinada en tres volúmenes.
-         Sigue siendo low-poly, pero la silueta se reconoce incluso a cámara
-         lejana y deja de depender de una capucha genérica. */
-      mageHat: P.merge([
-        P.translate(P.scale(P.cylinder(0.33, 0.035, 18, 0.94), 1, 1, 0.86), 0, 0.00, 0),
-        P.translate(P.scale(P.cone(0.185, 0.40, 12), 0.92, 1, 0.88), 0, 0.03, 0),
-        P.translate(P.scale(P.cone(0.095, 0.20, 10), 0.92, 1, 0.90), 0.055, 0.36, -0.025)
-      ]),
-      cape: P.translate(P.scale(P.box(0.42, 0.76, 0.035), 1, 1, 1), 0, -0.38, 0),
-
-      /* --- Armas ---------------------------------------------------------- */
-      /* Espada: hoja estrecha y con filo, no un tablón. Una hoja tan ancha como
-         un antebrazo convierte cualquier animación de esgrima en un mamporro. */
-      sword: P.merge([
-        P.translate(P.scale(P.box(0.072, 0.62, 0.024), 1, 1, 1), 0, 0.415, 0),
-        P.translate(P.scale(P.cone(0.036, 0.130, 4), 1, 1, 0.42), 0, 0.725, 0),
-        P.translate(P.scale(P.box(0.190, 0.044, 0.058), 1, 1, 1), 0, 0.095, 0),
-        P.translate(P.scale(P.box(0.048, 0.165, 0.048), 1, 1, 1), 0, 0.005, 0),
-        P.translate(P.sphere(0.036, 6, 8), 0, -0.082, 0)
-      ]),
-      shield: P.merge([
-        P.scale(P.sphere(0.5, 8, 11), 0.45, 0.58, 0.13),
-        P.translate(P.sphere(0.072, 7, 9), 0, 0, 0.060)
-      ]),
-      /* Arco recurvo: dos palas que se abren hacia atrás desde una empuñadura
-         central, con las puntas adelantadas. Dos cilindros rectos en línea no
-         son un arco, son un palo partido por la mitad. */
-      bow: P.merge([
-        P.translate(P.cylinder(0.019, 0.30, 6, 0.42), 0, 0.075, -0.010),
-        P.translate(P.scale(P.cylinder(0.019, 0.30, 6, 0.42), 1, -1, 1), 0, -0.075, -0.010),
-        // Puntas curvadas hacia el tirador.
-        P.translate(P.scale(P.cylinder(0.011, 0.10, 5, 0.75), 1, 1, 1), 0, 0.360, 0.030),
-        P.translate(P.scale(P.cylinder(0.011, 0.10, 5, 0.75), 1, -1, 1), 0, -0.360, 0.030),
-        P.translate(P.scale(P.box(0.034, 0.17, 0.046), 1, 1, 1), 0, 0, 0.008)
-      ]),
-      bowString: P.box(0.008, 0.86, 0.008),
+      // Flecha encajada: la comparten los dos arquetipos de arco.
       arrow: P.merge([
         P.cylinder(0.013, 0.60, 5, 1),
         P.translate(P.cone(0.027, 0.082, 5), 0, 0.60, 0)
       ]),
-      dagger: P.merge([
-        P.translate(P.scale(P.box(0.040, 0.31, 0.018), 1, 1, 1), 0, 0.20, 0),
-        P.translate(P.scale(P.cone(0.026, 0.085, 4), 1, 1, 0.40), 0, 0.395, 0),
-        P.translate(P.box(0.115, 0.028, 0.040), 0, 0.035, 0),
-        P.translate(P.cylinder(0.027, 0.115, 7, 0.92), 0, -0.080, 0)
-      ]),
-      staff: P.merge([
-        P.translate(P.cylinder(0.026, 1.46, 8, 0.88), 0, -0.60, 0),
-        P.translate(P.scale(P.sphere(0.5, 7, 9), 0.105, 0.165, 0.105), 0, 0.88, 0)
-      ]),
-      staffCrown: P.merge([
-        P.translate(P.scale(P.cone(0.040, 0.18, 6), 0.75, 1, 0.75), -0.095, 0.87, 0),
-        P.translate(P.scale(P.cone(0.040, 0.18, 6), 0.75, 1, 0.75),  0.095, 0.87, 0),
-        P.translate(P.scale(P.box(0.215, 0.026, 0.035), 1, 1, 1), 0, 0.82, 0)
-      ]),
       gem: P.sphere(0.078, 8, 10),
       orb: P.sphere(0.112, 8, 12)
     };
+
+    /* El equipo de las seis clases, fabricado a partir de sus medidas. Si una
+       clase declara una pieza que no existe, esto revienta en el arranque en
+       vez de dejar a un personaje a medio vestir sin que nadie se entere. */
+    return Eq.build(Arena.Data.EQUIPMENT, body);
   };
 
   /* =========================================================================
@@ -310,21 +216,26 @@ Arena.define('render/characterVisual',
   // arrastrar consigo nada de presentación.
   CV.archetypeOf = function (classId) { return Arena.Data.archetypeOf(classId); };
 
-  /* El arma la fija data/; aquí sólo se decide cómo se VISTE cada clase. */
-  var LOADOUT = {
-    devastador: { left: null, outfit: 'plate', scale: 1.05 },
-    guardian:   { left: 'shield', outfit: 'plate', scale: 0.92 },
-    centinela:  { left: null, outfit: 'leather', scale: 1.08 },
-    rastreador: { left: null, outfit: 'leather', scale: 0.94, cape: true },
-    arcanista:  { left: null, outfit: 'robe', scale: 1.00, hat: true },
-    vinculador: { left: 'orb', outfit: 'robe', scale: 0.95, hood: true }
-  };
-  for (var _cid in LOADOUT) {
-    if (Object.prototype.hasOwnProperty.call(LOADOUT, _cid)) {
-      LOADOUT[_cid].classId = _cid;
-      LOADOUT[_cid].right = Arena.Data.weaponOf(_cid);
+  /* El perfil visual de cada clase vive en data/classVisuals.js. Aquí sólo se
+     deriva el `loadout` que espera la capa de acciones —que únicamente
+     necesita saber qué hay en cada mano— para no obligarla a conocer la
+     estructura completa del perfil. */
+  var LOADOUT = {};
+  (function () {
+    var order = Arena.Data.CLASS_VISUAL_ORDER;
+    for (var i = 0; i < order.length; i++) {
+      var p = Arena.Data.CLASS_VISUAL[order[i]];
+      LOADOUT[p.id] = {
+        classId: p.id,
+        right: p.right ? p.right.kind : null,
+        left: p.left ? p.left.kind : null,
+        scale: p.right && p.right.scale !== undefined ? p.right.scale : 1,
+        profile: p
+      };
     }
-  }
+  })();
+  CV.loadoutOf = function (classId) { return LOADOUT[classId] || LOADOUT.devastador; };
+  CV.profileOf = function (classId) { return Arena.Data.classVisualOf(classId); };
 
   /* =========================================================================
    * Materiales
@@ -348,51 +259,29 @@ Arena.define('render/characterVisual',
     MAGIC:   { roughness: 0.16, metallic: 0.10, rimPower: 2.0, rim: 1.00 }
   };
 
-  /* Material por malla. Una tabla, no una condición esparcida por el código. */
+  /* Material por malla. Una tabla, no una condición esparcida por el código.
+     Sólo cubre el cuerpo y las piezas compartidas: cada pieza de equipo declara
+     su material en `data/classVisuals.js`, junto a sus medidas, para que no
+     pueda existir una malla nueva sin decir de qué está hecha. */
   var MESH_MATERIAL = {
     skull: 'SKIN', jaw: 'SKIN', brow: 'SKIN', nose: 'SKIN', neck: 'SKIN', ear: 'SKIN',
     upperArm: 'SKIN', lowerArm: 'SKIN', elbow: 'SKIN', shoulderBall: 'SKIN', hand: 'SKIN',
 
     ribcage: 'CLOTH', abdomen: 'CLOTH', pelvis: 'CLOTH', thigh: 'CLOTH', shin: 'CLOTH',
-    knee: 'CLOTH', tabard: 'CLOTH', robe: 'CLOTH', hood: 'CLOTH', mageHat: 'CLOTH', cape: 'CLOTH',
-    rangerScarf: 'CLOTH', mageMantle: 'CLOTH', robeCuff: 'CLOTH',
+    knee: 'CLOTH', tabard: 'CLOTH', stole: 'CLOTH', robeBodice: 'CLOTH',
     hairCap: 'CLOTH', hairTail: 'CLOTH',
 
-    belt: 'LEATHER', skirtPanel: 'LEATHER', bracer: 'LEATHER', foot: 'LEATHER',
-    bowString: 'LEATHER', strap: 'LEATHER', quiver: 'LEATHER', shoulderCap: 'LEATHER', hipPouch: 'LEATHER',
-    sash: 'CLOTH', stole: 'CLOTH', robeBodice: 'CLOTH', quiverArrows: 'WOOD',
+    bracer: 'LEATHER', foot: 'LEATHER', strap: 'LEATHER',
 
-    pauldron: 'METAL', pauldronSpike: 'METAL', collar: 'METAL', chestPlate: 'METAL', buckle: 'METAL',
-    chestBadge: 'METAL', hatBand: 'METAL', staffCrown: 'METAL',
-    thighGuard: 'METAL', kneeGuard: 'METAL', bootCuff: 'METAL', robeTrim: 'METAL',
-    sword: 'METAL', shield: 'METAL', dagger: 'METAL',
+    chestBadge: 'METAL',
 
-    bow: 'WOOD', staff: 'WOOD', arrow: 'WOOD',
+    arrow: 'WOOD',
 
     eye: 'MAGIC', gem: 'MAGIC', orb: 'MAGIC'
   };
   CV.materialOf = function (mesh) {
-    return CV.MATERIALS[MESH_MATERIAL[mesh] || 'CLOTH'];
-  };
-
-  var OUTFIT = {
-    plate: {
-      // Acero frío + tabardo azul oscuro: lectura de guerrero sin convertirlo
-      // en una silueta gris. El trim cálido recorta hombros y arma contra verde.
-      cloth: [0.085, 0.135, 0.205], metal: [0.405, 0.435, 0.485],
-      trim: [0.88, 0.68, 0.28], leather: [0.165, 0.105, 0.070], wood: [0.28, 0.20, 0.14]
-    },
-    leather: {
-      // Explorador: verdes de bosque, cuero tostado y metal bronceado.
-      cloth: [0.115, 0.235, 0.145], metal: [0.390, 0.300, 0.185],
-      trim: [0.73, 0.58, 0.29], leather: [0.245, 0.155, 0.082], wood: [0.34, 0.235, 0.125]
-    },
-    robe: {
-      // Caster: índigo profundo + oro viejo. Se diferencia instantáneamente del
-      // arquero verde y conserva contraste para los VFX azules/morados.
-      cloth: [0.075, 0.120, 0.275], metal: [0.400, 0.305, 0.175],
-      trim: [0.88, 0.67, 0.27], leather: [0.170, 0.110, 0.080], wood: [0.30, 0.205, 0.125]
-    }
+    var kind = MESH_MATERIAL[mesh] || Arena.Data.EQUIPMENT_MATERIAL[mesh] || 'CLOTH';
+    return CV.MATERIALS[kind];
   };
 
   /* =========================================================================
@@ -563,9 +452,16 @@ Arena.define('render/characterVisual',
     out.length = 0;
 
     var loadout = LOADOUT[entity.classId] || LOADOUT.devastador;
+    var prof = loadout.profile;
     var arche = CV.archetypeOf(entity.classId);
     var race = Arena.Data.getRace(entity.raceId);
-    var build = race.build, feat = race.features;
+    var feat = race.features;
+    /* CONSTITUCIÓN COMPUESTA: raza × clase, acotada por `BUILD_LIMITS`. Un
+       Guardián es ancho ANTES de ser elfo y un Centinela enjuto ANTES de ser
+       elfo; multiplicar las dos tablas es lo que permite añadir una raza sin
+       reescribir seis clases. El resultado se cachea por personaje: esto se
+       consulta cada fotograma. */
+    var build = st._build = Arena.Data.composeBuild(race.build, prof.build, st._build);
 
     var lc = st.loco;
     var cfg = st.cfg;
@@ -638,6 +534,51 @@ Arena.define('render/characterVisual',
       });
     }
 
+    /* --- SOCKETS DE EQUIPO ------------------------------------------------
+     *
+     * Todo lo que distingue a una clase de otra —hombreras, peto, faldar,
+     * capucha, bolsas, trampas, talismanes— entra por aquí. El perfil de
+     * `data/classVisuals.js` dice qué pieza va en qué socket, con qué
+     * desplazamiento y de qué color; este bloque sólo compone matrices.
+     *
+     * Sin esto habría seis ramas de `if (classId === ...)` en mitad del
+     * renderer, que es exactamente la deuda que el pase de identidad venía a
+     * evitar. Añadir una séptima clase no toca una sola línea de este fichero.
+     *
+     * Los sockets terminados en `Pair` se emiten una vez por lado con `x`,
+     * `yaw` y `roll` invertidos; una pieza con `side` sale sólo en ese lado, y
+     * ahí es donde vive la asimetría del Devastador y del Rastreador.        */
+    var COLORS = {
+      cloth: cloth, metal: metal, steel: steel, leather: palette.leather,
+      wood: palette.wood, trim: trim, accent: accent, skin: skin, hair: hair,
+      team: team, teamDark: palette.teamDark
+    };
+    function colorOf(name) { return (name && COLORS[name]) || cloth; }
+
+    function emit(socket, parent, side, counterAngle) {
+      var list = prof.attach && prof.attach[socket];
+      if (!list) return;
+      side = side || 1;
+      for (var i = 0; i < list.length; i++) {
+        var it = list[i];
+        if (it.side !== undefined && it.side !== side) continue;
+        var p = it.pos || ZERO3, r = it.rot || ZERO3;
+        var sc = it.scale === undefined ? 1 : it.scale;
+        var sx, sy, sz;
+        if (typeof sc === 'number') { sx = sy = sz = sc; }
+        else { sx = sc[0]; sy = sc[1]; sz = sc[2]; }
+        // `counterPitch` compensa el ángulo del hueso padre: un faldón atado al
+        // muslo tiene que seguirlo SIN girar tanto como él, o el paso lo
+        // atraviesa. El renderer no elige el número; el perfil sí.
+        var pitch = r[0] + (it.counterPitch ? -(counterAngle || 0) * it.counterPitch : 0);
+        var col = colorOf(it.color);
+        var em = null;
+        if (it.glow) em = [col[0] * it.glow, col[1] * it.glow, col[2] * it.glow];
+        draw(node(parent, p[0] * side, p[1], p[2], pitch, r[1] * side, r[2] * side, sx, sy, sz),
+          it.mesh, col, em);
+      }
+    }
+
     /* --- CAPA SUPERIOR ----------------------------------------------------
      * Se resuelve ANTES que el tronco porque la acción de combate contribuye
      * rotación de pecho —la cadena pecho → hombro → codo → arma es lo que hace
@@ -662,19 +603,22 @@ Arena.define('render/characterVisual',
     var hipY = hipRest + L.bob + breath - kneeSink;
     var hipX = lc.hipShiftX;
 
-    /* --- Cadera y tronco articulado -------------------------------------- */
+    /* --- Cadera y tronco articulado --------------------------------------
+     *
+     * `gk` separa el GROSOR del tronco de la ANCHURA de hombros. Sin él,
+     * `build.shoulders` escalaba el personaje entero en horizontal y `girth`
+     * no hacía absolutamente nada: un Devastador de hombros anchos tenía
+     * también la cintura ancha, y la V del atacante no existía. Se aplica en
+     * nodos HOJA para que no arrastre a brazos ni cabeza. */
+    var gk = build.girth / Math.max(0.05, build.shoulders);
     var hips = node(root, hipX, hipY, 0, 0, lc.hipYaw, L.hipRoll);
-    draw(hips, 'pelvis', cloth);
-    /* --- Cintura, según atuendo ------------------------------------------- */
-    if (loadout.outfit === 'robe') {
-      draw(node(hips, 0, -0.03, 0), 'sash', trim);
-    } else {
-      draw(node(hips, 0, -0.055, 0), 'belt', palette.leather);
-      draw(node(hips, 0, -0.055, 0.150), 'buckle', trim);
-    }
+    draw(node(hips, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'pelvis', cloth);
+    emit('hips', hips, 1);
+    emit('hipsPair', hips, -1);
+    emit('hipsPair', hips, 1);
 
     var abdomen = node(hips, 0, 0.06, 0, -lc.torsoPitch * 0.45, lc.torsoYaw * 0.3, lc.torsoRoll * 0.4);
-    draw(abdomen, 'abdomen', cloth);
+    draw(node(abdomen, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'abdomen', cloth);
 
     // El pecho asume parte del seguimiento del objetivo, la cabeza completa el
     // resto, y la acción de combate suma su propia torsión encima.
@@ -682,48 +626,12 @@ Arena.define('render/characterVisual',
       -lc.torsoPitch * 0.55 + A.chestPitch,
       lc.torsoYaw * 0.5 + lc.headYaw * cfg.chestTrackRatio + A.chestYaw,
       lc.torsoRoll * 0.6 + (A.chestRoll || 0));
-    draw(chest, 'ribcage', cloth);
-    /* --- ATUENDO POR ARQUETIPO -------------------------------------------
-     *
-     * Aquí es donde un guerrero deja de ser un arquero pintado de otro color.
-     * Antes los tres llevaban exactamente las mismas piezas —hombreras de
-     * acero, peto, tabardo— y a veinte unidades eran el mismo muñeco. Cada
-     * atuendo rompe la silueta en un sitio distinto:
-     *
-     *   plate     hombros anchos y macizos, peto, tabardo largo
-     *   leather   hombros estrechos, correa cruzada, carcaj a la espalda
-     *   robe      silueta acampanada, estola vertical, nada de metal
-     *
-     * El color de bando va en una pieza ESTRECHA, no en toda la ropa: si el
-     * tinte lo baña todo, el atuendo deja de contar quién es el personaje.  */
-    var teamCol = [team[0] * 0.62, team[1] * 0.62, team[2] * 0.62];
-    if (loadout.outfit === 'plate') {
-      draw(chest, 'collar', metal);
-      draw(node(chest, 0, 0.12, 0.010), 'chestPlate', metal);
-      draw(node(chest, 0, 0.18, 0.132, 0, 0, 0, 0.86, 0.86, 0.86), 'chestBadge', trim);
-      draw(node(chest, 0, 0.02, 0.012), 'tabard', teamCol);
-    } else if (loadout.outfit === 'leather') {
-      // Correa del carcaj cruzada sobre el pecho: da lectura de asimetría, que
-      // es justo lo que separa una silueta de explorador de una de soldado.
-      draw(node(chest, 0, 0.27, -0.012, 0.04, 0, 0), 'rangerScarf', cloth);
-      draw(node(chest, 0.055, 0.20, 0.075, 0, 0, 0.42), 'strap', palette.leather);
-      draw(node(chest, 0.030, 0.10, 0.020), 'tabard', teamCol);
-      var quiverM = node(chest, -0.115, 0.24, -0.145, 0.30, 0, -0.34);
-      draw(quiverM, 'quiver', palette.leather);
-      draw(node(quiverM, 0, 0.02, 0), 'quiverArrows', [0.58, 0.47, 0.32]);
-      draw(node(hips, 0.235, -0.01, 0.110, 0, 0.15, 0), 'hipPouch', palette.leather);
-    } else {
-      draw(node(chest, 0, -0.16, 0), 'robeBodice', cloth);
-      draw(node(chest, 0, 0.20, -0.010, 0.02, 0, 0), 'mageMantle', trim);
-      draw(node(chest, 0, 0.24, 0.098), 'stole', teamCol);
-    }
+    draw(node(chest, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'ribcage', cloth);
 
-    // Dagas secundarias visibles del arquero/rastreador. No participan en las
-    // reglas todavía: son parte de la silueta y preparan el modelo definitivo.
-    if (loadout.outfit === 'leather') {
-      draw(node(hips, -0.205, 0.01, 0.115, Math.PI, 0.10, -0.18, 0.82, 0.82, 0.82), 'dagger', steel);
-      draw(node(hips,  0.205, 0.01, 0.115, Math.PI, -0.10, 0.18, 0.82, 0.82, 0.82), 'dagger', steel);
-    }
+    /* Torso y hombros, según el perfil de la clase. */
+    emit('chest', chest, 1);
+    emit('chestPair', chest, -1);
+    emit('chestPair', chest, 1);
 
     /* --- Cabeza ----------------------------------------------------------- */
     var hs = build.head;
@@ -739,7 +647,10 @@ Arena.define('render/characterVisual',
     draw(head, 'brow', skin);
     draw(head, 'nose', skin);
 
-    if (!loadout.hood) {
+    // El pelo se ve o no según lo tape el tocado. Es un dato del perfil, no una
+    // condición sobre el atuendo: el Vinculador lleva diadema y melena, el
+    // Guardián yelmo cerrado y nada.
+    if (prof.hair) {
       draw(node(head, 0, 0.012, -0.005), 'hairCap', hair);
       draw(node(head, 0, 0.010, 0, 0.42, 0, 0), 'hairTail', hair);
     }
@@ -755,16 +666,11 @@ Arena.define('render/characterVisual',
     draw(node(head, -0.052, 0.008, 0.104, 0, -0.18, 0), 'eye', eyeCol, eyeEm);
     draw(node(head, 0.052, 0.008, 0.104, 0, 0.18, 0), 'eye', eyeCol, eyeEm);
 
-    if (loadout.hood) draw(node(head, 0, -0.01, -0.02, 0.10, 0, 0), 'hood', cloth);
-    if (loadout.hat) {
-      var hatM = node(head, 0, 0.105, -0.01, 0.04, -0.08, 0.03);
-      draw(hatM, 'mageHat', cloth);
-      draw(node(hatM, 0, 0.005, 0), 'hatBand', trim);
-    }
+    emit('head', head, 1);
 
     /* --- Piernas con rodilla y tobillo ------------------------------------ */
-    var robed = loadout.outfit === 'robe';
-    if (robed) {
+    var robed = prof.legs === 'hidden';
+    if (robed && prof.robe) {
       /* La túnica no es física de tela, pero tampoco puede ser una campana
          soldada a la pelvis. Combina paso, aceleración, strafe y giro en una
          respuesta pequeña: el dobladillo acusa el movimiento sin convertirse
@@ -776,8 +682,8 @@ Arena.define('render/characterVisual',
       var robeRoll = lc.torsoRoll * 0.32 - lc.moveRight * lc.moveSpeed * 0.060;
       var robeYaw = -lc.turnRate * 0.035;
       var robeM = node(hips, 0, 0.06, 0, robePitch, robeYaw, robeRoll);
-      draw(robeM, 'robe', cloth);
-      draw(robeM, 'robeTrim', trim);
+      draw(robeM, prof.robe.mesh, colorOf(prof.robe.color));
+      if (prof.robe.trim) draw(robeM, prof.robe.trim, trim);
     }
     {
       /* PIERNAS POR CINEMÁTICA INVERSA.
@@ -838,35 +744,39 @@ Arena.define('render/characterVisual',
           toe = (1 - leg.plantWeight) * 0.35;
           ankleM = node(kneeM, 0, -SHIN, 0, -ik.pitch - ik.bend + toe, 0, -ik.roll);
           draw(ankleM, 'foot', palette.leather);
+          emit('anklePair', ankleM, side);
           continue;
         }
-        draw(thighM, 'thigh', cloth);
-        // Faldón partido: cada mitad sigue a su muslo, así el paso lo abre en
-        // vez de atravesarlo. Un faldón rígido delata la pieza como decorado.
-        if (loadout.outfit === 'plate') {
-          draw(node(thighM, 0, 0.015, 0, -ik.pitch * 0.45, 0, side * 0.06),
-            'skirtPanel', palette.leather);
-          draw(node(thighM, 0, -0.10, 0.012, 0, 0, 0), 'thighGuard', metal);
-        }
+        draw(node(thighM, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'thigh', cloth);
+        // Faldones y quijotes: cada pieza sigue a SU muslo, así el paso los abre
+        // en vez de atravesarlos. `counterPitch` la deja seguir al hueso sin
+        // girar tanto como él; una pieza rígida se delata como decorado.
+        emit('thighPair', thighM, side, ik.pitch);
         kneeM = node(thighM, 0, -THIGH, 0, ik.bend, 0, 0);
-        draw(kneeM, 'knee', cloth);
-        draw(kneeM, 'shin', cloth);
-        if (loadout.outfit === 'plate') draw(node(kneeM, 0, -0.02, 0.028), 'kneeGuard', metal);
+        draw(node(kneeM, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'knee', cloth);
+        draw(node(kneeM, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'shin', cloth);
+        emit('kneePair', kneeM, side);
         // El tobillo cancela cadera y rodilla: el pie queda plano en el suelo
         // durante el apoyo y sólo se inclina en el vuelo.
         toe = (1 - leg.plantWeight) * 0.35;
         ankleM = node(kneeM, 0, -SHIN, 0, -ik.pitch - ik.bend + toe, 0, -ik.roll);
         draw(ankleM, 'foot', palette.leather);
-        draw(node(ankleM, 0, 0.012, -0.03), 'bootCuff',
-          loadout.outfit === 'plate' ? steel : palette.leather);
+        emit('anklePair', ankleM, side);
       }
     }
 
-    if (loadout.cape) {
-      var capePitch = 0.12 + lc.moveSpeed * 0.34 + lc.acceleration * 0.05 - lc.deceleration * 0.025;
-      var capeRoll = -lc.moveRight * lc.moveSpeed * 0.045 + Math.sin(lc.cycle * Math.PI * 2) * 0.018 * lc.moveSpeed;
+    /* Capa: NO es una pieza estática colgada del pecho. Acusa la velocidad, la
+       aceleración, el strafe y el giro, porque una capa quieta sobre un
+       personaje que corre es lo que más delata a un maniquí. */
+    if (prof.cloak) {
+      var capePitch = (prof.cloak.rest || 0.12) + lc.moveSpeed * 0.34
+                    + lc.acceleration * 0.05 - lc.deceleration * 0.025;
+      var capeRoll = -lc.moveRight * lc.moveSpeed * 0.045
+                   + Math.sin(lc.cycle * Math.PI * 2) * 0.018 * lc.moveSpeed;
       var capeYaw = -lc.turnRate * 0.040;
-      draw(node(chest, 0, 0.22, -0.13, capePitch, capeYaw, capeRoll), 'cape', trim);
+      var cpos = prof.cloak.pos || [0, 0.22, -0.13];
+      draw(node(chest, cpos[0], cpos[1], cpos[2], capePitch, capeYaw, capeRoll),
+        prof.cloak.mesh, colorOf(prof.cloak.color));
     }
 
     /* --- Brazos con codo -------------------------------------------------- */
@@ -874,61 +784,80 @@ Arena.define('render/characterVisual',
     var hands = [null, null];
     for (var a = 0; a < 2; a++) {
       var q = arms[a];
-      if (loadout.outfit === 'plate') {
-        var pm = node(chest, q.x * 1.10, 0.22, 0, 0, 0, q.side * 0.26);
-        draw(pm, 'pauldron', metal);
-        draw(node(pm, q.side * 0.12, 0.11, -0.015, q.side * -0.10, 0, q.side * -0.55, 0.75, 0.75, 0.75), 'pauldronSpike', trim);
-      } else if (loadout.outfit === 'leather') {
-        draw(node(chest, q.x * 1.04, 0.225, 0, 0, 0, q.side * 0.20), 'shoulderCap', palette.leather);
-      }
       var upper = node(chest, q.x, 0.20, 0, q.s.pitch, q.s.yaw, q.s.roll);
       draw(upper, 'shoulderBall', skin);
       draw(upper, 'upperArm', skin);
       var elbowM = node(upper, 0, -UPPER_ARM, 0, q.s.elbow, 0, 0);
       draw(elbowM, 'elbow', skin);
       draw(elbowM, 'lowerArm', skin);
-      if (loadout.outfit === 'plate') draw(elbowM, 'bracer', metal);
-      else if (loadout.outfit === 'leather') draw(elbowM, 'bracer', palette.leather);
-      else if (loadout.outfit === 'robe') draw(elbowM, 'robeCuff', trim);
+      emit('elbowPair', elbowM, q.side);
       hands[a] = node(elbowM, 0, -LOWER_ARM, 0, q.s.wrist || 0, 0, 0);
       draw(hands[a], 'hand', skin);
     }
     var handL = hands[0], handR = hands[1];
+    emit('handL', handL, 1);
+    emit('handR', handR, 1);
 
-    /* --- Armas ------------------------------------------------------------ */
+    /* --- Armas ------------------------------------------------------------
+     *
+     * El TIPO de arma (espada/arco/báculo) lo fija `data/animConfig.js` y es lo
+     * que gobierna la animación. La MALLA concreta la elige el perfil de clase:
+     * por eso el espadón del Devastador y la hoja corta del Guardián comparten
+     * timings sin compartir silueta, y el arco largo del Centinela y el recurvo
+     * del Rastreador se disparan igual midiendo el doble uno que otro.        */
+    var W = prof.right;
     var sc = loadout.scale;
-    if (loadout.right === 'sword') {
-      draw(node(handR, 0, -0.045, 0.015, A.weaponPitch, A.weaponYaw || 0, A.weaponRoll, sc, sc, sc), 'sword', steel);
+    /* Corrección de agarre por clase. La POSE del arma la decide la capa de
+       acciones —es animación, y es común al arquetipo—; esto sólo ladea la
+       pieza en la mano, que es una decisión de modelo. Sin ello un arco largo
+       queda perfectamente de canto a la cámara y el rasgo que define al
+       Centinela desaparece justo en la vista frontal. */
+    var wr = (W && W.rot) || ZERO3;
+    if (W && W.kind === 'sword') {
+      draw(node(handR, 0, -0.045, 0.015, A.weaponPitch + wr[0], (A.weaponYaw || 0) + wr[1],
+        A.weaponRoll + wr[2], sc, sc, sc), W.mesh, colorOf(W.color));
 
-    } else if (loadout.right === 'bow') {
+    } else if (W && W.kind === 'bow') {
       // Al soltar, el arco vibra un instante: sin ese retroceso el disparo no
       // tiene consecuencia física, sólo desaparece una flecha.
       var shake = A.bowShake || 0;
       var bowM = node(handL, 0, -0.05, 0.03,
-        A.bowPitch + Math.sin(st.action.idleNoise * 47) * shake,
-        A.bowYaw + Math.cos(st.action.idleNoise * 61) * shake, 0, sc, sc, sc);
-      draw(bowM, 'bow', palette.wood);
-      draw(node(bowM, 0, 0, -0.015 - A.draw * 0.24), 'bowString', [0.62, 0.60, 0.54]);
+        A.bowPitch + wr[0] + Math.sin(st.action.idleNoise * 47) * shake,
+        A.bowYaw + wr[1] + Math.cos(st.action.idleNoise * 61) * shake, wr[2], sc, sc, sc);
+      draw(bowM, W.mesh, colorOf(W.color));
+      // La cuerda mide lo que mide el arco: un arco largo con la cuerda del
+      // recurvo se lee como un arco roto.
+      if (W.string) draw(node(bowM, 0, 0, -0.015 - A.draw * 0.24), W.string, [0.62, 0.60, 0.54]);
       if (A.draw > 0.05) {
         draw(node(bowM, 0, 0, -0.28 - A.draw * 0.18, Math.PI / 2, 0, 0), 'arrow', [0.60, 0.48, 0.32]);
       }
 
-    } else if (loadout.right === 'staff') {
-      var staffM = node(handR, A.weaponOffsetX || 0, -0.045 + (A.weaponOffsetY || 0),
-        0.01 + (A.weaponOffsetZ || 0), A.weaponPitch, A.weaponYaw || 0, A.weaponRoll, sc, sc, sc);
-      draw(staffM, 'staff', palette.wood);
-      draw(staffM, 'staffCrown', trim);
+    } else if (W && W.kind === 'staff') {
+      /* `offset` separa el arma del cuerpo. Un báculo pegado al costado y un
+         arco pegado al costado dan el mismo contorno; con el hueco entre brazo
+         y vara, el mago deja de leerse como un arquero con un palo. */
+      var wo = W.offset || ZERO3;
+      var staffM = node(handR, (A.weaponOffsetX || 0) + wo[0], -0.045 + (A.weaponOffsetY || 0) + wo[1],
+        0.01 + (A.weaponOffsetZ || 0) + wo[2], A.weaponPitch + wr[0], (A.weaponYaw || 0) + wr[1],
+        A.weaponRoll + wr[2], sc, sc, sc);
+      draw(staffM, W.mesh, colorOf(W.color));
       var glow = 0.5 + st.cast * 2.6 + A.gemFlash * 2.2;
-      draw(node(staffM, 0, 0.90, 0), 'gem', accent,
+      // El foco del báculo brilla con el casteo: es el ancla visual del cast y
+      // la fuente de la luz puntual del caster en el backend de Three.js.
+      draw(node(staffM, 0, W.gemY === undefined ? 0.90 : W.gemY, 0), 'gem', accent,
         [accent[0] * glow, accent[1] * glow, accent[2] * glow]);
     }
 
-    if (loadout.left === 'shield') {
-      draw(node(handL, 0, -0.02, 0.09, -1.45, 0, -0.12), 'shield',
-        [team[0] * 0.55, team[1] * 0.55, team[2] * 0.55]);
-    } else if (loadout.left === 'orb') {
-      var og = 0.6 + st.cast * 2.2;
-      draw(node(handL, 0, -0.09, 0.03), 'orb', accent, [accent[0] * og, accent[1] * og, accent[2] * og]);
+    var LW = prof.left;
+    if (LW) {
+      var lp = LW.pos || ZERO3, lr = LW.rot || ZERO3;
+      var lem = null, lcol = colorOf(LW.color);
+      // El orbe del Vinculador responde al casteo igual que la gema del báculo.
+      if (LW.kind === 'orb') {
+        var og = 0.6 + st.cast * 2.2;
+        lem = [lcol[0] * og, lcol[1] * og, lcol[2] * og];
+      }
+      draw(node(handL, lp[0], lp[1], lp[2], lr[0], lr[1], lr[2]), LW.mesh, lcol, lem);
     }
 
     if (st.cast > 0.04) {
@@ -942,10 +871,20 @@ Arena.define('render/characterVisual',
   /* =========================================================================
    * Paleta
    * ====================================================================== */
+  /**
+   * Paleta de un personaje. La familia cromática la elige la CLASE, no el
+   * arquetipo: antes las dos clases de cada arquetipo compartían atuendo y sólo
+   * se distinguían por el tinte de bando, que es exactamente lo que hacía que
+   * `centinela` y `rastreador` fueran el mismo muñeco.
+   *
+   * El tinte de bando se mezcla MUY poco (5–7 %) y va concentrado en piezas
+   * estrechas: si baña el traje entero, el atuendo deja de contar quién es el
+   * personaje y sólo cuenta de qué equipo es.
+   */
   CV.paletteFor = function (entity, isFriendly) {
     var race = Arena.Data.getRace(entity.raceId);
-    var loadout = LOADOUT[entity.classId] || LOADOUT.devastador;
-    var outfit = OUTFIT[loadout.outfit] || OUTFIT.plate;
+    var prof = Arena.Data.classVisualOf(entity.classId);
+    var pal = Arena.Data.VISUAL_PALETTES[prof.palette] || Arena.Data.VISUAL_PALETTES.vanguard;
     var teamTint = isFriendly ? [0.18, 0.48, 1.00] : [1.00, 0.20, 0.14];
     function mix(a, b, t) {
       return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
@@ -954,14 +893,15 @@ Arena.define('render/characterVisual',
       skin: entity.skinTone || race.palette.skin,
       hair: entity.hairColor || race.palette.hair,
       eye: race.palette.eye,
-      cloth: mix(outfit.cloth, teamTint, 0.065),
-      metal: mix(outfit.metal, teamTint, 0.055),
-      steel: outfit.metal,
-      leather: outfit.leather,
-      wood: outfit.wood,
-      trim: outfit.trim,
+      cloth: mix(pal.cloth, teamTint, 0.065),
+      metal: mix(pal.metal, teamTint, 0.055),
+      steel: pal.metal,
+      leather: pal.leather,
+      wood: pal.wood,
+      trim: pal.trim,
       accent: mix(race.palette.eye, [1, 1, 1], 0.25),
-      team: teamTint
+      team: teamTint,
+      teamDark: [teamTint[0] * 0.62, teamTint[1] * 0.62, teamTint[2] * 0.62]
     };
   };
 

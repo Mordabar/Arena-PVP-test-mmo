@@ -254,7 +254,10 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
   var CLASSES = {
     guardian: { strideLength: 0.72, stepFrequency: 1.42, stanceWidth: 0.145 },
     devastador: { accelLean: 0.20, armSwing: 0.54 },
-    centinela: { strideLength: 0.90 },
+    /* Postura de tirador: base ancha y zancada larga. Además de ser el gesto
+       correcto para un arquero de largo alcance, separa su contorno frontal del
+       de un caster con túnica, que era la última pareja que se confundía. */
+    centinela: { strideLength: 0.90, stanceWidth: 0.170 },
     vinculador: { stepFrequency: 1.50, strideLength: 0.76 }
   };
 
