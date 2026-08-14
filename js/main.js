@@ -112,6 +112,12 @@ Arena.define('main',
     this._bindInput(canvas);
     this._bindActionBar();
 
+    /* `index.html?diag=pointerlock` abre el diagnóstico directamente, para poder
+       mandar un enlace y que quien lo abra sólo tenga que arrastrar el ratón. */
+    if (Arena.UI.PointerLockDiag && Arena.UI.PointerLockDiag.requestedByUrl()) {
+      Arena.UI.PointerLockDiag.create(this);
+    }
+
     this._clearWorld();
     this.world.start();
     this.flow.enterLobby();
@@ -520,6 +526,13 @@ Arena.define('main',
         // Depuración de animación: esqueleto, pies anclados, centro de masa y
         // vectores. Sólo lee estado, así que apagarlo no cambia nada.
         Arena.Render.AnimDebug.enabled = !Arena.Render.AnimDebug.enabled;
+        e.preventDefault();
+        break;
+      case 'f9':
+        /* Diagnóstico de Pointer Lock. Es el único gate del proyecto que un
+           navegador headless no puede conceder —exige un gesto humano real—,
+           así que se comprueba a mano sobre el build desplegado. Sólo lee. */
+        if (Arena.UI.PointerLockDiag) Arena.UI.PointerLockDiag.toggle(this);
         e.preventDefault();
         break;
     }

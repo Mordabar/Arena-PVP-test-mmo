@@ -35,6 +35,12 @@ const GATES = [
     silencioso: true
   },
   {
+    nombre: 'Identidad visual · seis contornos medidos',
+    cmd: ['node', ['tools/silhouette-report.js']],
+    navegador: false,
+    silencioso: true
+  },
+  {
     nombre: 'Composición del HUD en las tres fases',
     cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/hud-layout-audit.json']],
     navegador: true
@@ -71,6 +77,15 @@ const GATES = [
     lenta: true
   },
   {
+    /* Devuelve verde comprobando lo que SÍ es automatizable —que el juego pide
+       el lock por la ruta real y que el diagnóstico manual funciona— y deja
+       constancia medida de lo que el navegador no concede a un gesto sintético.
+       Ver docs/POINTER_LOCK_MANUAL.md. */
+    nombre: 'Pointer Lock · MANUAL_BROWSER_REQUIRED',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/pointerlock-gate.json']],
+    navegador: true
+  },
+  {
     nombre: 'Animación y VFX · lo que sale por pantalla',
     cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/anim-vfx-sweep.json']],
     navegador: true,
@@ -100,7 +115,7 @@ for (const gate of GATES) {
   });
   if (gate.silencioso && r.stdout) {
     // De los informes largos basta con la cabecera y el veredicto.
-    const l = r.stdout.split('\n').filter(x => /SIMETRÍA|separación|CERRADA|ABIERTA|piezas del/.test(x));
+    const l = r.stdout.split('\n').filter(x => /SIMETRÍA|separación|CERRADA|ABIERTA|piezas del|peor pareja/.test(x));
     l.forEach(x => console.log('  ' + x.trim()));
   }
   const ok = r.status === 0;

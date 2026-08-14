@@ -21,7 +21,13 @@ console.log('ARBITER · auditoría adversarial Ladder Vertical Slice v0.8\n');
 let testOut = '';
 try {
   testOut = cp.execFileSync(process.execPath, [path.join(ROOT, 'tools/run-tests.js')], { encoding:'utf8', stdio:['ignore','pipe','pipe'] });
-  gate(/TODO OK — 215 pruebas/.test(testOut), '215/215 tests: core temporal + Animation Reference + producto Ladder');
+  /* Un número exacto convierte cada prueba nueva en un fallo del árbitro y
+     empuja a no añadir pruebas. Lo que importa es que TODAS pasen y que la
+     batería no encoja: un suelo detecta igual de bien que alguien borre media
+     suite para pasar la puerta. */
+  const m = /TODO OK — (\d+) pruebas/.exec(testOut);
+  const n = m ? parseInt(m[1], 10) : 0;
+  gate(n >= 279, 'batería completa en verde (' + n + ' pruebas, suelo 279)');
 } catch (e) {
   gate(false, 'suite de tests ejecutable', String(e.message).split('\n')[0]);
 }
@@ -42,7 +48,10 @@ const hud = read('js/ui/hud.js');
 const log = read('js/ui/combatLog.js');
 const icons = read('js/ui/abilityIcons.js');
 const arena = read('js/sim/arena.js');
-const html = read('index-three.html');
+/* El entrypoint del producto es `index.html`: la separación en un
+   `index-three.html` aparte se deshizo cuando Three.js pasó a ser el backend
+   por defecto, y el árbitro se quedó leyendo un fichero que ya no existe. */
+const html = read('index.html');
 const missionTests = read('js/tests/gameFeelMissionTests.js');
 const refTests = read('js/tests/animationReferenceTests.js');
 const animCfg = read('js/data/animConfig.js');
@@ -111,7 +120,14 @@ gate(charVis.includes("ws.phase === 'WINDUP'") && charVis.includes("ws.phase ===
 gate(actions.includes('cancelVisual'), 'cancelación visual hace blend-out sin devolver autoridad al renderer');
 
 // 7 — laboratorio y telemetría.
-gate(main.includes("case 'timing':") && main.includes('STOP-SHOT') && main.includes('GCD CHAIN'),
+/* El Timing Lab dejó de ser un `switch` en main.js: los escenarios son DATOS
+   en `data/scenarios.js` y el panel los ofrece desde ahí. La puerta sigue
+   exigiendo lo mismo —que las estaciones existan— pero en el sitio donde
+   ahora viven, que es lo que hay que verificar. */
+const scenarios = read('js/data/scenarios.js');
+const labPanel = read('js/ui/labPanel.js');
+gate(scenarios.includes('STOP-SHOT') && scenarios.includes('GCD CHAIN') &&
+     /timing\s*:/.test(scenarios) && labPanel.includes("'timing'"),
   'Timing Lab contiene estaciones stop-shot/weave/replace/cast/GCD');
 gate(log.includes('ARMA · WINDUP') && log.includes('ARMA · RELEASE') && log.includes('QUEUE'),
   'Combat Log expone timeline temporal con world.time');
