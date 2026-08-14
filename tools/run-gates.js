@@ -50,6 +50,11 @@ const GATES = [
     navegador: true
   },
   {
+    nombre: 'Ratón · arrastre izquierdo 1:1 y mirada libre',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/mouse-sweep.json']],
+    navegador: true
+  },
+  {
     nombre: 'Movimiento, cámara y targeting en partida',
     cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/control-sweep.json']],
     navegador: true

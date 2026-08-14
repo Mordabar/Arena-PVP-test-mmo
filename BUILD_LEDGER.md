@@ -34,19 +34,20 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **130** |
+| VERIFIED | **132** |
 | TESTED (implementado + suite verde, sin barrido observable) | **6** |
+| IMPLEMENTED sin verificar | **0** |
 | IMPLEMENTED | **4** |
 | TODO / BLOCKED | **6** |
 
-**130 / 146 VERIFIED — este build NO está terminado.**
+**132 / 146 VERIFIED — este build NO está terminado.**
 
 La cuenta, para que sea auditable y no una cifra de confianza:
 
 | Bloque | Filas | VERIFIED | Cuáles |
 |---|---|---|---|
 | MOVEMENT | 16 | 12 | WASD, diagonales, salto/aire/aterrizaje, colisión y combate |
-| CAMERA | 10 | 8 | seguimiento, colisión, zoom, pitch, mirada libre, sin snap, sin escribir simulación |
+| CAMERA | 10 | 10 | todo salvo Pointer Lock, que el navegador no concede a un gesto sintético |
 | TARGETING §5 | 10 | 9 | + Tab, aliados, objetivo inválido y muerte |
 | NORMAL · CASTING · CC | 60 | 60 | 18 sondas cubren §4 y §5 de QA_GATE dentro del juego |
 | CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
@@ -71,6 +72,11 @@ bien» de algo que otra persona puede repetir.
 ---
 
 ## MOVEMENT
+
+Arrastre de ratón: `node tools/browser.js play tools/scripts/mouse-sweep.json`.
+Las filas 20 y 21 llevaban desde el principio marcadas como no verificables «sin
+ratón real». No lo eran: el driver sólo sabía teclear. Ahora dispatcha
+`mousePressed` → varios `mouseMoved` → `mouseReleased` y mide el resultado.
 
 Barrido observable: `node tools/browser.js play tools/scripts/control-sweep.json`
 — **9 sondas, EXIT=0**, cubriendo QA_GATE §6 dentro de la partida.
@@ -107,9 +113,9 @@ equivocar.
 | 17 | follow | VERIFIED | observado en partida |
 | 18 | zoom | VERIFIED | respeta mínimo y máximo bajo 60 pasos en cada sentido |
 | 19 | pitch | VERIFIED | respeta ambos topes |
-| 20 | left drag | IMPLEMENTED | **sin verificar con ratón real** — headless no concede Pointer Lock |
-| 21 | right free-look | IMPLEMENTED | ídem |
-| 22 | pointer lock | BLOCKED | requiere gesto humano; no verificable en este entorno |
+| 20 | left drag | VERIFIED | **con ratón real dispatchado**: arrastre de 260 px → cuerpo −0.8190 y cámara −0.8190, idénticos |
+| 21 | right free-look | VERIFIED | arrastre derecho de 240 px → cámara 0.7560, cuerpo **0** exacto |
+| 22 | pointer lock | BLOCKED | el navegador exige gesto humano de usuario; no se concede a un evento sintético. Es el ÚNICO row que este entorno no puede cerrar, y el juego funciona sin él: el arrastre se verificó igualmente |
 | 23 | drag deadzone | TESTED | umbral doble tiempo+píxeles |
 | 24 | collision | VERIFIED | plataformas incluidas; el ojo sigue el suelo bajo él |
 | 25 | no target lock | VERIFIED | auto-encarado eliminado; 4 tests |

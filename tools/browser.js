@@ -271,6 +271,25 @@ const cmd = process.argv[2] || 'smoke';
           }
         }
         if (step.key) { const k = KEYS[step.key]; if (k) await session.key(...k); }
+        /* Arrastre de ratón REAL. Las filas de «girar con botón izquierdo» y
+           «mirada libre con botón derecho» llevaban desde el principio marcadas
+           como no verificables, y no lo eran: el problema era que este driver
+           sólo sabía teclear. Un arrastre es pulsar, mover en varios pasos
+           —uno solo no produce delta— y soltar. */
+        if (step.drag) {
+          const d = step.drag;
+          const boton = d.button || 'left';
+          const pasos = d.steps || 8;
+          await session.mouse('mousePressed', d.x, d.y, boton);
+          for (let i = 1; i <= pasos; i++) {
+            await session.mouse('mouseMoved',
+              d.x + (d.dx || 0) * i / pasos,
+              d.y + (d.dy || 0) * i / pasos, boton);
+            if (d.settle) await sleep(d.settle);
+          }
+          await session.mouse('mouseReleased',
+            d.x + (d.dx || 0), d.y + (d.dy || 0), boton);
+        }
         if (step.hold) { const k = KEYS[step.hold]; if (k) await session.holdKey(...k, step.ms || 400); }
         if (step.wait) await sleep(step.wait);
         if (step.shot) await session.screenshot(step.shot);
