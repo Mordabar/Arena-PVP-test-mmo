@@ -548,11 +548,14 @@ Arena.define('render/characterVisual',
      * Los sockets terminados en `Pair` se emiten una vez por lado con `x`,
      * `yaw` y `roll` invertidos; una pieza con `side` sale sólo en ese lado, y
      * ahí es donde vive la asimetría del Devastador y del Rastreador.        */
-    var COLORS = {
-      cloth: cloth, metal: metal, steel: steel, leather: palette.leather,
-      wood: palette.wood, trim: trim, accent: accent, skin: skin, hair: hair,
-      team: team, teamDark: palette.teamDark
-    };
+    /* La tabla se REUTILIZA entre fotogramas. Un objeto literal aquí serían
+       cuatro asignaciones por fotograma en partida —una por personaje—, y
+       `CLAUDE.md` §14 es explícito con las reservas en rutas calientes. */
+    var COLORS = st._colors || (st._colors = {});
+    COLORS.cloth = cloth; COLORS.metal = metal; COLORS.steel = steel;
+    COLORS.leather = palette.leather; COLORS.wood = palette.wood;
+    COLORS.trim = trim; COLORS.accent = accent; COLORS.skin = skin;
+    COLORS.hair = hair; COLORS.team = team; COLORS.teamDark = palette.teamDark;
     function colorOf(name) { return (name && COLORS[name]) || cloth; }
 
     function emit(socket, parent, side, counterAngle) {

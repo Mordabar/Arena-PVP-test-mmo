@@ -43,11 +43,18 @@ porque el dibujo se puede bajar de calidad y las reglas no.
 
 | | Pico en 2v2 | Techo |
 |---|---|---|
-| Draw calls | **641** | 900 |
-| Triángulos | **37 458** | 400 000 |
+| Draw calls | **640** | 900 |
+| Triángulos | **41 253** | 400 000 |
 
 Medido con cuatro personajes, bots activos y VFX en curso, no en escena vacía,
 que es lo que pide el spec.
+
+**Con las seis identidades de clase dentro.** Vestir a los personajes con equipo
+propio —hombreras, faldares, escudo torre, carcajes, capas, sombreros— subió los
+triángulos de 37 458 a 41 253, un 10 %, y **dejó los draw calls igual**: las
+geometrías se suben una sola vez y se comparten, así que añadir piezas no añade
+llamadas de dibujo. Sigue en el 10 % del techo de triángulos y el 71 % del de
+draw calls.
 
 ## Partículas
 
@@ -71,7 +78,7 @@ vuelta al lobby entre cada una:
 | Proyectiles | 0 | **0** |
 | Zonas | 0 | **0** |
 | Visuales de personaje | 0 | **0** |
-| Nodos de DOM | 685 | **685** |
+| Nodos de DOM | 698 | **698** |
 | Oyentes del bus | 87 | **87** |
 
 Plano. Ni un nodo de DOM, ni un oyente, ni un visual de personaje de más después

@@ -251,6 +251,23 @@ const cmd = process.argv[2] || 'smoke';
 
     if (cmd === 'play' && arg) {
       const script = JSON.parse(fs.readFileSync(arg, 'utf8'));
+      /* Errores de página ESPERADOS.
+       *
+       * Un guion puede declarar, como primer elemento, patrones de error que el
+       * navegador emite por diseño y que no son defectos del juego. El caso que
+       * lo motiva: Chromium rechaza `requestPointerLock()` nacido de un evento
+       * sintético con `WrongDocumentError`, así que cualquier puerta que
+       * arrastre el ratón acababa en rojo permanente. Una puerta que siempre
+       * está roja no la mira nadie, y entonces deja de detectar lo que sí
+       * importa.
+       *
+       * NO es un silenciador general: se declaran patrones concretos, se
+       * cuentan aparte y se imprimen igual, para que nadie pueda esconder un
+       * error de verdad detrás de este mecanismo. */
+      if (script.length && script[0] && Array.isArray(script[0].expectErrors)) {
+        session.expectedErrors = script[0].expectErrors.map(p => new RegExp(p));
+        script.shift();
+      }
       for (const step of script) {
         if (step.eval) {
           const value = await session.evaluate(step.eval);
@@ -303,9 +320,18 @@ const cmd = process.argv[2] || 'smoke';
       console.log('CAPTURA:', out);
     }
 
-    if (session.pageErrors.length) {
-      console.log('\nERRORES DE PÁGINA (' + session.pageErrors.length + '):');
-      session.pageErrors.slice(0, 12).forEach(e => console.log('  · ' + String(e).split('\n')[0]));
+    const esperados = session.expectedErrors || [];
+    const inesperados = session.pageErrors.filter(
+      e => !esperados.some(re => re.test(String(e))));
+    const conocidos = session.pageErrors.length - inesperados.length;
+    if (conocidos) {
+      console.log('\nERRORES DE PÁGINA ESPERADOS (' + conocidos + '), declarados por el guion:');
+      session.pageErrors.filter(e => esperados.some(re => re.test(String(e))))
+        .slice(0, 6).forEach(e => console.log('  · ' + String(e).split('\n')[0]));
+    }
+    if (inesperados.length) {
+      console.log('\nERRORES DE PÁGINA (' + inesperados.length + '):');
+      inesperados.slice(0, 12).forEach(e => console.log('  · ' + String(e).split('\n')[0]));
       exitCode = 1;
     }
     const warnings = session.consoleLogs.filter(l => l.type === 'error' || l.type === 'warning');
