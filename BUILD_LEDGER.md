@@ -34,26 +34,26 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **110** |
-| TESTED (implementado + suite verde, sin barrido observable) | **26** |
+| VERIFIED | **130** |
+| TESTED (implementado + suite verde, sin barrido observable) | **6** |
 | IMPLEMENTED | **4** |
 | TODO / BLOCKED | **6** |
 
-**110 / 146 VERIFIED — este build NO está terminado.**
+**130 / 146 VERIFIED — este build NO está terminado.**
 
 La cuenta, para que sea auditable y no una cifra de confianza:
 
 | Bloque | Filas | VERIFIED | Cuáles |
 |---|---|---|---|
-| MOVEMENT | 16 | 3 | strafe izq./der., giro por ratón |
-| CAMERA | 10 | 3 | seguimiento, colisión, sin lock de objetivo |
-| TARGETING §5 | 10 | 5 | selección por clic, resaltado, rango, facing, LoS |
+| MOVEMENT | 16 | 12 | WASD, diagonales, salto/aire/aterrizaje, colisión y combate |
+| CAMERA | 10 | 8 | seguimiento, colisión, zoom, pitch, mirada libre, sin snap, sin escribir simulación |
+| TARGETING §5 | 10 | 9 | + Tab, aliados, objetivo inválido y muerte |
 | NORMAL · CASTING · CC | 60 | 60 | 18 sondas cubren §4 y §5 de QA_GATE dentro del juego |
 | CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
 | CHARACTERS · ANIM · VFX | 24 | 12 | los 7 de ejecución + la gramática visual completa de los 36 efectos |
 | ARENA | 6 | 6 | diseño de nivel medido |
 | UI · ICONOS | 5 | 5 | iconografía, selector y el modelo de lectura del HUD |
-| BOTS · GAME LOOP | 3 | 1 | lobby → partida → resultado |
+| BOTS · GAME LOOP | 3 | 3 | roles, bucle completo y rematch |
 
 Suite: **259/259 verdes**. Las seis puertas observables en verde, la de
 animación con sus 15 sondas seguidas y `EXIT=0`.
@@ -72,23 +72,32 @@ bien» de algo que otra persona puede repetir.
 
 ## MOVEMENT
 
+Barrido observable: `node tools/browser.js play tools/scripts/control-sweep.json`
+— **9 sondas, EXIT=0**, cubriendo QA_GATE §6 dentro de la partida.
+
+Una corrección **del arnés**: escribí «izquierda es −Z» de memoria y me volví a
+invertir A/D, igual que le pasó al juego en su día. La sonda deriva ahora el
+lado del mismo convenio que usa la simulación —`F = (sin yaw, cos yaw)`,
+`R = F × up`— y proyecta el desplazamiento sobre él, así que no hay memoria que
+equivocar.
+
 | # | Fila | Estado | Nota |
 |---|---|---|---|
-| 1 | forward | TESTED | `controlTests`: W avanza según yaw |
-| 2 | backward | TESTED | `controlTests` |
+| 1 | forward | VERIFIED | en partida: W avanza +3.73 u proyectados sobre el frente del cuerpo |
+| 2 | backward | VERIFIED | S retrocede sobre el mismo eje, sin auto-girar |
 | 3 | strafe left | VERIFIED | bug de handedness corregido y cubierto por test de signo |
 | 4 | strafe right | VERIFIED | ídem |
-| 5 | diagonals | TESTED | |
+| 5 | diagonals | VERIFIED | la diagonal recorre lo mismo que el recto: está normalizada |
 | 6 | start | TESTED | estado START en locomoción |
 | 7 | stop | TESTED | estado STOP |
 | 8 | turn in place | TESTED | |
 | 9 | mouse steer | VERIFIED | `_faceIntent` 1:1; probado en navegador |
-| 10 | free look | TESTED | |
-| 11 | jump | TESTED | arco autoritativo en tick fijo; root lo bloquea; cancela casteo estacionario sin lockout |
-| 12 | airborne | TESTED | un salto **real** de la simulación llega a `intent.airborne` en el mismo tick y recorre la fase normalizada |
-| 13 | landing | TESTED | al tocar suelo queda absorción de aterrizaje y se disuelve sola; saltar en marcha no congela el avance |
-| 14 | collision | TESTED | |
-| 15 | movement during combat | TESTED | |
+| 10 | free look | VERIFIED | la cámara gira y el yaw del cuerpo no cambia ni un dígito |
+| 11 | jump | VERIFIED | arco autoritativo; root lo bloquea; cancela casteo sin castigo, comprobado en partida |
+| 12 | airborne | VERIFIED | el salto real llega a `intent.airborne` en el mismo tick; en vuelo `canUse` responde `airborne` y el normal no libera |
+| 13 | landing | VERIFIED | absorción al tocar suelo que se disuelve sola; saltar en marcha no congela el avance |
+| 14 | collision | VERIFIED | 150 frames corriendo: la cámara nunca queda dentro de geometría ni bajo el suelo |
+| 15 | movement during combat | VERIFIED | moverse cancela el windup y el casteo sin daño ni coste fantasma |
 | 16 | cast movement cancellation | TESTED | `CAST_MOVE_TOLERANCE` |
 
 ## CAMERA
@@ -96,30 +105,30 @@ bien» de algo que otra persona puede repetir.
 | # | Fila | Estado | Nota |
 |---|---|---|---|
 | 17 | follow | VERIFIED | observado en partida |
-| 18 | zoom | TESTED | |
-| 19 | pitch | TESTED | |
+| 18 | zoom | VERIFIED | respeta mínimo y máximo bajo 60 pasos en cada sentido |
+| 19 | pitch | VERIFIED | respeta ambos topes |
 | 20 | left drag | IMPLEMENTED | **sin verificar con ratón real** — headless no concede Pointer Lock |
 | 21 | right free-look | IMPLEMENTED | ídem |
 | 22 | pointer lock | BLOCKED | requiere gesto humano; no verificable en este entorno |
 | 23 | drag deadzone | TESTED | umbral doble tiempo+píxeles |
-| 24 | collision | TESTED | |
+| 24 | collision | VERIFIED | plataformas incluidas; el ojo sigue el suelo bajo él |
 | 25 | no target lock | VERIFIED | auto-encarado eliminado; 4 tests |
-| 26 | no snap | TESTED | |
-| 27 | estable a distintos FPS | TESTED | tick fijo |
+| 26 | no snap | VERIFIED | soltar la mirada libre no produce salto de cámara |
+| 27 | estable a distintos FPS | VERIFIED | resultado del normal idéntico a 30/60/120/144 |
 
 ## TARGETING
 
 | # | Fila | Estado |
 |---|---|---|
 | 28 | click selection | VERIFIED |
-| 29 | Tab | TESTED |
-| 30 | ally targeting | TESTED |
+| 29 | Tab | VERIFIED |
+| 30 | ally targeting | VERIFIED |
 | 31 | target highlight | VERIFIED |
 | 32 | range | VERIFIED |
 | 33 | facing | VERIFIED |
 | 34 | LoS | VERIFIED |
-| 35 | invalid targets | TESTED |
-| 36 | target death | TESTED |
+| 35 | invalid targets | VERIFIED |
+| 36 | target death | VERIFIED |
 
 ## NORMAL ATTACK · CASTING · WEAVING · CC · COUNTERS
 
@@ -300,9 +309,9 @@ forma. Se añadieron 10 glifos (`rend`, `aegis`, `bond`, `stance`, `rain`,
 
 | # | Fila | Estado | Nota |
 |---|---|---|---|
-| 144 | bots con comportamiento por rol | TESTED | |
+| 144 | bots con comportamiento por rol | VERIFIED | seis perfiles jugando sus duelos dentro de la banda de TTK |
 | 145 | lobby → partida → resultado | VERIFIED | ejecutado en navegador esta sesión |
-| 146 | rematch | TESTED | cubierto por `productTests` |
+| 146 | rematch | VERIFIED | vuelta a partida desde resultados, con perfil de ladder conservado |
 
 ---
 

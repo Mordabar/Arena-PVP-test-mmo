@@ -50,6 +50,16 @@ const GATES = [
     navegador: true
   },
   {
+    nombre: 'Movimiento, cámara y targeting en partida',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/control-sweep.json']],
+    navegador: true
+  },
+  {
+    nombre: 'Combate · normal, casteo, weaving, CC y counters',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/combat-sweep.json']],
+    navegador: true
+  },
+  {
     nombre: 'Animación y VFX · lo que sale por pantalla',
     cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/anim-vfx-sweep.json']],
     navegador: true,
