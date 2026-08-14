@@ -34,12 +34,12 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **101** |
-| TESTED (implementado + suite verde, sin barrido observable) | **35** |
+| VERIFIED | **110** |
+| TESTED (implementado + suite verde, sin barrido observable) | **26** |
 | IMPLEMENTED | **4** |
 | TODO / BLOCKED | **6** |
 
-**101 / 146 VERIFIED — este build NO está terminado.**
+**110 / 146 VERIFIED — este build NO está terminado.**
 
 La cuenta, para que sea auditable y no una cifra de confianza:
 
@@ -50,12 +50,12 @@ La cuenta, para que sea auditable y no una cifra de confianza:
 | TARGETING §5 | 10 | 5 | selección por clic, resaltado, rango, facing, LoS |
 | NORMAL · CASTING · CC | 60 | 60 | 18 sondas cubren §4 y §5 de QA_GATE dentro del juego |
 | CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
-| CHARACTERS · ANIM · VFX | 24 | 7 | locomoción, pose, acciones, control, reacción, VFX y muerte, medidos en ejecución |
+| CHARACTERS · ANIM · VFX | 24 | 12 | los 7 de ejecución + la gramática visual completa de los 36 efectos |
 | ARENA | 6 | 6 | diseño de nivel medido |
-| UI · ICONOS | 5 | 4 | iconografía y selector |
+| UI · ICONOS | 5 | 5 | iconografía, selector y el modelo de lectura del HUD |
 | BOTS · GAME LOOP | 3 | 1 | lobby → partida → resultado |
 
-Suite: **243/243 verdes**. Las seis puertas observables en verde, la de
+Suite: **259/259 verdes**. Las seis puertas observables en verde, la de
 animación con sus 15 sondas seguidas y `EXIT=0`.
 
 ### Cómo se reproduce todo esto
@@ -235,6 +235,11 @@ subían con la suite.
 | lenguaje corporal del control | VERIFIED | KNOCKDOWN, STUN y ROOT distintos entre sí y presentes en la intención |
 | reacción al daño aditiva | VERIFIED | pico 0.942, se disuelve sola, la locomoción no baja de 1.20 durante el impacto |
 | familias de VFX | VERIFIED | ninguna de 24 habilidades muda; 14 partículas en pico → 0 a los 6 s |
+| gramática visual completa | VERIFIED | las 36 habilidades resuelven a una firma con color base, acento, estilo, conteo y vida; **ninguna cae en el genérico por defecto** |
+| escuelas distinguibles a distancia | VERIFIED | siete escuelas; las dos más parecidas están a 0.35+ de distancia de color |
+| marca propia por control | VERIFIED | ningún par de controles duros comparte forma y color |
+| jerarquía por magnitud y crítico | VERIFIED | el efecto de mayor magnitud emite más que el menor; el perfil de crítico escala por encima del impacto corriente |
+| telegrafía sólo lo accionable | VERIFIED | ningún golpe directo instantáneo telegrafía; los avisos de suelo sí, porque apartarse sigue siendo una respuesta |
 | muerte con prioridad sobre control | VERIFIED | STUN antes, DEATH después, pose íntegra |
 
 **La séptima costó seis ejecuciones y no era un defecto.** La sonda devolvía
@@ -275,6 +280,10 @@ Filas 139–143. Estado: **TESTED**, iconografía **VERIFIED**.
 | Fila | Estado | Evidencia |
 |---|---|---|
 | icono distinto por habilidad | VERIFIED | 36/36 sin colisión; `iconTests` lo impide |
+| el HUD explica POR QUÉ no salió | VERIFIED | los **26** motivos que declara `AbilitySystem.REASONS` tienen titular, pista accionable y marca propia, y ninguno repite texto. La lista se toma del sistema, no se escribe a mano: una razón nueva aparece sola en la prueba |
+| el kit explica su relación con el normal | VERIFIED | `abilityTiming` etiqueta reemplazo, weaving, intervalo de arma y quietud, con texto largo por etiqueta |
+| barras que no mienten | VERIFIED | la barrera se pinta ENCIMA de la vida con su desplazamiento, nunca restándola |
+| orden de estados por urgencia | VERIFIED | un control duro manda sobre un slow largo y un buff, y se marca urgente |
 | silueta legible | VERIFIED | 24 glifos vectoriales, ninguno vacío |
 | lenguaje visual por clase | VERIFIED | seis paletas, test de unicidad |
 | selector de clase | VERIFIED | `docs/shots/p-01-lobby.png` |

@@ -433,6 +433,10 @@ Arena.define('ui/hudModel', ['data/effects', 'data/abilities'], function (Arena)
       var sim = Arena.Combat && Arena.Combat.AbilitySystem && Arena.Combat.AbilitySystem.REASONS
         ? Arena.Combat.AbilitySystem.REASONS[reason] : null;
       return {
+        /* `generic: true` es una confesión, no un adorno: dice que esta razón
+           no tiene explicación propia y que el jugador va a leer el texto crudo
+           de la simulación. Las pruebas la usan para exigir cobertura. */
+        generic: true,
         code: reason || 'unknown',
         title: (info.message || sim || 'ACCIÓN RECHAZADA').toUpperCase(),
         hint: info.message && sim && info.message !== sim ? info.message : '',
