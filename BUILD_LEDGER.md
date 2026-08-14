@@ -34,12 +34,12 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **52** |
-| TESTED (implementado + suite verde, sin barrido observable) | **84** |
+| VERIFIED | **101** |
+| TESTED (implementado + suite verde, sin barrido observable) | **35** |
 | IMPLEMENTED | **4** |
 | TODO / BLOCKED | **6** |
 
-**52 / 146 VERIFIED — este build NO está terminado.**
+**101 / 146 VERIFIED — este build NO está terminado.**
 
 La cuenta, para que sea auditable y no una cifra de confianza:
 
@@ -48,7 +48,7 @@ La cuenta, para que sea auditable y no una cifra de confianza:
 | MOVEMENT | 16 | 3 | strafe izq./der., giro por ratón |
 | CAMERA | 10 | 3 | seguimiento, colisión, sin lock de objetivo |
 | TARGETING §5 | 10 | 5 | selección por clic, resaltado, rango, facing, LoS |
-| NORMAL · CASTING · CC | 60 | 11 | 4 del ataque normal + 7 puertas de casteo |
+| NORMAL · CASTING · CC | 60 | 60 | 18 sondas cubren §4 y §5 de QA_GATE dentro del juego |
 | CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
 | CHARACTERS · ANIM · VFX | 24 | 7 | locomoción, pose, acciones, control, reacción, VFX y muerte, medidos en ejecución |
 | ARENA | 6 | 6 | diseño de nivel medido |
@@ -123,7 +123,43 @@ bien» de algo que otra persona puede repetir.
 
 ## NORMAL ATTACK · CASTING · WEAVING · CC · COUNTERS
 
-Filas 37–96. Estado heredado: **TESTED**, con cuatro excepciones VERIFIED.
+Filas 37–96. Estado: **VERIFIED**.
+
+`node tools/browser.js play tools/scripts/combat-sweep.json` — **18 sondas,
+EXIT=0**, ejecutadas dentro del juego arrancado y por la ruta real del jugador
+(`Game._useSlot`, la misma que las teclas 1..6). Cubren por su nombre las
+familias que exige `QA_GATE.md` §4 y §5:
+
+| Familia | Sonda | Evidencia |
+|---|---|---|
+| Normal | no libera en movimiento | 0 de daño corriendo 3 s pegado al objetivo |
+| Normal | parar no cuesta un intervalo entero | tras frenar, WINDUP arranca muy por debajo del intervalo de arma |
+| Normal | moverse en WINDUP cancela | la fase abandona WINDUP y no se aplica daño |
+| Normal | el daño empieza en RELEASE | cero daño mientras la fase sigue en WINDUP; daño después |
+| Normal | valida facing, rango y LoS | pega de frente y en rango; de espaldas no; a 14 u no |
+| Casteo | BEGIN no compromete | ni recurso, ni cooldown, ni GCD al abrir |
+| Casteo | RELEASE compromete una vez | cobra el coste declarado, arranca CD y GCD, y no vuelve a cobrar |
+| Casteo | saltar cancela sin castigo | sin coste, sin cooldown, sin bloqueo de escuela |
+| Casteo | interrumpir ≠ cancelar | cancelar no bloquea la escuela; un silencio sí deja consecuencia |
+| Casteo | lo liberado sobrevive | se mata al lanzador tras RELEASE y el proyectil impacta igual |
+| Aire | ni casteo ni normal liberan en vuelo | `canUse` responde `airborne` y el normal no aplica daño |
+| Weaving | arquero teje normal + poder | impacto del normal y luego del poder, ambos > 0 |
+| Weaving | `replacesNormal` sin fantasma | el reemplazo pega y no deja un normal duplicado |
+| Cola | la última intención válida manda | pulsar dos dentro de la ventana deja encolada la segunda |
+| Weaving | el hechizo pedido gana al normal | con el arma lista, `_useSlot` abre casteo y no dispara báculo |
+| CC | cada control aplica y expira | knockdown, stun, root, silence, disarm y slow, uno por mundo limpio |
+| CC | DR reduce y acaba en inmunidad | cuatro aplicaciones seguidas: duración decreciente hasta 0 |
+| Counters | barrera, antiHeal, antiBuff | la barrera absorbe sin tocar vida; antiHeal recorta; antiBuff bloquea |
+
+Cinco correcciones **del arnés**, ninguna del producto, antes de dar esto por
+bueno: muestrear el daño al otro lado de la frontera de RELEASE, comparar el
+recurso ignorando que regenera, medir el normal del arquero antes de que llegue
+la flecha, dejar al jugador en el aire de una sonda a la siguiente, y no
+resucitarlo después de matarlo a propósito.
+
+De la cuarta salió cobertura nueva: el juego rechazaba castear con `airborne` y
+tenía razón, así que la regla que `QA_GATE` §4 pide por su nombre pasó de
+accidente a sonda propia.
 
 | Fila | Estado | Evidencia |
 |---|---|---|

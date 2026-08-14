@@ -41,7 +41,11 @@ Arena.define('data/races', ['data/balance'], function (Arena) {
         shoulders: 0.92,     // más estrechos
         limbs: 1.06,         // extremidades largas
         head: 0.96,          // cabeza pequeña
-        neck: 1.15
+        neck: 1.15,
+        // Grosor del tronco. Un elfo oscuro es enjuto: quitarle masa al torso
+        // es lo que impide que un Guardián elfo se lea como un humano gordo con
+        // orejas. Se compone con la masa de la clase, no la sustituye.
+        girth: 0.95
       },
 
       /* --- Rasgos ---------------------------------------------------------- */
@@ -78,6 +82,70 @@ Arena.define('data/races', ['data/balance'], function (Arena) {
         { name: 'Negro', color: [0.14, 0.14, 0.18] }
       ]
     }
+  };
+
+  /* =========================================================================
+   * CONSTITUCIÓN COMPUESTA: raza × clase
+   *
+   * La raza dice de qué pueblo es el personaje; la clase, a qué se dedica su
+   * cuerpo. Un Guardián es ancho ANTES de ser elfo, y un Centinela es enjuto
+   * ANTES de ser elfo. Por eso las dos tablas se multiplican en vez de que una
+   * gane: así añadir la segunda raza no obliga a reescribir las seis clases, ni
+   * añadir una clase a reescribir las razas.
+   *
+   * Multiplicar dos tablas independientes es cómodo hasta que alguien sube un
+   * poco cada una y el producto se sale de lo que el rig aguanta. Los topes
+   * viven AQUÍ, junto a la tabla que los origina, y no en el renderer: quien
+   * escriba la próxima raza los tiene delante antes del primer número.
+   *
+   * El más delicado es `limbs`: hipRestFor() deduce la altura de la cadera de
+   * la longitud de la pierna, así que un valor extremo mueve literalmente el
+   * suelo bajo los pies del personaje. Y `height` está acotado corto a
+   * propósito: la cápsula de simulación, el nameplate y la cámara se anclan a
+   * `entity.height`, que es idéntica para las seis clases porque el alcance en
+   * combate no puede depender de la silueta. La variación visual es un rasgo
+   * de lectura, nunca una ventaja.
+   * ====================================================================== */
+  var BUILD_LIMITS = {
+    height:    [0.90, 1.12],
+    shoulders: [0.78, 1.32],
+    limbs:     [0.90, 1.12],
+    head:      [0.82, 1.16],
+    neck:      [0.70, 1.35],
+    girth:     [0.78, 1.32]
+  };
+  var BUILD_KEYS = ['height', 'shoulders', 'limbs', 'head', 'neck', 'girth'];
+
+  Arena.Data.BUILD_LIMITS = BUILD_LIMITS;
+  Arena.Data.BUILD_KEYS = BUILD_KEYS;
+
+  /**
+   * Compone dos constituciones multiplicando clave a clave y acota el resultado.
+   * `out` es opcional y se reutiliza: esto se llama por personaje, no por
+   * fotograma, pero el renderer cachea el resultado y no puede permitirse
+   * reservar un objeto nuevo cada vez que pregunta.
+   */
+  Arena.Data.composeBuild = function (base, over, out) {
+    out = out || {};
+    for (var i = 0; i < BUILD_KEYS.length; i++) {
+      var k = BUILD_KEYS[i];
+      var a = (base && base[k] !== undefined) ? base[k] : 1;
+      var b = (over && over[k] !== undefined) ? over[k] : 1;
+      var lim = BUILD_LIMITS[k];
+      var v = a * b;
+      out[k] = v < lim[0] ? lim[0] : (v > lim[1] ? lim[1] : v);
+    }
+    return out;
+  };
+
+  /** ¿Está esta constitución dentro de lo que el rig sabe resolver? */
+  Arena.Data.buildWithinLimits = function (build) {
+    for (var i = 0; i < BUILD_KEYS.length; i++) {
+      var k = BUILD_KEYS[i], lim = BUILD_LIMITS[k];
+      var v = (build && build[k] !== undefined) ? build[k] : 1;
+      if (!(v >= lim[0] && v <= lim[1])) return false;
+    }
+    return true;
   };
 
   Arena.Data.races = races;
