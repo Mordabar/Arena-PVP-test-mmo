@@ -81,9 +81,10 @@ animación.
 
 ---
 
-## 4. Lo que sigue sin estar verificado
+## 4. Lo que seguía sin verificar tras la primera vuelta *(histórico)*
 
-El build **no está terminado** y el ledger lo dice: 52 de 146 filas VERIFIED.
+En ese momento el ledger decía 52 de 146. Se conserva para que se vea de dónde
+salió cada fila; el estado actual está en la sección 8.
 
 1. **CHARACTERS · ANIMATION · VFX**: siete filas verificadas en ejecución, pero
    **sin juicio artístico**. Que la pose no tenga NaN y que cada poder mueva el
@@ -98,7 +99,7 @@ El build **no está terminado** y el ledger lo dice: 52 de 146 filas VERIFIED.
 
 ---
 
-## 6. Segunda vuelta: de 52 a 136 filas
+## 5. Segunda vuelta: de 52 a 136 filas
 
 | Bloque | Cómo se cerró |
 |---|---|
@@ -118,16 +119,99 @@ usuario reportó roto en su día—, y puse un umbral de silueta de 0.04 % que n
 podía fallar. Los dos se detectaron comparando contra el convenio derivado en
 vez de contra la memoria.
 
+## 6. Tercera vuelta: el Character Identity Pass
+
+### El defecto era el medidor, no sólo el modelo
+
+La ronda anterior cerró con nueve filas abiertas y tres parejas de clases
+confundibles. Al ir a arreglarlas apareció algo peor que el problema original:
+
+> **La métrica que declaraba el problema no podía medir la solución.**
+
+`silhouette-sweep` sumaba volúmenes de caja. Con eso, un cono y un cilindro del
+mismo radio pesan lo mismo, así que una túnica acampanada y una columna daban
+idéntico. Se estaba midiendo masa y llamándolo silueta.
+
+`render/poseMetrics.js` mide el contorno de verdad: anchura ocupada en 16 bandas
+horizontales, desde tres vistas, sobre los vértices reales. Y hubo que
+densificar por arista, porque los cilindros de este proyecto tienen dos anillos
+—arriba y abajo— y nada en medio: muestreando sólo vértices, las bandas
+centrales salían vacías y el personaje aparecía con agujeros en el contorno.
+
+**Lección:** antes de creerse un número, comprobar que el número puede cambiar.
+Es la misma lección del umbral de 0.04 % de la ronda anterior, en otra forma.
+
+### Lo que la métrica no vio y una captura sí
+
+Con las tres vistas en verde, las capturas de la cámara real enseñaron cuatro
+defectos que ningún número iba a dar:
+
+| Defecto | Severidad |
+|---|---|
+| La capelina del Vinculador salía invertida: un embudo abierto hacia el cielo | P1 |
+| El escudo torre del Guardián se veía de canto desde el frente | P1 |
+| El arco del Centinela desaparecía en la vista frontal | P2 |
+| La diadema del Vinculador parecía un par de cuernos | P2 |
+
+Los cuatro pasaban las tres vistas medidas. **Ninguna métrica de contorno
+sustituye a mirar el fotograma**, y por eso el bucle de calidad incluye
+capturar desde la cámara de juego y no sólo ejecutar el informe.
+
+### El audio: mil seiscientas líneas que nadie había ejecutado
+
+Escritas por un agente que murió por límite externo. La página arrancaba sin
+errores, que es exactamente el estado en el que un juego puede estar mudo.
+
+Nueve pruebas juegan una partida real y comprueban las 31 rutas, los 55 cues y
+los 25 motivos de rechazo. **El audio estaba bien.** Los cuatro fallos iniciales
+eran míos:
+
+| Sospecha | Realidad |
+|---|---|
+| «44 cues no suenan» | el campo es `dur`, no `duration` |
+| «la distancia no atenúa» | `distanceFalloff` devuelve `{gain, tone}`, no un número |
+| «los 25 motivos de rechazo son mudos» | `REASONS` mapea código→texto; yo recorría los textos |
+| «la partida entera es muda» | casi toda ruta de audio es relativa al jugador y el arnés no había llamado a `install()` |
+
+**Diecinueve falsos positivos del arnés en la sesión. Cero informes falsos
+publicados.**
+
+### Dos puertas del propio árbitro estaban podridas
+
+Este documento existe para no fiarse de nada, así que tampoco de sí mismo:
+
+- leía `index-three.html`, un fichero que dejó de existir cuando Three.js pasó a
+  ser el backend por defecto — el árbitro llevaba tiempo **reventando**, no
+  aprobando;
+- buscaba el Timing Lab en un `switch` de `main.js` que se había convertido en
+  datos;
+- exigía **exactamente** 215 pruebas, lo que convierte cada prueba nueva en un
+  fallo del árbitro y desincentiva escribir pruebas. Ahora es un suelo.
+
+### Y otra vez, el arnés antes que el producto
+
+La primera tanda de capturas salió con una pierna estirada un metro hacia un
+lado. No era el modelo: la sonda teletransportaba al personaje al punto de la
+foto y el foot locking mantenía el pie plantado donde estaba —haciendo
+exactamente su trabajo—. Ahora el personaje camina hasta el sitio.
+
 ## 7. Lo que sigue abierto, con número
 
-- **9 filas**: las seis clases no son seis siluetas. Tres parejas se confunden,
-  una de ellas cruzando arquetipos. Medido, no intuido.
-- **1 fila**: Pointer Lock, que el navegador no concede a un gesto sintético.
+- **1 fila**: Pointer Lock — `MANUAL_BROWSER_REQUIRED`. Chromium rechaza el
+  `requestPointerLock()` que nace de un evento sintético, y lo dice con nombre y
+  apellidos: `WrongDocumentError`. Lo automatizable está verde; falta un humano.
+  `docs/POINTER_LOCK_MANUAL.md`, un minuto.
 - **60 FPS**: sin GPU en este contenedor no se mide y no se inventa.
-- **Nadie ha jugado esto.**
+- **La IA sigue sin usar las rutas de cobertura** del mapa.
+- **Nadie ha jugado esto.** `docs/PLAYTEST_CHECKLIST.md`.
 
-## 5. Veredicto
+## 8. Veredicto
 
-El build está **medido**, no **terminado**. Lo que se afirma verde en el ledger
-tiene detrás un comando que cualquiera puede ejecutar. Lo que no, está listado
-arriba como pendiente y no se ha maquillado.
+El build está **medido**. Lo que se afirma verde en el ledger tiene detrás un
+comando que cualquiera puede ejecutar; lo que no, está listado arriba y no se ha
+maquillado. **145 de 146, y la que falta se dice por su nombre en vez de
+redondearse a 146.**
+
+Lo que no está es **jugado**. Ninguna de las 288 pruebas, ninguna de las once
+puertas y ninguno de los cinco árbitros puede decir si el combate divierte. Ese
+gate es humano y sigue abierto.

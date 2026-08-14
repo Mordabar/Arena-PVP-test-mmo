@@ -7,7 +7,7 @@
 
 <title>Project Arena · Ladder Vertical Slice v0.8</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230c1412'/%3E%3Cpath d='M32 12 46 52 32 43 18 52Z' fill='%23e7c678'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/arena.css?build=v080-20260813-1006">
+<link rel="stylesheet" href="css/arena.css?build=v090-20260814-playtest">
 </head>
 <body class="three-theme">
 
@@ -18,7 +18,7 @@
 <div id="hud">
   <div id="brand" class="passthrough">
     <div class="t">Project Arena</div>
-    <div class="s">Ladder Vertical Slice · v0.8 · Tactical Rhythm · Three.js 0.160 · locomotion + combat poses</div>
+    <div class="s">Ladder Vertical Slice · v0.9 · PLAYTEST · Tactical Rhythm · Three.js 0.160 · seis identidades de clase</div>
   </div>
 
   <div id="help">
@@ -59,70 +59,70 @@
      ====================================================================== -->
 
 <!-- Núcleo -->
-<script src="js/namespace.js?build=v080-20260813-1006"></script>
-<script src="js/math/vec3.js?build=v080-20260813-1006"></script>
-<script src="js/math/mat4.js?build=v080-20260813-1006"></script>
-<script src="js/math/ray.js?build=v080-20260813-1006"></script>
-<script src="js/core/eventBus.js?build=v080-20260813-1006"></script>
-<script src="js/core/rng.js?build=v080-20260813-1006"></script>
-<script src="js/core/fixedTick.js?build=v080-20260813-1006"></script>
+<script src="js/namespace.js?build=v090-20260814-playtest"></script>
+<script src="js/math/vec3.js?build=v090-20260814-playtest"></script>
+<script src="js/math/mat4.js?build=v090-20260814-playtest"></script>
+<script src="js/math/ray.js?build=v090-20260814-playtest"></script>
+<script src="js/core/eventBus.js?build=v090-20260814-playtest"></script>
+<script src="js/core/rng.js?build=v090-20260814-playtest"></script>
+<script src="js/core/fixedTick.js?build=v090-20260814-playtest"></script>
 
 <!-- Datos y reglas -->
-<script src="js/data/balance.js?build=v080-20260813-1006"></script>
-<script src="js/data/effects.js?build=v080-20260813-1006"></script>
-<script src="js/core/entity.js?build=v080-20260813-1006"></script>
-<script src="js/combat/statusSystem.js?build=v080-20260813-1006"></script>
-<script src="js/combat/damageSystem.js?build=v080-20260813-1006"></script>
-<script src="js/combat/healingSystem.js?build=v080-20260813-1006"></script>
-<script src="js/combat/resolver.js?build=v080-20260813-1006"></script>
-<script src="js/combat/abilitySystem.js?build=v080-20260813-1006"></script>
-<script src="js/data/races.js?build=v080-20260813-1006"></script>
-<script src="js/data/animConfig.js?build=v080-20260813-1006"></script>
-<script src="js/data/classVisuals.js?build=v080-20260813-1006"></script>
-<script src="js/data/classes.js?build=v080-20260813-1006"></script>
-<script src="js/data/abilities.js?build=v080-20260813-1006"></script>
-<script src="js/data/passives.js?build=v080-20260813-1006"></script>
-<script src="js/data/castFamilies.js?build=v080-20260813-1006"></script>
-<script src="js/data/scenarios.js?build=v080-20260813-1006"></script>
-<script src="js/ui/hudModel.js?build=v080-20260813-1006"></script>
-<script src="js/ui/pointerLockDiag.js?build=v080-20260813-1006"></script>
-<script src="js/anim/animationIntent.js?build=v080-20260813-1006"></script>
-<script src="js/product/ladder.js?build=v080-20260813-1006"></script>
-<script src="js/product/matchFlow.js?build=v080-20260813-1006"></script>
+<script src="js/data/balance.js?build=v090-20260814-playtest"></script>
+<script src="js/data/effects.js?build=v090-20260814-playtest"></script>
+<script src="js/core/entity.js?build=v090-20260814-playtest"></script>
+<script src="js/combat/statusSystem.js?build=v090-20260814-playtest"></script>
+<script src="js/combat/damageSystem.js?build=v090-20260814-playtest"></script>
+<script src="js/combat/healingSystem.js?build=v090-20260814-playtest"></script>
+<script src="js/combat/resolver.js?build=v090-20260814-playtest"></script>
+<script src="js/combat/abilitySystem.js?build=v090-20260814-playtest"></script>
+<script src="js/data/races.js?build=v090-20260814-playtest"></script>
+<script src="js/data/animConfig.js?build=v090-20260814-playtest"></script>
+<script src="js/data/classVisuals.js?build=v090-20260814-playtest"></script>
+<script src="js/data/classes.js?build=v090-20260814-playtest"></script>
+<script src="js/data/abilities.js?build=v090-20260814-playtest"></script>
+<script src="js/data/passives.js?build=v090-20260814-playtest"></script>
+<script src="js/data/castFamilies.js?build=v090-20260814-playtest"></script>
+<script src="js/data/scenarios.js?build=v090-20260814-playtest"></script>
+<script src="js/ui/hudModel.js?build=v090-20260814-playtest"></script>
+<script src="js/ui/pointerLockDiag.js?build=v090-20260814-playtest"></script>
+<script src="js/anim/animationIntent.js?build=v090-20260814-playtest"></script>
+<script src="js/product/ladder.js?build=v090-20260814-playtest"></script>
+<script src="js/product/matchFlow.js?build=v090-20260814-playtest"></script>
 
 <!-- Simulación -->
-<script src="js/sim/arena.js?build=v080-20260813-1006"></script>
-<script src="js/sim/arenaMetrics.js?build=v080-20260813-1006"></script>
-<script src="js/sim/world.js?build=v080-20260813-1006"></script>
-<script src="js/ai/dummyAI.js?build=v080-20260813-1006"></script>
+<script src="js/sim/arena.js?build=v090-20260814-playtest"></script>
+<script src="js/sim/arenaMetrics.js?build=v090-20260814-playtest"></script>
+<script src="js/sim/world.js?build=v090-20260814-playtest"></script>
+<script src="js/ai/dummyAI.js?build=v090-20260814-playtest"></script>
 
 <!-- Presentación 3D -->
-<script src="js/render/rendererBackend.js?build=v080-20260813-1006"></script>
-<script src="js/render/shaders.js?build=v080-20260813-1006"></script>
-<script src="js/render/primitives.js?build=v080-20260813-1006"></script>
-<script src="js/render/equipment.js?build=v080-20260813-1006"></script>
-<script src="js/render/poseMetrics.js?build=v080-20260813-1006"></script>
-<script src="js/render/camera3d.js?build=v080-20260813-1006"></script>
-<script src="js/render/anim/skeleton.js?build=v080-20260813-1006"></script>
-<script src="js/render/anim/locomotion.js?build=v080-20260813-1006"></script>
-<script src="js/render/anim/actions.js?build=v080-20260813-1006"></script>
-<script src="js/render/characterVisual.js?build=v080-20260813-1006"></script>
-<script src="js/render/characterBackend.js?build=v080-20260813-1006"></script>
-<script src="js/render/animDebug.js?build=v080-20260813-1006"></script>
-<script src="js/render/webglRenderer.js?build=v080-20260813-1006"></script>
-<script src="js/render/vfx.js?build=v080-20260813-1006"></script>
-<script src="js/render/picking.js?build=v080-20260813-1006"></script>
+<script src="js/render/rendererBackend.js?build=v090-20260814-playtest"></script>
+<script src="js/render/shaders.js?build=v090-20260814-playtest"></script>
+<script src="js/render/primitives.js?build=v090-20260814-playtest"></script>
+<script src="js/render/equipment.js?build=v090-20260814-playtest"></script>
+<script src="js/render/poseMetrics.js?build=v090-20260814-playtest"></script>
+<script src="js/render/camera3d.js?build=v090-20260814-playtest"></script>
+<script src="js/render/anim/skeleton.js?build=v090-20260814-playtest"></script>
+<script src="js/render/anim/locomotion.js?build=v090-20260814-playtest"></script>
+<script src="js/render/anim/actions.js?build=v090-20260814-playtest"></script>
+<script src="js/render/characterVisual.js?build=v090-20260814-playtest"></script>
+<script src="js/render/characterBackend.js?build=v090-20260814-playtest"></script>
+<script src="js/render/animDebug.js?build=v090-20260814-playtest"></script>
+<script src="js/render/webglRenderer.js?build=v090-20260814-playtest"></script>
+<script src="js/render/vfx.js?build=v090-20260814-playtest"></script>
+<script src="js/render/picking.js?build=v090-20260814-playtest"></script>
 
 <!-- Interfaz -->
-<script src="js/ui/abilityIcons.js?build=v080-20260813-1006"></script>
-<script src="js/ui/gameShell.js?build=v080-20260813-1006"></script>
-<script src="js/ui/hud.js?build=v080-20260813-1006"></script>
-<script src="js/ui/combatLog.js?build=v080-20260813-1006"></script>
-<script src="js/ui/labPanel.js?build=v080-20260813-1006"></script>
-<script src="js/ui/tooltips.js?build=v080-20260813-1006"></script>
+<script src="js/ui/abilityIcons.js?build=v090-20260814-playtest"></script>
+<script src="js/ui/gameShell.js?build=v090-20260814-playtest"></script>
+<script src="js/ui/hud.js?build=v090-20260814-playtest"></script>
+<script src="js/ui/combatLog.js?build=v090-20260814-playtest"></script>
+<script src="js/ui/labPanel.js?build=v090-20260814-playtest"></script>
+<script src="js/ui/tooltips.js?build=v090-20260814-playtest"></script>
 
 <!-- Audio -->
-<script src="js/audio/audio.js?build=v080-20260813-1006"></script>
+<script src="js/audio/audio.js?build=v090-20260814-playtest"></script>
 
 <!-- Arranque -->
 <!-- =========================================================================
@@ -142,7 +142,7 @@
      https://dominio.com/arena/ que en https://arena.dominio.com/.
      ====================================================================== -->
 <script>window.ARENA_DEFER_BOOT = true;</script>
-<script src="js/main.js?build=v080-20260813-1006"></script>
+<script src="js/main.js?build=v090-20260814-playtest"></script>
 
 <script type="importmap">
 {
@@ -152,7 +152,7 @@
   }
 }
 </script>
-<script type="module" src="js/render/three/bootstrap.js?build=v080-20260813-1006"></script>
+<script type="module" src="js/render/three/bootstrap.js?build=v090-20260814-playtest"></script>
 
 <script>
 (function () {

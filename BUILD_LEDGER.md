@@ -34,31 +34,39 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **136** |
-| TESTED (sin barrido observable) | **1** |
-| ABIERTO · identidad visual por clase | **9** |
-| BLOCKED por el entorno · Pointer Lock | **1** |
-| IMPLEMENTED | **4** |
-| TODO / BLOCKED | **6** |
+| VERIFIED | **145** |
+| MANUAL_BROWSER_REQUIRED · Pointer Lock | **1** |
 
-**136 / 146 VERIFIED — este build NO está terminado.**
+**145 / 146 VERIFIED + 1 MANUAL_BROWSER_REQUIRED.**
+
+La fila 146 **no se marca verde**. Pointer Lock exige un gesto humano real y
+Chromium lo rechaza literalmente cuando nace de un evento sintético
+(`WrongDocumentError: The root document of this element is not valid for
+pointer lock`). Poner 146/146 sería falsificar el único número que este
+documento existe para proteger. El procedimiento para cerrarla a mano, sobre
+el build ya desplegado, está en `docs/POINTER_LOCK_MANUAL.md` y tarda un
+minuto.
+
+**Y sigue faltando el gate humano.** Nadie ha jugado esto todavía:
+`docs/PLAYTEST_CHECKLIST.md`.
 
 La cuenta, para que sea auditable y no una cifra de confianza:
 
 | Bloque | Filas | VERIFIED | Cuáles |
 |---|---|---|---|
 | MOVEMENT | 16 | 12 | WASD, diagonales, salto/aire/aterrizaje, colisión y combate |
-| CAMERA | 10 | 10 | todo salvo Pointer Lock, que el navegador no concede a un gesto sintético |
+| CAMERA | 10 | 9 | + 1 MANUAL_BROWSER_REQUIRED: Pointer Lock, que el navegador no concede a un gesto sintético |
 | TARGETING §5 | 10 | 9 | + Tab, aliados, objetivo inválido y muerte |
 | NORMAL · CASTING · CC | 60 | 60 | 18 sondas cubren §4 y §5 de QA_GATE dentro del juego |
 | CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
-| CHARACTERS · ANIM · VFX | 24 | 16 | los 7 de ejecución, la gramática visual de los 36 efectos y las 3 familias de arquetipo |
+| CHARACTERS · ANIM · VFX | 24 | 24 | + las seis identidades de clase, medidas por contorno y miradas en captura |
 | ARENA | 6 | 6 | diseño de nivel medido |
 | UI · ICONOS | 5 | 5 | iconografía, selector y el modelo de lectura del HUD |
 | BOTS · GAME LOOP | 3 | 3 | roles, bucle completo y rematch |
 
-Suite: **259/259 verdes**. Las seis puertas observables en verde, la de
-animación con sus 15 sondas seguidas y `EXIT=0`.
+Suite: **288/288 verdes**. Once puertas ejecutables en verde, incluidas la de
+animación con sus 15 sondas seguidas y la de identidad visual con sus tres
+vistas medidas.
 
 ### Cómo se reproduce todo esto
 
@@ -116,7 +124,7 @@ equivocar.
 | 19 | pitch | VERIFIED | respeta ambos topes |
 | 20 | left drag | VERIFIED | **con ratón real dispatchado**: arrastre de 260 px → cuerpo −0.8190 y cámara −0.8190, idénticos |
 | 21 | right free-look | VERIFIED | arrastre derecho de 240 px → cámara 0.7560, cuerpo **0** exacto |
-| 22 | pointer lock | BLOCKED | el navegador exige gesto humano de usuario; no se concede a un evento sintético. Es el ÚNICO row que este entorno no puede cerrar, y el juego funciona sin él: el arrastre se verificó igualmente |
+| 22 | pointer lock | **MANUAL_BROWSER_REQUIRED** | Chromium rechaza el `requestPointerLock()` que nace de un evento sintético con `WrongDocumentError`. Lo automatizable SÍ está verde: que el arrastre lo **solicite** por la ruta real, que el 1:1 se cumpla con eventos de ratón de verdad, que la mirada libre no gire el cuerpo y que el diagnóstico manual funcione sin escribir simulación (`tools/scripts/pointerlock-gate.json`). Falta que un humano se lo conceda: `docs/POINTER_LOCK_MANUAL.md`, un minuto sobre el build desplegado |
 | 23 | drag deadzone | TESTED | umbral doble tiempo+píxeles |
 | 24 | collision | VERIFIED | plataformas incluidas; el ojo sigue el suelo bajo él |
 | 25 | no target lock | VERIFIED | auto-encarado eliminado; 4 tests |
@@ -267,48 +275,93 @@ frames— hasta dar con la causa: la sonda guardaba **la referencia viva** a la
 intención y la serializaba al final del sondeo, con la entidad ya muerta.
 Comparaba una foto contra un vídeo. Detalle en `docs/ANIMATION_VFX_AUDIT.md`.
 
-### Siluetas: el listón del spec se cumple, la ambición de la constitución no
+### Siluetas: seis clases, seis contornos — CERRADO
 
-`node tools/browser.js play tools/scripts/silhouette-sweep.json` mide la firma
-real de cada clase leyendo la pose que se pinta (mallas, masa y altura sacadas
-de la matriz 4×4, no de campos inventados):
+```
+node tools/silhouette-report.js            # perfil y matriz de distancias
+node tools/silhouette-report.js --bandas   # además, banda a banda
+node tools/run-tests.js Identidad          # 20 pruebas de contrato y contorno
+```
 
-| Clase | Arquetipo | Piezas | Mallas | Altura | Masa | Arma |
+**El punto de partida era malo y estaba medido.** Existían tres familias de
+arquetipo —espada, arco, báculo— y eso cumplía el §17 del spec, pero no el §5 de
+la constitución: las seis clases eran tres parejas de gemelos.
+
+```
+devastador ≈ guardian     Δmasa 1.2 %
+centinela  ≈ rastreador   Δmasa 0.3 %
+devastador ≈ rastreador   Δmasa 4.5 %   ← cruzando arquetipos
+```
+
+**Lo primero que hubo que arreglar fue el medidor.** Sumar volúmenes de caja no
+mide una silueta: dos personajes con la misma masa pasaban por distintos aunque
+uno fuera una columna y el otro un cubo. `render/poseMetrics.js` mide ahora el
+CONTORNO —anchura ocupada en 16 bandas horizontales, desde tres vistas— sobre
+los vértices reales densificados por arista. La caja envolvente convertía un
+cono en un cilindro, es decir, borraba justo la diferencia que se quería medir.
+
+Contorno distinto entre cada pareja, en la peor de las tres vistas:
+
+| | devast | guardi | centin | rastre | arcani | vincul |
 |---|---|---|---|---|---|---|
-| devastador | melee | 53 | 35 | 1.58 | 45.40 | sword |
-| guardian | melee | 54 | 36 | 1.58 | 45.97 | sword |
-| centinela | archer | 50 | 35 | 1.60 | 43.24 | bow |
-| rastreador | archer | 51 | 36 | 1.60 | 43.36 | bow |
-| arcanista | caster | 39 | 30 | 1.69 | 32.92 | staff |
-| vinculador | caster | 37 | 28 | 1.59 | 31.03 | staff |
+| **devastador** | · | 35 % | 28 % | 21 % | 30 % | 19 % |
+| **guardian** | 35 % | · | 42 % | 43 % | 46 % | 22 % |
+| **centinela** | 28 % | 42 % | · | 27 % | 29 % | 29 % |
+| **rastreador** | 21 % | 43 % | 27 % | · | 20 % | 33 % |
+| **arcanista** | 30 % | 46 % | 29 % | 20 % | · | 37 % |
+| **vinculador** | 19 % | 22 % | 29 % | 33 % | 37 % | · |
 
-**VERIFIED — `ARENA_VERTICAL_SLICE_SPEC.md` §17**: «al menos una familia visual
-low-poly legible por arquetipo». Hay tres arquetipos con tres familias de arma
-—espada, arco, báculo— y el caster pesa visiblemente menos (≈32 contra ≈45 del
-melee). A veinte unidades se distingue un melee de un arquero de un mago.
+**Peor pareja: 18.5 %. Antes: 0.3 %.**
 
-**ABIERTO — `CLAUDE.md` §5**: «las seis clases no deben homogeneizarse». Hoy se
-homogeneizan. Tres parejas comparten silueta:
+Y cada clase cumple además la lectura que declara, comprobado por separado: el
+Guardián es el más ancho, el Arcanista el más alto, el Centinela más esbelto que
+su hermano de arquetipo, el Devastador estrecha la cintura donde el Guardián no,
+y el Vinculador queda por debajo del Arcanista.
 
-```
-devastador ≈ guardian     Δmasa 1.2 %,  Δpiezas 1
-centinela  ≈ rastreador   Δmasa 0.3 %,  Δpiezas 1
-devastador ≈ rastreador   Δmasa 4.5 %,  Δpiezas 2   ← cruza arquetipos
-```
+#### Cómo se construyó — sistema, no seis hacks
 
-Un Devastador y un Guardián son el mismo muñeco con una pieza más. El agente de
-personajes murió por límite externo antes de tocar `characterVisual.js`; sólo
-alcanzó a preparar `data/races.js`. **Diez filas del bloque quedan abiertas por
-esto y no se cuentan como verificadas.**
+| Fichero | Qué aporta |
+|---|---|
+| `render/equipment.js` | 24 fábricas paramétricas: hombrera, peto, gola, faldar, capelina, capa, túnica, capucha, sombrero, yelmo, carcaj, bolsa, trampa, espada, maza, escudo, arco, báculo… |
+| `data/classVisuals.js` | el perfil de cada clase como DATOS: proporciones, peso de armadura, paleta, piezas por socket, armas, accesorios |
+| `render/characterVisual.js` | ya sólo COLOCA lo que el perfil declara; se fueron las tres ramas `outfit === 'plate' | 'leather' | 'robe'` |
 
-Nota de método: la primera versión de esta sonda pedía `|Δvolumen| < 0.02` sobre
-volúmenes de 45 —un 0.04 %— y por eso informaba «ninguna pareja se confunde».
-Un umbral que no puede fallar no es una comprobación. Con umbral relativo
-aparecieron las tres.
+Una prueba comprueba que `buildPose` no vuelve a mencionar ninguna clase por su
+nombre. Añadir una séptima clase es añadir una entrada de datos.
 
-**Sin juicio artístico.** Que la pose no tenga NaN y que cada poder mueva el
-cuerpo no dice que se vea bien. El peso de un mandoble o la legibilidad de un
-telegraph a distancia de duelo siguen necesitando ojos humanos.
+De paso se terminó lo que el agente de personajes dejó a medias antes de caer:
+`composeBuild()` y `girth` existían en `data/races.js` y **no los usaba nadie**.
+Ahora el grosor del tronco es independiente de la anchura de hombros, que es
+exactamente lo que da la V del atacante y lo que faltaba.
+
+#### Lo que las capturas encontraron y los números no
+
+El bucle de calidad incluye mirar el fotograma, y menos mal:
+
+| Defecto | Cómo se veía |
+|---|---|
+| La capelina del Vinculador salía **invertida** | un embudo abierto hacia el cielo alrededor de la cabeza: la fábrica tomaba el radio del dobladillo por el del cuello |
+| El escudo torre del Guardián se veía **de canto** | la inclinación heredada del escudo redondo dejaba la plancha casi horizontal. Un escudo torre visto de canto es un palo |
+| El arco del Centinela **desaparecía** de frente | perfectamente de canto justo en la vista que más importa |
+| La diadema del Vinculador parecía **cuernos** | puntas largas y separadas en un personaje que tiene que comunicar lo contrario |
+
+Ninguno de los cuatro lo habría detectado la métrica: los cuatro los detectó una
+persona mirando una captura de la cámara real de juego.
+
+#### Y dos trampas del arnés, otra vez
+
+La primera tanda de capturas salió con **una pierna estirada un metro hacia un
+lado**. No era el modelo: la sonda teletransportaba al personaje al punto de la
+foto y el foot locking mantenía el pie plantado donde estaba, haciendo
+exactamente su trabajo. Ahora el personaje **camina** hasta el sitio. La segunda:
+`getPlayer()` hay que volver a pedirlo después de `setPlayerClass()`, o se mueve
+una referencia huérfana y el encuadre sale vacío.
+
+**El ojo manda sobre la métrica.** Un 18.5 % de contorno distinto es un suelo,
+no un aprobado: una diferencia estadística no garantiza una diferencia
+perceptual. Por eso el punto 8 de `docs/PLAYTEST_CHECKLIST.md` pregunta lo único
+que importa —«si estuvieran todas en gris y sin nombre, ¿las distinguirías?»— y
+la respuesta humana gana a la tabla de arriba.
 
 ## ARENA
 

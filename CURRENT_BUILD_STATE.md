@@ -4,10 +4,14 @@
 > Si una ejecución se interrumpe, el siguiente agente continúa **desde aquí**
 > sin volver a descubrir el proyecto.
 
-**Wave actual:** barridos observables cerrados (combate, control, ratón, animación, rendimiento)
-**Build importado:** Vertical Slice v0.8 (zip del usuario), commit `07339a4`
+**Wave actual:** Character Identity Pass cerrado · build de playtest preparada
+**Build:** Ladder Vertical Slice **v0.9 · PLAYTEST** (`ladder-vertical-slice-v09-playtest`)
 **Rama:** `claude/arena-mmo-concept-qeboc7`
-**Ledger:** 136 / 146 VERIFIED — **el build NO está terminado**
+**Ledger:** **145 / 146 VERIFIED + 1 MANUAL_BROWSER_REQUIRED**
+
+> Los gates técnicos están cerrados. **Falta el gate humano: nadie ha jugado
+> esto.** `docs/PLAYTEST_CHECKLIST.md` (10–15 min) es el siguiente paso, y
+> `docs/DEPLOY_HOSTINGER.md` explica cómo subirla.
 
 ---
 
@@ -18,10 +22,10 @@ node tools/run-gates.js            # todo
 node tools/run-gates.js --rapido   # sólo lo que no necesita navegador
 ```
 
-Ejecuta la batería sin navegador, los números de la arena, la composición del
-HUD en las tres fases, el barrido de casteo, el de las seis clases y el de
-animación/VFX. Termina en rojo si algo falla. Ahora mismo: **todo en verde,
-243/243 pruebas**.
+Once puertas: la batería sin navegador, los números de la arena, el contorno de
+las seis clases, la composición del HUD en las tres fases, casteo, las seis
+clases, ratón, control, combate, rendimiento, Pointer Lock y animación/VFX.
+Termina en rojo si algo falla. Ahora mismo: **todo en verde, 288/288 pruebas**.
 
 La última puerta pinta por software y tarda varios minutos: es la única forma
 de comprobar que lo que la simulación decide llega de verdad a la pantalla.
@@ -105,36 +109,70 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 
 ---
 
+## Qué se cerró en esta wave
+
+### Las nueve filas de identidad visual
+Las seis clases eran tres parejas de gemelos y estaba medido: `centinela ≈
+rastreador` con un 0.3 % de diferencia. Ahora el peor par difiere un **18.5 %**
+de contorno, medido desde tres vistas con `render/poseMetrics.js`.
+
+Lo importante no es el número: es que el equipo pasó a ser un **sistema de
+datos**. `render/equipment.js` tiene 24 fábricas paramétricas y
+`data/classVisuals.js` describe cada clase con números. Añadir una séptima clase
+no toca el renderer, y hay una prueba que lo comprueba (`buildPose` no puede
+volver a mencionar una clase por su nombre).
+
+De paso se terminó lo que el agente de personajes dejó a medias: `composeBuild()`
+y `girth` existían en `data/races.js` y no los usaba nadie.
+
+### El audio, que nadie había ejecutado
+1602 líneas escritas por un agente que murió por límite externo. Nueve pruebas
+juegan una partida real y comprueban las 31 rutas, los 55 cues y los 25 motivos
+de rechazo. **Estaba bien**: los cuatro fallos iniciales eran del arnés.
+
+### Pointer Lock, sin seguir peleando con el navegador
+`js/ui/pointerLockDiag.js` (F9 o `?diag=pointerlock`), un gate que verifica lo
+automatizable y deja constancia medida de lo que no, y
+`docs/POINTER_LOCK_MANUAL.md` con el procedimiento de un minuto.
+
+### Dos puertas del árbitro que llevaban tiempo podridas
+Leía `index-three.html`, que ya no existe, y buscaba el Timing Lab en un
+`switch` de `main.js` que se convirtió en datos. Además exigía exactamente 215
+pruebas, lo que convierte cada prueba nueva en un fallo del árbitro.
+
+---
+
 ## Siguiente tarea inmediata
 
-**136 / 146 VERIFIED.** Las diez filas que faltan son de una sola cosa y están
-medidas, no supuestas:
+**Ya no es código.** Es:
 
-1. **Identidad visual por clase (9 filas).** El spec §17 se cumple —tres
-   familias de arquetipo con espada, arco y báculo, y el caster pesa un 30 %
-   menos que el melee— pero `CLAUDE.md` §5 no: tres parejas comparten silueta
-   (`devastador ≈ guardian` con 1.2 % de diferencia de masa, `centinela ≈
-   rastreador` con 0.3 %, y `devastador ≈ rastreador` con 4.5 %, que además
-   cruza arquetipos). Falta trabajo en `js/render/characterVisual.js`:
-   proporciones, equipo y silueta por clase. `js/data/races.js` ya tiene la
-   preparación que dejó el agente antes de caer.
-2. **Pointer Lock (1 fila).** BLOCKED por el navegador, no por el juego: no se
-   concede a un gesto sintético. El arrastre izquierdo y la mirada libre SÍ
-   quedaron verificados con eventos de ratón reales.
+1. **Subir la build** siguiendo `docs/DEPLOY_HOSTINGER.md` y confirmar que la
+   cabecera dice `v0.9 · PLAYTEST` (Hostinger cachea con agresividad y este
+   proyecto ya ha probado una versión antigua creyendo probar la nueva).
+2. **Cerrar Pointer Lock** con `docs/POINTER_LOCK_MANUAL.md`: un minuto, y el
+   ledger pasa a 146/146 con evidencia en vez de con confianza.
+3. **Jugar** con `docs/PLAYTEST_CHECKLIST.md` delante.
 
 ## Lo que NO falta y conviene no rehacer
 
-- Las 60 filas de combate (normal, casteo, weaving, CC, counters) están
-  verificadas dentro del juego con 18 sondas.
+- Las 60 filas de combate (normal, casteo, weaving, CC, counters), verificadas
+  dentro del juego con 18 sondas.
 - Movimiento, cámara y targeting, con 9 sondas más y arrastre de ratón real.
-- Animación y VFX: 15 sondas, incluida la gramática visual completa de los 36
-  efectos.
+- Animación y VFX: 15 sondas, incluida la gramática visual de los 36 efectos.
+- Las seis identidades de clase: 20 pruebas y tres vistas medidas.
+- El audio: 9 pruebas sobre una partida real.
 - Rendimiento: la simulación ocupa el 0.4 % de su presupuesto y diez partidas
   seguidas no dejan ni un nodo de DOM de más.
 
 ## Sin juicio humano todavía
 
-Todo lo anterior es medición. Nadie ha jugado esto. El peso de un mandoble, la
-legibilidad de un telegraph a distancia de duelo y si el combate divierte siguen
+Todo lo anterior es medición. **Nadie ha jugado esto.** El peso de un mandoble,
+la legibilidad de un telegraph a distancia de duelo, si las seis siluetas se
+distinguen jugando y no sólo mirándolas, y si el combate divierte, siguen
 necesitando a una persona con las manos en el teclado.
+
+Un 18.5 % de contorno distinto es un suelo, no un aprobado: una diferencia
+estadística no garantiza una diferencia perceptual. El punto 8 del checklist
+pregunta lo único que decide —«si estuvieran todas en gris y sin nombre, ¿las
+distinguirías?»— y esa respuesta gana a la métrica.
 

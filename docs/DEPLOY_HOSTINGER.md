@@ -1,165 +1,141 @@
-# Tactical Rhythm v0.6 — despliegue
+# Desplegar en Hostinger — Ladder Vertical Slice v0.9 · PLAYTEST
 
-Para confirmar que Hostinger sirve esta build, la cabecera del juego debe mostrar:
-
-`Tactical Rhythm · v0.6 · Arcane Wilds · Three.js 0.160 · RELEASE + weaving`
-
-El cache-busting de esta entrega es `v060-20260812-0917`. Sobrescribe todos los archivos de la versión anterior.
+> Esta es la versión preparada para el **primer playtest humano**. Nadie ha
+> jugado el build todavía; todo lo verde del ledger es medición.
+>
+> Cuando esté arriba: **`docs/PLAYTEST_CHECKLIST.md`** (10–15 min) y
+> **`docs/POINTER_LOCK_MANUAL.md`** (1 min, cierra la última fila del ledger).
 
 ---
 
-# Publicar en Hostinger
+## Cómo saber que Hostinger sirve ESTA versión
 
-Archivos estáticos. Sin backend, sin build, sin npm.
+Es el problema que más veces ha mordido en este proyecto: el hosting cachea los
+`.js` con agresividad y se acaba probando la versión anterior creyendo que se
+prueba la nueva.
+
+**Dos comprobaciones, las dos obligatorias:**
+
+1. En el lobby, la línea bajo el título dice literalmente:
+
+   ```
+   Ladder Vertical Slice · v0.9 · PLAYTEST · Tactical Rhythm · Three.js 0.160 · seis identidades de clase
+   ```
+
+2. En la consola del navegador (F12):
+
+   ```js
+   Arena.VERSION   // "0.9.0"
+   Arena.BUILD     // "ladder-vertical-slice-v09-playtest"
+   ```
+
+Si sale `v0.8` o `0.8.0`, **no estás jugando esta build**. Borra el contenido
+anterior del servidor y vuelve a subir, o fuerza recarga dura (Ctrl+F5 / Cmd+Shift+R).
+
+El sello de caché de esta entrega es **`v090-20260814-playtest`** y va en la
+query de los ~50 `<script src>` de `index.html`. El árbitro comprueba que estén
+todos: `node tools/arbiter.js`.
+
+---
 
 ## Qué subir
 
-Todo el proyecto tal cual:
+Todo el proyecto tal cual. **Sin backend, sin build step, sin npm.**
 
 ```
 arena/
-    index.html            ← WebGL2 nativo
-    index-three.html      ← Three.js
+    index.html          ← el juego. Es el único entrypoint.
+    .htaccess           ← archivo OCULTO. Comprueba que se haya subido.
     css/  js/  assets/  vendor/  docs/
 ```
 
-Todas las rutas son **relativas**, así que funciona igual en
+Todas las rutas son **relativas**: funciona igual en
 `https://dominio.com/arena/` que en `https://arena.dominio.com/`. No hay nada
 que configurar entre un caso y el otro.
 
-## Las dos páginas
+**Pasos:**
 
-| | `index.html` | `index-three.html` |
-|---|---|---|
-| Motor | WebGL2 nativo + GLSL propio | Three.js 0.160 |
-| Dependencias | ninguna | Three.js, servido desde `vendor/` |
-| Doble clic (`file://`) | **sí** | **no** — necesita HTTP |
-| En hosting | funciona | funciona |
+1. Copia de seguridad del sitio anterior.
+2. **Borra** el contenido anterior en `public_html` (no sobrescribas encima: un
+   fichero viejo que ya no existe en esta versión seguiría sirviéndose).
+3. Sube el proyecto completo, incluido el `.htaccess`.
+4. Abre el sitio y haz las dos comprobaciones de versión de arriba.
 
-`index-three.html` no se abre con doble clic porque usa **módulos ES**, y el
-navegador los bloquea sobre `file://` por política de origen cruzado. No es una
-decisión del proyecto: es cómo funciona el estándar. En local:
+---
 
+## HTTPS no es opcional
+
+**Pointer Lock sólo se concede sobre HTTPS o localhost.** Sobre `http://` en un
+dominio remoto el navegador lo rechaza, y con él se cae el control de cámara con
+el botón izquierdo, que es la mitad del control del juego.
+
+Hostinger da certificado gratuito; asegúrate de que está activo y de que el
+sitio redirige a `https://`. Para verificarlo desde el propio juego:
+
+```js
+window.isSecureContext   // tiene que ser true
 ```
-node tools/serve.js
-→ http://localhost:8080/index-three.html
-```
 
-En Hostinger no hace falta nada de eso: el hosting ya sirve por HTTPS.
+---
 
-## Por qué Three.js va en vendor/ y no en un CDN
+## Por qué Three.js va en `vendor/` y no en un CDN
 
-El brief pedía import map + CDN. El import map está —es lo que resuelve el
-nombre `three`—, pero apunta a `vendor/three-0.160.0/`, dentro del propio
-proyecto. Tres motivos:
+El import map está —es lo que resuelve el nombre `three`— pero apunta a
+`vendor/three-0.160.0/`, dentro del propio proyecto:
 
 1. **Un CDN caído deja el juego sin arrancar.** Un juego que necesita que un
    tercero esté disponible para dibujar un suelo no se hospeda tranquilo.
 2. **Una sola versión, garantizada.** Three y sus addons salen del mismo
-   directorio, así que es imposible que el navegador mezcle dos versiones.
-3. **Se pudo verificar.** El entorno donde se desarrolló esto bloquea los CDN;
-   con un import map remoto no habría sido posible ejecutar ni una vez la
-   versión de Three.js antes de entregarla.
+   directorio, así que el navegador no puede mezclar dos versiones.
+3. **Se pudo verificar.** El entorno de desarrollo bloquea los CDN; con un
+   import map remoto no se habría podido ejecutar ni una vez antes de entregar.
 
-Para volver a un CDN basta con cambiar dos rutas en `index-three.html`:
+`index.html` usa módulos ES, así que **no se abre con doble clic** (`file://`):
+el navegador los bloquea por política de origen cruzado. Es el estándar, no una
+decisión del proyecto. En local:
 
-```html
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
+```
+node tools/serve.js
+→ http://localhost:8080/index.html
 ```
 
-El mismo número de versión en las dos líneas. Eso es lo que importa.
+En Hostinger no hace falta: el hosting ya sirve por HTTPS.
 
-## Comprobado
+---
 
-La simulación produce **exactamente lo mismo** en las dos presentaciones. Un
-duelo de bots de 777 ticks con la misma semilla, ejecutado en navegador sobre
-cada página:
-
-| | WebGL2 nativo | Three.js |
-|---|---|---|
-| tiempo | 25.9000 s | 25.9000 s |
-| vida A | 181.546 | 181.546 |
-| posición A | (−15.5500, 8.8290) | (−15.5500, 8.8290) |
-| ticks | 777 | 777 |
-
-Idéntico hasta el último decimal, que es lo que significa que Three.js sea
-únicamente presentación.
-
-## Rendimiento
-
-En escritorio, con la escena de 2v2: ~135 draw calls y ~11 400 triángulos. Una
-sola luz direccional con sombras, geometrías y materiales compartidos, y cero
-objetos creados por fotograma. No hay post-procesado.
-
-## Visual pass v0.4 — Verdant Ruins
-
-Esta entrega está pensada para evitar dos problemas que se vieron en el hosting:
-archivos antiguos en caché y la inversión visual de A/D.
-
-**Para desplegar esta versión:**
-
-1. Haz copia del sitio anterior.
-2. Sobrescribe **todo** el contenido del proyecto en `public_html` (o elimina la
-   versión anterior y sube esta completa).
-3. Comprueba que también se haya subido el archivo oculto `.htaccess`.
-4. Abre `index-three.html`. En la parte superior debe verse literalmente
-   `Verdant Ruins · v0.4`. Si sigue apareciendo `v0.3`, el servidor/navegador
-   todavía está sirviendo archivos anteriores.
-
-La v0.4 incluye:
-
-- corrección de strafe perceptual: mirando a +Z con la cámara detrás, `D` se
-  desplaza hacia la derecha visible (−X) y `A` hacia la izquierda visible (+X);
-- la misma convención se aplica a locomoción, foot locking y tests;
-- escenario visual **Verdant Ruins** sobre el mismo mapa lógico 32×24;
-- los colliders de columna se representan como árboles antiguos, por lo que la
-  cobertura visual coincide con LoS/colisión;
-- césped/camino procedural, bosque exterior, arbustos, flores, rocas, terrazas,
-  ruinas, banderas y braseros;
-- cielo degradado, fog, iluminación cálida y sombras;
-- siluetas low-poly más claras por arquetipo y materiales separados;
-- ajuste adicional de locomoción del caster y encuadre inicial de cámara;
-- HUD Three.js `Verdant Glass`;
-- cache-busting de CSS/JS y cabeceras no-cache durante esta etapa de desarrollo.
-
-### Verificación rápida
-
-Puedes ejecutar:
+## Verificación antes de subir
 
 ```bash
-node tools/run-tests.js
-node tools/visual-audit.js
+node tools/run-tests.js     # 288/288
+node tools/arbiter.js       # ARBITER: APROBADO
+node tools/run-gates.js     # once puertas, la última pinta y tarda varios minutos
 ```
 
-La entrega debe terminar con **156/156 pruebas** y con el árbitro estático
-`ARBITER: APROBADO`.
+Si cualquiera termina en rojo, no subas.
 
-No se añadieron dependencias ni build step. Three.js sigue vendorizado en
-`vendor/three-0.160.0/`.
+---
 
+## Qué lleva la v0.9 que no llevaba la v0.8
 
-## Game Feel v0.5 — Arcane Wilds
+- **Seis identidades de clase.** Antes había tres familias de arquetipo y las
+  seis clases eran tres parejas de gemelos (0.3 % de diferencia de contorno
+  entre centinela y rastreador). Ahora el peor par difiere un 18.5 %, medido
+  desde tres vistas. El equipo es un sistema de datos, no seis casos especiales.
+- **Audio verificado en partida real**: 31 rutas, 55 cues, los 25 motivos de
+  rechazo. Estaba escrito pero nadie lo había ejecutado.
+- **Diagnóstico de Pointer Lock** con F9 o `?diag=pointerlock`.
+- Arena rediseñada como nivel medido, cámara que ya no atraviesa las
+  plataformas, HUD sin solapes, y el P0 por el que la presentación de Three.js
+  no disparaba **ninguna** animación de combate.
 
-Sube **todo el contenido** del ZIP reemplazando la versión anterior. La cabecera visible debe mostrar:
+## Lo que sigue sin estar cerrado, y se sabe
 
-`Arcane Wilds · v0.5 · Three.js 0.160`
-
-La v0.5 añade:
-
-- mapa lógico 46×34 con segunda corona de cobertura;
-- salto con `Espacio`;
-- click izquierdo sostenido = cámara + cuerpo usando el mismo delta angular del mouse;
-- click derecho sostenido = free-look sin girar el avatar;
-- casteo y locomoción del mago refinados;
-- VFX de casteo/impacto y proyectiles mágicos/flechas visibles;
-- iconos SVG locales por habilidad;
-- cache-busting `v050-20260811-1635`.
-
-Si la cabecera sigue mostrando v0.4, Hostinger está sirviendo archivos antiguos: elimina/sobrescribe el contenido anterior y fuerza una recarga dura.
+1. **Pointer Lock** — `MANUAL_BROWSER_REQUIRED`. Lo cierras tú en un minuto con
+   `docs/POINTER_LOCK_MANUAL.md`.
+2. **60 FPS** — sin medir. En el contenedor de CI se pinta por software y
+   publicar esos fotogramas como si fueran los del jugador sería inventar el
+   dato. Hace falta una máquina con GPU: la tuya.
+3. **La IA no usa las rutas de cobertura** del mapa. Hubo una versión que sí y
+   era peor (el bot moría pegado a la columna); está revertida y documentada en
+   `FUTURE_DECISIONS.md`.
+4. **Nadie ha jugado esto.** Ese es el punto de este despliegue.

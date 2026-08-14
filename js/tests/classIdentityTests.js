@@ -175,16 +175,42 @@ Arena.define('tests/classIdentityTests',
         var ms = meshSet(r.pose);
         for (var k = 0; k < ms.length; k++) usadas[ms[k]] = true;
       }
-      // Las armas del arquero sólo aparecen con la flecha encajada, y la
-      // biblioteca de cuerpo tiene piezas que se usan en estados concretos.
-      var toleradas = { arrow: true };
       var muertas = [];
       for (var name in D.EQUIPMENT) {
         if (!Object.prototype.hasOwnProperty.call(D.EQUIPMENT, name)) continue;
-        if (!usadas[name] && !toleradas[name]) muertas.push(name);
+        if (!usadas[name]) muertas.push(name);
       }
       T.assert(!muertas.length,
         'equipo fabricado y nunca colocado: ' + muertas.join(', '));
+    });
+
+    T.test('ningún color declarado cae en el reserva por estar mal escrito', function () {
+      /* `colorOf` devuelve `cloth` cuando no reconoce el nombre. Es un reserva
+         razonable en ejecución y una trampa en los datos: un `metall` con dos
+         eles pintaría una hombrera de acero del color de la túnica y nadie
+         sabría por qué. La lista válida es la que compone `paletteFor`. */
+      var validos = {};
+      var pal = CV.paletteFor({ classId: 'devastador', raceId: 'darkElf' }, true);
+      for (var k in pal) if (Object.prototype.hasOwnProperty.call(pal, k)) validos[k] = true;
+      // `eye` y `skin` salen de la raza y no se declaran como color de pieza.
+      var malos = [];
+      function check(name, quien) {
+        if (name === undefined || name === null) return;
+        if (!validos[name]) malos.push(quien + ' → «' + name + '»');
+      }
+      for (var i = 0; i < CLASSES.length; i++) {
+        var id = CLASSES[i], p = D.CLASS_VISUAL[id];
+        if (p.right) check(p.right.color, id + '.right');
+        if (p.left) check(p.left.color, id + '.left');
+        if (p.robe) check(p.robe.color, id + '.robe');
+        if (p.cloak) check(p.cloak.color, id + '.cloak');
+        for (var socket in p.attach) {
+          if (!Object.prototype.hasOwnProperty.call(p.attach, socket)) continue;
+          var list = p.attach[socket];
+          for (var n = 0; n < list.length; n++) check(list[n].color, id + '.' + socket);
+        }
+      }
+      T.assert(!malos.length, 'colores que no existen en la paleta: ' + malos.join(', '));
     });
 
     T.test('cada pieza declara de qué material está hecha', function () {

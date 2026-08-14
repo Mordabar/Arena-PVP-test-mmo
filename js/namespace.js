@@ -8,8 +8,8 @@
 
   var Arena = global.Arena || {};
 
-  Arena.VERSION = '0.8.0';
-  Arena.BUILD = 'ladder-vertical-slice';
+  Arena.VERSION = '0.9.0';
+  Arena.BUILD = 'ladder-vertical-slice-v09-playtest';
 
   // Sub-namespaces. Se rellenan por los ficheros posteriores.
   Arena.Math = Arena.Math || {};

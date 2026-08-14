@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* =============================================================================
- * tools/arbiter.js — árbitro adversarial Ladder Vertical Slice v0.8.
+ * tools/arbiter.js — árbitro adversarial Ladder Vertical Slice v0.9.
  * Ataca fronteras de autoridad y, sobre todo, bordes temporales alrededor de
  * WINDUP/RELEASE/GCD/queue que suelen crear daño o cooldowns fantasma.
  * ========================================================================== */
@@ -16,7 +16,7 @@ function gate(ok, name, detail) {
   else { console.log('✗ ' + name + (detail ? ' — ' + detail : '')); failures.push(name); }
 }
 
-console.log('ARBITER · auditoría adversarial Ladder Vertical Slice v0.8\n');
+console.log('ARBITER · auditoría adversarial Ladder Vertical Slice v0.9\n');
 
 let testOut = '';
 try {
@@ -186,8 +186,15 @@ gate(ai.includes('world.turnEntityToward(self') && !ai.includes('self.yaw = V.ya
 const m = arena.match(/var W = ([0-9.]+), D = ([0-9.]+)/);
 gate(m && Number(m[1]) >= 46 && Number(m[2]) >= 34, 'Arcane Wilds conserva mapa ampliado');
 gate(/B\.JUMP\s*=/.test(balance) && world.includes('_tickJump'), 'salto continúa en fixed tick');
-gate(/Ladder Vertical Slice · v0\.8/.test(html), 'build visible Ladder Vertical Slice v0.8');
-gate(/v080-20260813-1006/.test(html), 'cache-busting v0.8 presente');
+gate(/Ladder Vertical Slice · v0\.9/.test(html), 'build visible Ladder Vertical Slice v0.9');
+/* El sello tiene que cambiar en cada build que se sube: Hostinger sirve los
+   .js con caché agresiva y sin esto el jugador prueba la versión anterior
+   creyendo que prueba la nueva. */
+const sello = /\?build=([a-z0-9-]+)"/.exec(html);
+gate(!!sello && sello[1] === 'v090-20260814-playtest',
+  'cache-busting del build actual presente', sello ? sello[1] : 'ninguno');
+gate((html.match(/\?build=v090-20260814-playtest/g) || []).length >= 40,
+  'todos los scripts llevan el sello de caché');
 gate(html.includes('js/product/ladder.js') && html.includes('js/product/matchFlow.js') && html.includes('js/ui/gameShell.js'),
   'entrypoint Three.js carga explícitamente el producto Ladder');
 
@@ -198,4 +205,4 @@ if (failures.length) {
   process.exit(1);
 }
 console.log('ARBITER: APROBADO');
-console.log('Ladder Vertical Slice v0.8 protege RELEASE, mantiene autoridad de simulación y añade loop de producto competitivo local.');
+console.log('Ladder Vertical Slice v0.9 protege RELEASE, mantiene autoridad de simulación y añade loop de producto competitivo local.');
