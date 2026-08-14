@@ -98,6 +98,34 @@ El build **no está terminado** y el ledger lo dice: 52 de 146 filas VERIFIED.
 
 ---
 
+## 6. Segunda vuelta: de 52 a 136 filas
+
+| Bloque | Cómo se cerró |
+|---|---|
+| Combate 37–96 (60 filas) | 18 sondas dentro del juego, por la ruta real del jugador |
+| Movimiento, cámara, targeting | 9 sondas + arrastre de ratón real dispatchado |
+| Presentación (HUD y VFX) | 16 pruebas sobre las dos capas puras |
+| Rendimiento | 4 sondas: 0.135 ms/tick, diez partidas sin fugas |
+
+Cinco falsos positivos más del arnés, ninguno del producto: muestrear el daño al
+otro lado de RELEASE, ignorar que el recurso regenera, medir el disparo del
+arquero antes de que llegue la flecha, dejar al jugador en el aire entre sondas,
+y no resucitarlo después de matarlo. **Quince en total en la sesión.**
+
+Y dos errores míos que merecen mención porque son el mismo error del proyecto:
+escribí «izquierda es −Z» de memoria y volví a invertir A/D —justo lo que el
+usuario reportó roto en su día—, y puse un umbral de silueta de 0.04 % que no
+podía fallar. Los dos se detectaron comparando contra el convenio derivado en
+vez de contra la memoria.
+
+## 7. Lo que sigue abierto, con número
+
+- **9 filas**: las seis clases no son seis siluetas. Tres parejas se confunden,
+  una de ellas cruzando arquetipos. Medido, no intuido.
+- **1 fila**: Pointer Lock, que el navegador no concede a un gesto sintético.
+- **60 FPS**: sin GPU en este contenedor no se mide y no se inventa.
+- **Nadie ha jugado esto.**
+
 ## 5. Veredicto
 
 El build está **medido**, no **terminado**. Lo que se afirma verde en el ledger

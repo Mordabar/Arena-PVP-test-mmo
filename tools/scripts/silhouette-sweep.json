@@ -1,0 +1,18 @@
+[
+  {
+    "eval": "Arena.Game.startMatch('1v1','devastador'),'m'"
+  },
+  {
+    "wait": 1500
+  },
+  {
+    "eval": "(function(){for(var i=0;i<80&&Arena.Game.flow.phase!=='ACTIVE';i++)Arena.Game.flow.update(0.25);return Arena.Game.flow.phase;})()"
+  },
+  {
+    "eval": "window.__S=(function(){\n  var G=Arena.Game,W=G.world,CB=Arena.Render.CharacterBackend;\n  G._running=false;\n  /* La pose es una lista de {mesh, matrix}. La matriz es 4x4 en orden columna:\n     [12],[13],[14] es la traslación y la norma de cada columna 3x3 es la escala\n     en ese eje. Extraerlo bien importa: la primera versión de esta sonda leía\n     campos que no existen y devolvía altura 0 para las seis clases, es decir,\n     no medía nada y lo daba por bueno. */\n  function norma(m,c){var a=m[c*4],b=m[c*4+1],d=m[c*4+2];return Math.sqrt(a*a+b*b+d*d);}\n  window.__firma=function(clase){\n    G.setPlayerClass(clase);\n    var p=W.getPlayer();\n    for(var i=0;i<10;i++){W.stepSeconds(1/60);G.renderer.syncVisuals(1/60);}\n    G.renderer.render(1,1/60);\n    var v=G.renderer.visuals[p.id], pose=(v&&v.pose)||[];\n    var mallas={}, minY=1e9, maxY=-1e9, anchoMax=0, vol=0;\n    for(var k=0;k<pose.length;k++){\n      var q=pose[k]; if(!q||!q.matrix)continue;\n      var m=q.matrix;\n      mallas[q.mesh]=(mallas[q.mesh]||0)+1;\n      var y=m[13];\n      if(y<minY)minY=y; if(y>maxY)maxY=y;\n      var sx=norma(m,0), sy=norma(m,1), sz=norma(m,2);\n      vol+=sx*sy*sz;\n      var ancho=Math.max(sx,sz); if(ancho>anchoMax)anchoMax=ancho;\n    }\n    var nombres=Object.keys(mallas).sort();\n    return {clase:clase, arquetipo:CB.current.archetypeOf(clase), piezas:pose.length,\n            mallas:nombres, nMallas:nombres.length,\n            altura:+(maxY-minY).toFixed(3), anchoMax:+anchoMax.toFixed(3),\n            volumen:+vol.toFixed(4),\n            arma:(Arena.Data.weaponOf?Arena.Data.weaponOf(clase):null)};\n  };\n  return 'listo';\n})()"
+  },
+  {
+    "name": "Personajes · arquetipos y firma de silueta",
+    "eval": "(function(){\n  var clases=['devastador','guardian','centinela','rastreador','arcanista','vinculador'];\n  var f={},fail=[];\n  for(var i=0;i<clases.length;i++) f[clases[i]]=window.__firma(clases[i]);\n  // ¿Alguna pareja comparte EXACTAMENTE el mismo conjunto de mallas?\n  var iguales=[];\n  for(var a=0;a<clases.length;a++)for(var b=a+1;b<clases.length;b++){\n    var A=f[clases[a]], B=f[clases[b]];\n    /* Umbral RELATIVO. La primera versión pedía |Δvolumen| < 0.02 sobre\n       volúmenes de ~45, es decir 0.04 %: no había forma de que fallara y por\n       eso decía «ninguno». Dos siluetas se confunden si tienen prácticamente\n       las mismas piezas y prácticamente la misma masa. */\n    var dVol = Math.abs(A.volumen-B.volumen) / Math.max(A.volumen, B.volumen);\n    var dPiezas = Math.abs(A.piezas-B.piezas);\n    if(dVol < 0.05 && dPiezas <= 2 && Math.abs(A.altura-B.altura) < 0.08){\n      iguales.push(clases[a]+' ≈ '+clases[b]+\n        ' (Δmasa '+(dVol*100).toFixed(1)+' %, Δpiezas '+dPiezas+')');\n    }\n  }\n  var arqs={}; for(var c in f) arqs[f[c].arquetipo]=1;\n  if(Object.keys(arqs).length<3) fail.push('menos de tres arquetipos visuales');\n  for(var d in f){ if(f[d].piezas<20) fail.push(d+' con '+f[d].piezas+' piezas'); }\n  /* Se informa, no se falla: el spec §17 sólo exige una familia legible POR\n     ARQUETIPO, y eso sí se cumple. Que las seis clases no sean seis identidades\n     es una ambición de CLAUDE.md §5 que aún no está, y mentir aquí la escondería. */\n  return {assert:!fail.length, fail:fail, paresIndistinguibles:iguales,\n          arquetipos:Object.keys(arqs), firmas:f};\n})()"
+  }
+]

@@ -34,13 +34,14 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 | | |
 |---|---|
 | Filas obligatorias | **146** |
-| VERIFIED | **132** |
-| TESTED (implementado + suite verde, sin barrido observable) | **6** |
-| IMPLEMENTED sin verificar | **0** |
+| VERIFIED | **136** |
+| TESTED (sin barrido observable) | **1** |
+| ABIERTO · identidad visual por clase | **9** |
+| BLOCKED por el entorno · Pointer Lock | **1** |
 | IMPLEMENTED | **4** |
 | TODO / BLOCKED | **6** |
 
-**132 / 146 VERIFIED — este build NO está terminado.**
+**136 / 146 VERIFIED — este build NO está terminado.**
 
 La cuenta, para que sea auditable y no una cifra de confianza:
 
@@ -51,7 +52,7 @@ La cuenta, para que sea auditable y no una cifra de confianza:
 | TARGETING §5 | 10 | 9 | + Tab, aliados, objetivo inválido y muerte |
 | NORMAL · CASTING · CC | 60 | 60 | 18 sondas cubren §4 y §5 de QA_GATE dentro del juego |
 | CLASSES | 12 | 12 | las 36 habilidades ejecutadas en navegador |
-| CHARACTERS · ANIM · VFX | 24 | 12 | los 7 de ejecución + la gramática visual completa de los 36 efectos |
+| CHARACTERS · ANIM · VFX | 24 | 16 | los 7 de ejecución, la gramática visual de los 36 efectos y las 3 familias de arquetipo |
 | ARENA | 6 | 6 | diseño de nivel medido |
 | UI · ICONOS | 5 | 5 | iconografía, selector y el modelo de lectura del HUD |
 | BOTS · GAME LOOP | 3 | 3 | roles, bucle completo y rematch |
@@ -266,10 +267,48 @@ frames— hasta dar con la causa: la sonda guardaba **la referencia viva** a la
 intención y la serializaba al final del sondeo, con la entidad ya muerta.
 Comparaba una foto contra un vídeo. Detalle en `docs/ANIMATION_VFX_AUDIT.md`.
 
+### Siluetas: el listón del spec se cumple, la ambición de la constitución no
+
+`node tools/browser.js play tools/scripts/silhouette-sweep.json` mide la firma
+real de cada clase leyendo la pose que se pinta (mallas, masa y altura sacadas
+de la matriz 4×4, no de campos inventados):
+
+| Clase | Arquetipo | Piezas | Mallas | Altura | Masa | Arma |
+|---|---|---|---|---|---|---|
+| devastador | melee | 53 | 35 | 1.58 | 45.40 | sword |
+| guardian | melee | 54 | 36 | 1.58 | 45.97 | sword |
+| centinela | archer | 50 | 35 | 1.60 | 43.24 | bow |
+| rastreador | archer | 51 | 36 | 1.60 | 43.36 | bow |
+| arcanista | caster | 39 | 30 | 1.69 | 32.92 | staff |
+| vinculador | caster | 37 | 28 | 1.59 | 31.03 | staff |
+
+**VERIFIED — `ARENA_VERTICAL_SLICE_SPEC.md` §17**: «al menos una familia visual
+low-poly legible por arquetipo». Hay tres arquetipos con tres familias de arma
+—espada, arco, báculo— y el caster pesa visiblemente menos (≈32 contra ≈45 del
+melee). A veinte unidades se distingue un melee de un arquero de un mago.
+
+**ABIERTO — `CLAUDE.md` §5**: «las seis clases no deben homogeneizarse». Hoy se
+homogeneizan. Tres parejas comparten silueta:
+
+```
+devastador ≈ guardian     Δmasa 1.2 %,  Δpiezas 1
+centinela  ≈ rastreador   Δmasa 0.3 %,  Δpiezas 1
+devastador ≈ rastreador   Δmasa 4.5 %,  Δpiezas 2   ← cruza arquetipos
+```
+
+Un Devastador y un Guardián son el mismo muñeco con una pieza más. El agente de
+personajes murió por límite externo antes de tocar `characterVisual.js`; sólo
+alcanzó a preparar `data/races.js`. **Diez filas del bloque quedan abiertas por
+esto y no se cuentan como verificadas.**
+
+Nota de método: la primera versión de esta sonda pedía `|Δvolumen| < 0.02` sobre
+volúmenes de 45 —un 0.04 %— y por eso informaba «ninguna pareja se confunde».
+Un umbral que no puede fallar no es una comprobación. Con umbral relativo
+aparecieron las tres.
+
 **Sin juicio artístico.** Que la pose no tenga NaN y que cada poder mueva el
 cuerpo no dice que se vea bien. El peso de un mandoble o la legibilidad de un
-telegraph a distancia de duelo siguen necesitando ojos humanos, y eso no se
-cuenta como verificado.
+telegraph a distancia de duelo siguen necesitando ojos humanos.
 
 ## ARENA
 

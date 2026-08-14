@@ -4,10 +4,10 @@
 > Si una ejecución se interrumpe, el siguiente agente continúa **desde aquí**
 > sin volver a descubrir el proyecto.
 
-**Wave actual:** WAVE 5 cerrada · barridos observables de clases, casteo y animación
+**Wave actual:** barridos observables cerrados (combate, control, ratón, animación, rendimiento)
 **Build importado:** Vertical Slice v0.8 (zip del usuario), commit `07339a4`
 **Rama:** `claude/arena-mmo-concept-qeboc7`
-**Ledger:** 52 / 146 VERIFIED — **el build NO está terminado**
+**Ledger:** 136 / 146 VERIFIED — **el build NO está terminado**
 
 ---
 
@@ -107,39 +107,34 @@ llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
 
 ## Siguiente tarea inmediata
 
-1. **Juicio artístico, que es lo que ninguna medición da.** La animación y los
-   VFX responden —36/36 poderes mueven el cuerpo, ninguna pose se corrompe— pero
-   nadie ha dicho si el mandoble pesa, si el telegraph se lee a distancia de
-   duelo o si el Guardián con tres gestos se siente pobre en la mano.
-2. **Bots y game loop (WAVE 8).** El bucle lobby → partida → resultado está
-   verificado, pero la IA **no usa las rutas de cobertura** que la arena ahora
-   ofrece: los carriles existen y el bot va en línea recta.
-3. **Jump / airborne / landing** pasan de TODO a TESTED: la prueba vieja cebaba
-   `loco.airborne` a mano y sólo comprobaba que la intención lo transportara.
-   Ahora se pide el salto a la simulación y se deja que la cadena entera —tick
-   fijo → locomoción → intención— haga su trabajo. Falta verlo en ejecución.
-4. **Pointer Lock** (fila 22) sigue BLOCKED: headless no lo concede sin gesto
-   humano. Las filas 20–21 (arrastre izquierdo, mirada libre derecha) siguen
-   IMPLEMENTED sin verificación con ratón real.
-5. **Ninguna regla premia la altura.** Las plataformas dan lectura del foso y
-   cuestan tiempo al subir, pero no hay ventaja mecánica de alto.
-6. **Audio.** Existe y no se ha auditado en ejecución.
+**136 / 146 VERIFIED.** Las diez filas que faltan son de una sola cosa y están
+medidas, no supuestas:
 
-## Tests fallando
+1. **Identidad visual por clase (9 filas).** El spec §17 se cumple —tres
+   familias de arquetipo con espada, arco y báculo, y el caster pesa un 30 %
+   menos que el melee— pero `CLAUDE.md` §5 no: tres parejas comparten silueta
+   (`devastador ≈ guardian` con 1.2 % de diferencia de masa, `centinela ≈
+   rastreador` con 0.3 %, y `devastador ≈ rastreador` con 4.5 %, que además
+   cruza arquetipos). Falta trabajo en `js/render/characterVisual.js`:
+   proporciones, equipo y silueta por clase. `js/data/races.js` ya tiene la
+   preparación que dejó el agente antes de caer.
+2. **Pointer Lock (1 fila).** BLOCKED por el navegador, no por el juego: no se
+   concede a un gesto sintético. El arrastre izquierdo y la mirada libre SÍ
+   quedaron verificados con eventos de ratón reales.
 
-Ninguno. **243/243.**
+## Lo que NO falta y conviene no rehacer
 
-**Las seis puertas observables en verde.** La de animación y VFX cierra con
-`EXIT=0` y sus 15 sondas seguidas en una sola tirada.
+- Las 60 filas de combate (normal, casteo, weaving, CC, counters) están
+  verificadas dentro del juego con 18 sondas.
+- Movimiento, cámara y targeting, con 9 sondas más y arrastre de ratón real.
+- Animación y VFX: 15 sondas, incluida la gramática visual completa de los 36
+  efectos.
+- Rendimiento: la simulación ocupa el 0.4 % de su presupuesto y diez partidas
+  seguidas no dejan ni un nodo de DOM de más.
 
-Antes moría por reloj, no por el juego: la sonda de acciones era un único
-`Runtime.evaluate` que simulaba ~3600 pasos y pintaba cientos de veces por
-software, y rozaba el tope del driver CDP (`EXIT=2`,
-`FALLO: Timeout en Runtime.evaluate`). Partida en once sondas —una por clase
-para acciones, una por clase para VFX— ninguna llamada se acerca al tope, y un
-fallo señala a la clase culpable en vez de a un bloque de 36 habilidades.
+## Sin juicio humano todavía
 
-**Lección de arnés, no de producto:** un filtro `grep ✓|✗` en la tubería se
-comió el mensaje de timeout, y el código de salida que leí venía del final de la
-tubería (`cut`), no del driver. Una puerta leída a través de un filtro puede
-mentir por omisión.
+Todo lo anterior es medición. Nadie ha jugado esto. El peso de un mandoble, la
+legibilidad de un telegraph a distancia de duelo y si el combate divierte siguen
+necesitando a una persona con las manos en el teclado.
+
