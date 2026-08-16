@@ -250,6 +250,89 @@ export function createCharacterFactory(Arena, scene, opts) {
     g.position.set(-0.01,-0.01,0.03); return g;
   }
 
+  /* =========================================================================
+   * EQUIPO DE CLASE SOBRE EL RIG REAL
+   *
+   * El pase de identidad visual construyó seis siluetas distintas y las midió:
+   * la peor pareja difería un 18.5 % de contorno. Al entrar el modelo real ese
+   * trabajo se apagó —la ruta GLB dibujaba «cuerpo + arma» y nada más—, y las
+   * seis clases volvieron a ser el mismo elfo en ropa interior con un arma
+   * distinta. Se ve en cuanto se arranca el juego.
+   *
+   * Aquí se vuelve a vestir, pero sobre huesos de verdad. Y NO se reescribe
+   * nada: las medidas siguen en `data/classVisuals.js`, las formas las siguen
+   * fabricando las 24 factorías de `render/equipment.js`, y las geometrías ya
+   * están subidas a GPU porque `buildMeshes()` las incluye. Lo único que falta
+   * —y es lo que hace este bloque— es colgar cada pieza del hueso que le toca.
+   *
+   * Colgarlas del hueso, y no recalcular matrices por fotograma, tiene una
+   * consecuencia importante: el equipo sigue al skinning **gratis**. Una
+   * hombrera atada a `Chest` acompaña al torso en cualquier animación de UAL2,
+   * presente o futura, sin que este fichero se entere de qué clip suena.
+   *
+   * LOS OFFSETS SE ESCRIBEN EN ESPACIO DE PERSONAJE (+X derecha, +Y arriba,
+   * +Z al frente), igual que en `classVisuals.js`, y se convierten a espacio
+   * de hueso con la orientación de bind. Si se autorizaran directamente en
+   * espacio de hueso, cada número dependería de cómo exportó el rig quien hizo
+   * el modelo, y cambiar de modelo obligaría a reescribir las seis clases.
+   * ====================================================================== */
+  var GEAR_SOCKET = {
+    chest:     { bone: 'Chest' },
+    chestPair: { bone: 'Chest', pair: true },
+    hips:      { bone: 'Hips' },
+    hipsPair:  { bone: 'Hips', pair: true },
+    head:      { bone: 'Head' },
+    elbowPair: { boneL: 'LeftLowerArm', boneR: 'RightLowerArm', pair: true },
+    thighPair: { boneL: 'LeftUpperLeg', boneR: 'RightUpperLeg', pair: true },
+    kneePair:  { boneL: 'LeftLowerLeg', boneR: 'RightLowerLeg', pair: true },
+    anklePair: { boneL: 'LeftFoot', boneR: 'RightFoot', pair: true },
+    handL:     { bone: 'LeftHand' },
+    handR:     { bone: 'RightHand' }
+  };
+
+  /* Corrección de anclaje, en espacio de personaje.
+   *
+   * El maniquí procedural y el Elfo Oscuro NO tienen el esqueleto en el mismo
+   * sitio: la cadera procedural está en y≈1.03 y la del modelo en 0.920; el
+   * pecho, en cambio, coincide casi exacto (1.23 contra 1.261). Medido, no
+   * supuesto — `tools/rig-report.js` imprime los dos. Esta tabla absorbe la
+   * diferencia para que los números de `classVisuals.js` sigan valiendo. */
+  var GEAR_ANCHOR = {
+    /* MEDIDOS, no estimados: `node tools/rig-report.js` los imprime leyendo el
+       propio GLB y las constantes del maniquí. Adivinarlos cuesta una
+       iteración de capturas por pieza; medirlos, un comando. */
+    chest:     [0, -0.071, 0],
+    chestPair: [0, -0.071, 0],
+    hips:      [0,  0.079, 0],
+    hipsPair:  [0,  0.079, 0],
+    head:      [0, -0.021, 0],
+    elbowPair: [0, -0.031, 0],
+    thighPair: [0,  0.089, 0],
+    kneePair:  [0,  0.012, 0],
+    anklePair: [0, -0.044, 0],
+    handL:     [0, -0.071, 0],
+    handR:     [0, -0.071, 0]
+  };
+
+  var _gq = new THREE.Quaternion(), _ge = new THREE.Euler(), _gv = new THREE.Vector3();
+
+  /**
+   * Convierte una colocación en espacio de personaje a espacio local del hueso.
+   * `bindQ` es la orientación mundial del hueso en bind: invertirla es lo que
+   * permite seguir pensando en «arriba», «al frente» y «a la derecha».
+   */
+  function gearPlace(obj, bindQ, anchor, pos, rot, side) {
+    _gq.copy(bindQ).invert();
+    _gv.set(anchor[0] + pos[0] * side, anchor[1] + pos[1], anchor[2] + pos[2]);
+    _gv.applyQuaternion(_gq);
+    obj.position.copy(_gv);
+    // `M.composeFull` compone R = Ry·Rx·Rz, que es exactamente el orden YXZ de
+    // Three. El pitch va invertido porque el convenio procedural es
+    // «pitch > 0 → hacia atrás».
+    _ge.set(-rot[0], rot[1] * side, rot[2] * side, 'YXZ');
+    obj.quaternion.setFromEuler(_ge).premultiply(_gq);
+  }
+
   function Character(entity) {
     this.entityId = entity.id;
     this.handle = Backend.current.createCharacter(entity);
@@ -293,6 +376,10 @@ export function createCharacterFactory(Arena, scene, opts) {
       this.rigBones.LeftHand.add(this.weapons.bow);
       this.rigBones.RightHand.add(this.weapons.sword);
       this.weapons.staff.visible=this.weapons.bow.visible=this.weapons.sword.visible=false;
+      /* El equipo de clase se cuelga en el primer `applyPose`, cuando ya se
+         conoce la paleta del bando. Aquí sólo se reserva el sitio. */
+      this.gear = null;
+      this.gearClass = null;
       this.skinnedRoot.traverse(function (o) {
         if (!o.isMesh) return;
         o.castShadow = true; o.receiveShadow = true;
@@ -407,11 +494,188 @@ export function createCharacterFactory(Arena, scene, opts) {
    * objetos de Three por fotograma produce microtirones de recolección de
    * basura, y ocurrirían justo en el burst, que es cuando más piezas cambian.
    */
+  /**
+   * Cuelga el equipo de la clase de los huesos del modelo real.
+   *
+   * Se llama una vez por personaje (y otra si cambia de clase en el lobby). A
+   * partir de ahí el equipo no cuesta nada por fotograma: son hijos de huesos,
+   * así que el skinning los arrastra solo.
+   */
+  Character.prototype.buildGear = function (entity, palette) {
+    if (!this.usedGlb || !this.rigBones) return;
+    var D = Arena.Data;
+    if (!D.classVisualOf || !D.CLASS_VISUAL) return;
+    if (this.gear && this.gearClass === entity.classId) return;
+    this.disposeGear();
+
+    var prof = D.classVisualOf(entity.classId);
+    this.gearClass = entity.classId;
+    this.gear = [];
+
+    var colores = {
+      cloth: palette.cloth, metal: palette.metal, steel: palette.steel,
+      leather: palette.leather, wood: palette.wood, trim: palette.trim,
+      accent: palette.accent, skin: palette.skin, hair: palette.hair,
+      team: palette.team, teamDark: palette.teamDark || palette.team
+    };
+    var self = this;
+
+    function pieza(meshName, boneName, anchor, pos, rot, scale, colorName, glow) {
+      var geo = geometries[meshName];
+      var bone = self.rigBones[boneName];
+      if (!geo || !bone) return null;
+      var col = colores[colorName] || palette.cloth;
+      var kind = Backend.current.materialOf
+        ? kindOf({ material: Backend.current.materialOf(meshName) }) : 'CLOTH';
+      var m = new THREE.Mesh(geo, materialFor(kind, col,
+        glow ? [col[0] * glow, col[1] * glow, col[2] * glow] : null));
+      m.castShadow = true; m.receiveShadow = true;
+      m.name = 'gear:' + meshName;
+      bone.add(m);
+      var sc = scale === undefined ? 1 : scale;
+      if (typeof sc === 'number') m.scale.setScalar(sc);
+      else m.scale.set(sc[0], sc[1], sc[2]);
+      self.gear.push(m);
+      return m;
+    }
+
+    var ZERO = [0, 0, 0];
+    for (var socket in prof.attach) {
+      if (!Object.prototype.hasOwnProperty.call(prof.attach, socket)) continue;
+      var mapa = GEAR_SOCKET[socket];
+      if (!mapa) continue;
+      var anchor = GEAR_ANCHOR[socket] || ZERO;
+      var list = prof.attach[socket];
+      for (var i = 0; i < list.length; i++) {
+        var it = list[i];
+        var lados = mapa.pair ? [-1, 1] : [1];
+        for (var s = 0; s < lados.length; s++) {
+          var side = lados[s];
+          if (it.side !== undefined && it.side !== side) continue;
+          var boneName = mapa.pair && mapa.boneL
+            ? (side < 0 ? mapa.boneL : mapa.boneR) : mapa.bone;
+          var m = pieza(it.mesh, boneName, anchor, it.pos || ZERO, it.rot || ZERO,
+            it.scale, it.color, it.glow);
+          if (m) gearPlace(m, this.rigBindWorldQuat[boneName], anchor,
+            it.pos || ZERO, it.rot || ZERO, side);
+        }
+      }
+    }
+
+    /* La túnica cuelga de la cadera: es la pieza que más define a los dos
+       casters y sin ella el mago va en ropa interior con un báculo. */
+    if (prof.robe) {
+      var r = pieza(prof.robe.mesh, 'Hips', GEAR_ANCHOR.hips, ZERO, ZERO, 1, prof.robe.color);
+      if (r) gearPlace(r, this.rigBindWorldQuat.Hips, GEAR_ANCHOR.hips, [0, 0.06, 0], ZERO, 1);
+      if (prof.robe.trim) {
+        var rt = pieza(prof.robe.trim, 'Hips', GEAR_ANCHOR.hips, ZERO, ZERO, 1, 'trim');
+        if (rt) gearPlace(rt, this.rigBindWorldQuat.Hips, GEAR_ANCHOR.hips, [0, 0.06, 0], ZERO, 1);
+      }
+    }
+    if (prof.cloak) {
+      var cpos = prof.cloak.pos || [0, 0.22, -0.13];
+      var ck = pieza(prof.cloak.mesh, 'Chest', GEAR_ANCHOR.chest, cpos,
+        [prof.cloak.rest || 0.12, 0, 0], 1, prof.cloak.color);
+      if (ck) gearPlace(ck, this.rigBindWorldQuat.Chest, GEAR_ANCHOR.chest, cpos,
+        [prof.cloak.rest || 0.12, 0, 0], 1);
+    }
+
+    /* --- Armas de clase ---------------------------------------------------
+     * El TIPO lo sigue fijando `data/animConfig.js` y es lo que gobierna la
+     * animación; la MALLA la elige el perfil. Por eso el espadón del Devastador
+     * y la hoja corta del Guardián comparten timings sin compartir silueta. */
+    if (prof.right && geometries[prof.right.mesh]) {
+      var manoDcha = prof.right.kind === 'bow' ? 'LeftHand' : 'RightHand';
+      var arma = this.buildClassWeapon(prof.right, manoDcha, colores);
+      if (arma) {
+        var viejo = this.weapons[prof.right.kind];
+        if (viejo && viejo.parent) viejo.parent.remove(viejo);
+        this.weapons[prof.right.kind] = arma;
+      }
+    }
+    if (prof.left && geometries[prof.left.mesh]) {
+      var izq = this.buildClassWeapon(prof.left, 'LeftHand', colores);
+      if (izq) {
+        izq.visible = true;
+        // El escudo y el orbe no los gira la capa de acciones: su orientación
+        // la declara el perfil y se queda quieta en la mano.
+        var lr = prof.left.rot || [0, 0, 0];
+        izq.rotation.set(-lr[0], lr[1], lr[2], 'YXZ');
+        var lp = prof.left.pos || [0, 0, 0];
+        izq.position.set(lp[0], lp[1], lp[2]);
+      }
+    }
+  };
+
+  /**
+   * Un arma de clase, montada como grupo para que la capa de acciones pueda
+   * seguir girándola exactamente igual que a las genéricas.
+   */
+  Character.prototype.buildClassWeapon = function (spec, boneName, colores) {
+    var geo = geometries[spec.mesh];
+    var bone = this.rigBones[boneName];
+    if (!geo || !bone) return null;
+    /* DOS grupos, no uno.
+     *
+     * El externo lleva la inversa de bind y no lo toca nadie: es el que
+     * convierte «espacio de mano del exportador» en espacio de personaje. El
+     * interno es el que la capa de acciones gira cada fotograma con
+     * `w.rotation.set(pitch, yaw, roll)`.
+     *
+     * Con un solo grupo, esa asignación por fotograma BORRABA la corrección de
+     * bind —`rotation` y `quaternion` son la misma cosa en Three— y el arma
+     * salía disparada en el eje que le diera al rig. Se vio en la primera
+     * captura: el espadón flotando delante del pecho. */
+    var socket = new THREE.Group();
+    socket.name = 'grip:' + boneName;
+    var q = this.rigBindWorldQuat[boneName].clone().invert();
+    socket.quaternion.copy(q);
+    var off = spec.offset || [0, 0, 0];
+    socket.position.set(off[0], off[1] - 0.02, off[2]).applyQuaternion(q);
+    bone.add(socket);
+
+    var g = new THREE.Group();
+    g.name = 'weapon:' + spec.mesh;
+    var col = colores[spec.color] || colores.steel;
+    var kind = kindOf({ material: Backend.current.materialOf(spec.mesh) });
+    var m = new THREE.Mesh(geo, materialFor(kind, col, null));
+    m.castShadow = true;
+    g.add(m);
+    if (spec.string && geometries[spec.string]) {
+      var st = new THREE.Mesh(geometries[spec.string],
+        materialFor('LEATHER', [0.62, 0.60, 0.54], null));
+      st.name = 'bowString';
+      g.add(st);
+      g.userData.string = st;
+    }
+    var sc = spec.scale === undefined ? 1 : spec.scale;
+    g.scale.setScalar(sc);
+    socket.add(g);
+    this.gear.push(socket);
+    return g;
+  };
+
+  Character.prototype.disposeGear = function () {
+    if (!this.gear) return;
+    for (var i = 0; i < this.gear.length; i++) {
+      var m = this.gear[i];
+      if (m.parent) m.parent.remove(m);
+      // Las geometrías y los materiales son COMPARTIDOS entre personajes:
+      // destruirlos aquí dejaría al resto del equipo sin malla.
+      m.geometry = null; m.material = null;
+    }
+    this.gear = null;
+    this.gearClass = null;
+  };
+
   Character.prototype.applyPose = function (entity, pos, yaw, palette, fade, hurtTint) {
     if (this.usedGlb) {
       this.applySkinnedPose(entity, pos, yaw);
-      /* No armadura/ropa procedural in v0.15. The imported body already carries
-         its underwear material; only the archetype weapon remains. */
+      // El equipo de clase vive colgado de los huesos: se construye una vez y
+      // el skinning se encarga del resto.
+      this.buildGear(entity, palette);
+      /* El maniquí procedural queda apagado: el cuerpo lo pone el GLB. Lo que
+         sí vuelve es su ROPA, ahora atada al rig real. */
       for (var hp=0; hp<this.parts.length; hp++) this.parts[hp].visible=false;
       var fxPos={x:pos.x,y:pos.y+1.35,z:pos.z};
       if (this.magicLight) {
@@ -515,6 +779,7 @@ export function createCharacterFactory(Arena, scene, opts) {
     if (this.magicLight) scene.remove(this.magicLight);
     if (this.castFx) scene.remove(this.castFx.root);
     if (this.retarget) this.retarget.dispose();
+    this.disposeGear();
     this.skinnedRoot = null; this.rigBones = null; this.rigBindPos = null; this.rigBindQuat=null; this.rigBindWorldQuat=null; this.retarget=null; this.weapons=null; this.skinnedAnim=null;
     for (var i = 0; i < this.parts.length; i++) {
       // Las geometrías son COMPARTIDAS: destruirlas aquí dejaría sin malla a

@@ -104,3 +104,77 @@ El renderer recibe `pos`/`yaw` desde simulación y aplica únicamente pose visua
 - VISUAL CRITIC estático APROBADO.
 
 El smoke visual real no puede ejecutarse localmente porque Chromium administrado bloquea `127.0.0.1` antes de cargar JavaScript. La captura está en `QA_BROWSER_POLICY_BLOCK_V016.png`. El milestone queda TESTED hasta playtest en Hostinger.
+
+---
+
+# v0.17 · EL EQUIPO VUELVE, SOBRE EL RIG REAL
+
+## El defecto que sólo se ve arrancando el juego
+
+v0.16 quedó **TESTED, no VERIFIED**, porque su entorno bloqueaba el navegador
+local antes de cargar Arena (`docs/QA_BROWSER_POLICY_BLOCK_V016.png`). En este
+entorno el navegador **sí** arranca, así que lo primero fue ejecutar el gate que
+faltaba. Encontró un P0 en el primer fotograma:
+
+> **Las seis clases son el mismo elfo en ropa interior con un arma distinta.**
+
+No es una regresión accidental: la ruta GLB dibujaba deliberadamente «cuerpo +
+arma», y el propio árbitro lo blindaba con un gate llamado *«ruta GLB = cuerpo +
+arma, sin armadura procedural»*. El modelo real entró y, con él, se apagó el
+pase de identidad visual que había costado nueve filas del ledger y que estaba
+medido: 18.5 % de contorno distinto en la peor pareja.
+
+Evidencia: `docs/shots/v017-*.png`.
+
+## Lo que se construye
+
+El equipo vuelve, pero colgado de huesos de verdad. **No se reescribe nada**:
+
+- las medidas siguen en `data/classVisuals.js`;
+- las formas las siguen fabricando las 24 factorías de `render/equipment.js`;
+- las geometrías ya estaban subidas a GPU, porque `buildMeshes()` las incluye.
+
+Lo único que hacía falta era colgar cada pieza del hueso que le toca, y eso
+tiene una consecuencia que compensa el trabajo: **el equipo sigue al skinning
+gratis**. Una hombrera atada a `Chest` acompaña al torso en cualquier clip de
+UAL2, presente o futuro, sin que el renderer sepa qué animación suena.
+
+Los offsets se siguen escribiendo en **espacio de personaje** (+X derecha, +Y
+arriba, +Z al frente) y se convierten a espacio de hueso con la inversa de la
+orientación de bind. Si se autorizaran directamente en espacio de hueso, cada
+número dependería de cómo exportó el rig quien hizo el modelo, y cambiar de
+modelo obligaría a reescribir las seis clases.
+
+## Dos defectos que costaron una iteración cada uno
+
+**El arma salía disparada.** Con un solo grupo, el `w.rotation.set(pitch, yaw,
+roll)` que la capa de acciones aplica cada fotograma BORRABA la corrección de
+bind: en Three, `rotation` y `quaternion` son la misma cosa. Ahora hay dos
+grupos —uno externo con la inversa de bind que no toca nadie, y uno interno que
+la animación gira— y el espadón deja de flotar delante del pecho.
+
+**Las hombreras salían en el cuello.** El maniquí procedural tenía los hombros
+0.20 por encima del nodo de pecho; el Elfo Oscuro los tiene 0.116 por encima de
+su hueso `Chest`. Medido con `tools/rig-report.js`, no supuesto. La tabla
+`GEAR_ANCHOR` absorbe esa diferencia para que los números de `classVisuals.js`
+sigan valiendo.
+
+## Estado honesto
+
+| Socket | Estado |
+|---|---|
+| `head` — yelmos, sombrero, capucha, diadema | **correcto** |
+| `hips` — cinturones, faldar, bolsas, trampas, talismanes | **correcto** |
+| `thigh` / `knee` / `ankle` — quijotes, rodilleras, botas | **correcto** |
+| `handL` / `handR` — armas de clase, escudo torre, orbe | **correcto de sitio**, falta afinar el ángulo de guardia del escudo |
+| `chest` — petos y corazas | **incompleto**: la coraza no cubre el pecho |
+| `robe` — túnicas de los dos casters | **incompleto**: se lee como un panel estrecho, no como campana |
+
+El Guardián ya se lee como un caballero acorazado con escudo torre y el
+Arcanista como un mago con sombrero y báculo. El Devastador y los dos casters
+necesitan otra vuelta de medición sobre el socket de pecho.
+
+**Siguiente paso concreto:** una sonda que compare la caja envolvente de cada
+pieza de equipo contra la del hueso que la sujeta. Los dos sockets que fallan
+fallan por escala, no por posición, y eso es exactamente lo que una caja mide y
+una captura no.
