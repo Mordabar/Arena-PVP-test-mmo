@@ -17,9 +17,9 @@
  * su propia sensación y ésa es justo la que no queremos cambiar.
  * ========================================================================== */
 import * as THREE from 'three';
-import { createEnvironment } from './threeEnvironment.js?build=v070-20260812-1051';
-import { createCharacterFactory } from './threeCharacter.js?build=v070-20260812-1051';
-import { createVfxRenderer, createSelectionRings, createProjectileRenderer } from './threeVfx.js?build=v070-20260812-1051';
+import { createEnvironment } from './threeEnvironment.js?build=v0160-20260816-ual2-retarget';
+import { createCharacterFactory } from './threeCharacter.js?build=v0160-20260816-ual2-retarget';
+import { createVfxRenderer, createSelectionRings, createProjectileRenderer } from './threeVfx.js?build=v0160-20260816-ual2-retarget';
 
 export function createThreeRenderer(Arena, canvas, world, opts) {
   opts = opts || {};
@@ -41,7 +41,11 @@ export function createThreeRenderer(Arena, canvas, world, opts) {
   var camera = new THREE.PerspectiveCamera(55, 16 / 9, 0.1, 220);
 
   var environment = createEnvironment(scene, world.arena);
-  var characters = createCharacterFactory(Arena, scene, { glbLoader: opts.glbLoader });
+  var characters = createCharacterFactory(Arena, scene, {
+    glbLoader: opts.glbLoader,
+    baseCharacterGltf: opts.baseCharacterGltf || null,
+    animationLibraryGltf: opts.animationLibraryGltf || null
+  });
   var vfx = createVfxRenderer(Arena, scene);
   var projectiles = createProjectileRenderer(Arena, scene);
   var rings = createSelectionRings(Arena, scene);

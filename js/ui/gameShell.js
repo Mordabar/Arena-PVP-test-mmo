@@ -41,7 +41,7 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
 
     /* PRODUCT TOP BAR */
     var top = el('div', 'arena-topbar', this.root);
-    top.innerHTML = '<div class="arena-logo"><span class="logo-mark">A</span><span><b>PROJECT ARENA</b><small>LADDER PvP · ALPHA 0.8</small></span></div>' +
+    top.innerHTML = '<div class="arena-logo"><span class="logo-mark">A</span><span><b>PROJECT ARENA</b><small>LADDER PvP · ALPHA 0.13</small></span></div>' +
       '<div class="arena-top-actions"><button class="ghost-btn" data-action="lab">COMBAT LAB</button><button class="ghost-btn" data-action="lobby">LOBBY</button></div>';
     top.querySelector('[data-action="lab"]').onclick = function(){ uiSound('uiConfirm'); if (self.ctx.onTraining) self.ctx.onTraining(); };
     top.querySelector('[data-action="lobby"]').onclick = function(){ uiSound('uiConfirm'); if (self.ctx.onLobby) self.ctx.onLobby(); };

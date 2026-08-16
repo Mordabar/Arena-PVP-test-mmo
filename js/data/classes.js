@@ -23,7 +23,7 @@ Arena.define('data/classes', ['data/balance', 'data/races'], function (Arena) {
       color: [0.85, 0.28, 0.22],
       hpMax: 1350,
       resourceType: 'vigor',
-      resourceMax: 100,
+      resourceMax: 1000,
       armor: T.high,           // 90
       resist: T.midLow,        // 45
       power: B.POWER.devastador,
@@ -52,7 +52,7 @@ Arena.define('data/classes', ['data/balance', 'data/races'], function (Arena) {
       color: [0.35, 0.55, 0.85],
       hpMax: 1650,
       resourceType: 'vigor',
-      resourceMax: 100,
+      resourceMax: 1000,
       // Muy alta, pero no la 120 del tramo máximo: con 120 el 1v1 contra un
       // Devastador se iba a ~50 s y dejaba de ser un combate.
       armor: 100,
@@ -83,7 +83,7 @@ Arena.define('data/classes', ['data/balance', 'data/races'], function (Arena) {
       color: [0.35, 0.75, 0.45],
       hpMax: 1100,
       resourceType: 'focus',
-      resourceMax: 100,
+      resourceMax: 1000,
       armor: T.midLow,         // 45
       resist: T.low,           // 30
       power: B.POWER.centinela,
@@ -114,7 +114,7 @@ Arena.define('data/classes', ['data/balance', 'data/races'], function (Arena) {
       color: [0.55, 0.45, 0.30],
       hpMax: 1150,
       resourceType: 'focus',
-      resourceMax: 100,
+      resourceMax: 1000,
       armor: T.mid,            // 60
       resist: T.low,           // 30
       power: B.POWER.rastreador,
@@ -143,7 +143,7 @@ Arena.define('data/classes', ['data/balance', 'data/races'], function (Arena) {
       color: [0.62, 0.38, 0.85],
       hpMax: 1000,
       resourceType: 'mana',
-      resourceMax: 120,
+      resourceMax: 1000,
       armor: T.low,            // 30
       resist: T.mid,           // 60
       power: B.POWER.arcanista,
@@ -172,7 +172,7 @@ Arena.define('data/classes', ['data/balance', 'data/races'], function (Arena) {
       color: [0.35, 0.80, 0.72],
       hpMax: 1050,
       resourceType: 'mana',
-      resourceMax: 140,
+      resourceMax: 1000,
       armor: T.low,            // 30
       resist: T.mid,           // 60
       power: B.POWER.vinculador,

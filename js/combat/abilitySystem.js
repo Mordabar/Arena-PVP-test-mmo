@@ -26,13 +26,15 @@ Arena.define('combat/abilitySystem',
     dead: 'Estás muerto', unknown: 'Habilidad desconocida', silenced: 'Estás mareado',
     stunned: 'Estás bajo control', disarmed: 'No puedes usar el arma',
     noOffense: 'No puedes usar poderes ofensivos', noDamage: 'No puedes usar habilidades dañinas',
+    noAoE: 'No puedes usar poderes de área',
     utilityLocked: 'No puedes usar habilidades de utilidad', lockout: 'Escuela bloqueada',
     gcd: 'Aún no está listo', cooldown: 'En recuperación', weaponInterval: 'El arma aún no está preparada',
     resource: 'Recurso insuficiente', noTarget: 'Necesitas un objetivo', badTarget: 'Objetivo no válido',
     targetDead: 'El objetivo está muerto', untargetable: 'El objetivo no puede ser seleccionado',
     range: 'Fuera de rango', facing: 'Debes encarar al objetivo', los: 'Sin línea de visión',
     casting: 'Ya estás lanzando', noGround: 'Necesitas un punto de destino',
-    moving: 'Debes detenerte', airborne: 'No puedes hacerlo en el aire', weaponWindup: 'Ataque normal en preparación'
+    moving: 'Debes detenerte', airborne: 'No puedes hacerlo en el aire', weaponWindup: 'Ataque normal en preparación',
+    badClass: 'Este poder pertenece a otra subclase', passive: 'Los poderes pasivos no se activan desde la barra'
   };
 
   A.costOf = function (world, caster, ability) {
@@ -140,6 +142,19 @@ Arena.define('combat/abilitySystem',
 
     if (!caster.alive) return no('dead');
     if (!ability) return no('unknown');
+    if (ability.allowedClasses && ability.allowedClasses.indexOf(caster.classId) < 0) return no('badClass');
+    if (ability.flags && ability.flags.passive) return no('passive');
+    if (ability.sourceIndex && caster.sourcePowerLockouts && caster.sourcePowerLockouts[ability.sourceIndex] > now) return no('lockout');
+    if (ability.sourceConstraints) {
+      var sc=ability.sourceConstraints, activeGroup=false, incompatible=false;
+      for (var si=0; si<caster.statuses.length; si++) {
+        var sab=Arena.Data.abilities[caster.statuses[si].abilityId];
+        if (!sab) continue;
+        if (sc.exclusiveGroup && sab.id!==ability.id && sab.sourceConstraints && sab.sourceConstraints.exclusiveGroup===sc.exclusiveGroup) activeGroup=true;
+        if (sc.incompatibleSourceIndices && sc.incompatibleSourceIndices.indexOf(sab.sourceIndex)>=0) incompatible=true;
+      }
+      if (activeGroup || incompatible) return no('utilityLocked');
+    }
 
     var m = caster.mods();
     if (m.isolated) return no('stunned');
@@ -151,6 +166,7 @@ Arena.define('combat/abilitySystem',
     if (flags.offensive && !m.canUseOffensive) return no('noOffense');
     if (causesDamage && !m.canUseDamageAbilities) return no('noDamage');
     if (!causesDamage && !m.canUseNonDamaging) return no('utilityLocked');
+    if (m.preventAoEAbilities && (ability.target === 'ground' || ability.target === 'cone' || ability.target === 'aoeSelf' || ability.target === 'targetArea' || (ability.radius || 0) > 0)) return no('noAoE');
 
     var school = ability.school || 'general';
     if (caster.schoolLockouts[school] > now) return no('lockout');
@@ -168,19 +184,20 @@ Arena.define('combat/abilitySystem',
     if (timing.stationary && !ctx.ignoreMovement && A.hasMovementIntent(caster) && caster.mods().canMove) return no('moving');
 
     var target = null;
-    var needsTarget = ability.target === 'enemy' || ability.target === 'ally' || ability.target === 'allyOrSelf';
+    var needsTarget = ability.target === 'enemy' || ability.target === 'ally' || ability.target === 'allyOrSelf' || ability.target === 'targetArea';
     if (needsTarget) {
       target = ctx.target || world.getEntity(ctx.targetId);
       if (!target) return no('noTarget');
-      if (!target.alive) return no('targetDead');
-      if (!target.isTargetable()) return no('untargetable');
+      var corpseAction = !!(ability.flags && (ability.flags.revive || ability.flags.cremate));
+      if (!target.alive && !corpseAction) return no('targetDead');
+      if (target.alive && !target.isTargetable()) return no('untargetable');
       var hostile = world.areHostile(caster, target);
-      if (ability.target === 'enemy' && !hostile) return no('badTarget');
+      if ((ability.target === 'enemy' || ability.target === 'targetArea') && !hostile) return no('badTarget');
       if (ability.target === 'ally' && (hostile || target.id === caster.id)) return no('badTarget');
       if (ability.target === 'allyOrSelf' && hostile) return no('badTarget');
       if (hostile && target.mods().stealthed && !target.hasStatus('revealed')) return no('untargetable');
 
-      var range = (ability.range || 0) + target.radius + caster.radius;
+      var range = (ability.range || 0) * Math.max(0.1, 1 + (caster.mods().attackRangePct || 0)) + target.radius + caster.radius;
       if (V.distXZ(caster.pos, target.pos) > range + (ctx.releaseValidation ? B.RANGE_TOLERANCE : 0)) return no('range');
 
       if (A.requiresFacing(ability, caster)) {
@@ -190,7 +207,7 @@ Arena.define('combat/abilitySystem',
       if (!ability.ignoresLoS && !world.hasLineOfSight(caster.eyePos(), target.centerPos(), caster, target)) return no('los');
     } else if (ability.target === 'ground') {
       if (!ctx.groundPoint) return no('noGround');
-      if (V.distXZ(caster.pos, ctx.groundPoint) > (ability.range || 10) + 0.5) return no('range');
+      if (V.distXZ(caster.pos, ctx.groundPoint) > (ability.range || 10) * Math.max(0.1, 1 + (caster.mods().attackRangePct || 0)) + 0.5) return no('range');
     }
 
     return { ok: true, reason: 'ok', message: '', target: target };
@@ -204,6 +221,15 @@ Arena.define('combat/abilitySystem',
     var ability = Arena.Data.abilities[abilityId];
     if (!ability) return { ok: false, reason: 'unknown', message: A.REASONS.unknown, queued: false };
     var now = world.time;
+    if (ability.flags && ability.flags.toggle && caster.statuses) {
+      var activeToggle = false;
+      for (var ti = 0; ti < caster.statuses.length; ti++) if (caster.statuses[ti].abilityId === ability.id) { activeToggle = true; break; }
+      if (activeToggle) {
+        Status.removeByAbility(world, caster, ability.id, 'toggleOff');
+        world.bus.emit('AbilityToggled', { casterId: caster.id, abilityId: ability.id, active: false });
+        return { ok: true, reason: 'toggleOff', queued: false, toggledOff: true };
+      }
+    }
     var timing = A.timingOf(ability);
     var ws = A._weapon(caster);
 
@@ -285,6 +311,7 @@ Arena.define('combat/abilitySystem',
 
     world.bus.emit('AbilityCastStarted', {
       casterId: caster.id, abilityId: ability.id, targetId: pending.targetId,
+      groundPoint: pending.groundPoint ? { x: pending.groundPoint.x, y: 0, z: pending.groundPoint.z } : null,
       castTime: castTime, endTime: pending.endTime, movable: pending.movable,
       commit: 'onRelease'
     });
@@ -350,11 +377,14 @@ Arena.define('combat/abilitySystem',
 
     world.bus.emit('AbilityReleased', {
       casterId: caster.id, abilityId: ability.id, targetId: target ? target.id : null,
+      groundPoint: (ctx.groundPoint || (pending && pending.groundPoint)) ? { x:(ctx.groundPoint || pending.groundPoint).x, y:0, z:(ctx.groundPoint || pending.groundPoint).z } : null,
       resourceCost: cost, gcd: gcd, cooldown: ability.cooldown || 0, time: now
     });
     // Compatibilidad: ahora Completed significa "alcanzó release", nunca begin.
     world.bus.emit('AbilityCastCompleted', {
-      casterId: caster.id, abilityId: ability.id, targetId: target ? target.id : null, releaseTime: now
+      casterId: caster.id, abilityId: ability.id, targetId: target ? target.id : null,
+      groundPoint: (ctx.groundPoint || (pending && pending.groundPoint)) ? { x:(ctx.groundPoint || pending.groundPoint).x, y:0, z:(ctx.groundPoint || pending.groundPoint).z } : null,
+      releaseTime: now
     });
 
     var report = Resolver.execute(world, caster, ability, {
@@ -425,7 +455,9 @@ Arena.define('combat/abilitySystem',
     if (!valid.ok) { A.cancelWeaponWindup(world, entity, valid.reason); return; }
 
     Status.breakStealth(world, entity, 'attack');
-    var raw = entity.power * B.AUTO_ATTACK.coefficient;
+    var normalMods = entity.mods();
+    var srcBonus=0, sb=normalMods.sourceBonusDamageFlat||{}; for(var bk in sb) if(Object.prototype.hasOwnProperty.call(sb,bk)) srcBonus+=Number(sb[bk]||0);
+    var raw = entity.power * B.AUTO_ATTACK.coefficient * (1 + (normalMods.normalDamagePct || 0)) * Math.max(0,1+(normalMods.weaponDamagePct||0)) + (normalMods.normalDamageFlat || 0) + srcBonus;
     var ranged = entity.autoAttackRange > 5;
     var result = null;
 
@@ -439,6 +471,21 @@ Arena.define('combat/abilitySystem',
       casterId: entity.id, targetId: target.id, ranged: ranged, releaseTime: now,
       weaponReadyAt: ws.readyAt
     });
+
+    /* Toggles fuente como flechas potenciadas pueden cobrar vida/maná POR
+       NORMAL. El coste ocurre en RELEASE —jamás en WINDUP— y por tanto una
+       cancelación por movimiento sigue siendo transaccional. */
+    var nm = entity.mods();
+    if (nm.normalResourceCostFlat > 0) {
+      var rc = Math.min(entity.resource, nm.normalResourceCostFlat);
+      entity.resource -= rc;
+      world.bus.emit('ResourceDrained', { targetId:entity.id, sourceId:entity.id, amount:rc, abilityId:'auto_attack_upkeep' });
+    }
+    if (nm.normalHealthCostFlat > 0 && entity.hp > 1) {
+      var hc = Math.min(entity.hp - 1, nm.normalHealthCostFlat);
+      entity.hp -= hc;
+      world.bus.emit('DamageApplied', { targetId:entity.id, sourceId:entity.id, abilityId:'auto_attack_upkeep', school:'pure', raw:hc, mitigated:hc, absorbed:0, applied:hc, redirected:0, overkill:0, blocked:false, immune:false, crit:false, periodic:false, killed:false });
+    }
 
     if (ranged) {
       world.spawnProjectile({
@@ -454,6 +501,7 @@ Arena.define('combat/abilitySystem',
         abilityId: 'auto_attack', canCrit: true
       });
       world.bus.emit('AutoAttackImpact', { casterId: entity.id, targetId: target.id, damage: result.applied, ranged:false });
+      if (result.applied > 0) { A._advanceNormalStacks(entity); A._applySourceOnHitRecovery(world,entity,result.applied); }
       if (Arena.Data.passives && Arena.Data.passives.onAutoAttack) Arena.Data.passives.onAutoAttack(world, entity, target, result);
     }
 
@@ -462,6 +510,25 @@ Arena.define('combat/abilitySystem',
       casterId: entity.id, targetId: target.id, damage: result ? result.applied : 0,
       ranged: ranged, released: true
     });
+  };
+
+  A._applySourceOnHitRecovery = function (world, entity, applied) {
+    if (!entity || applied <= 0) return;
+    var m=entity.mods();
+    if (m.onHitResourceFlat > 0) Arena.Combat.HealingSystem.restoreResource(world,entity,m.onHitResourceFlat,'sourceOnHit');
+    if (m.onHitHealthFlat > 0) Arena.Combat.HealingSystem.applyHeal(world,{source:entity,target:entity,raw:m.onHitHealthFlat,abilityId:'source_on_hit'});
+  };
+
+  A._advanceNormalStacks = function (entity) {
+    var changed=false;
+    for (var i=0;i<entity.statuses.length;i++) {
+      var data=entity.statuses[i].data||{};
+      if (data.normalStackDamageFlat===undefined && data.normalStackDamagePct===undefined) continue;
+      var max=Math.max(1,data.normalStackMax||5), cur=Math.max(0,data.normalStackCount||0);
+      if (cur<max) { data.normalStackCount=cur+1; changed=true; }
+    }
+    if (changed) entity.invalidateMods();
+    return changed;
   };
 
   A._tickAutoAttack = function (world, entity, now) {
@@ -505,10 +572,12 @@ Arena.define('combat/abilitySystem',
   A.handlePreMovementIntents = function (world, entity, dt) {
     if (!entity || !entity.alive) return;
     var moving = A.hasMovementIntent(entity) && entity.mods().canMove;
-    var turning = A._bodyTurnMagnitude(entity, dt) >= B.CAST_TURN_CANCEL_THRESHOLD;
     var c = entity.pendingCast || entity.cast;
-    if (c && c.stationary && (moving || turning)) {
-      A.interruptCast(world, entity, { reason: moving ? 'movement' : 'rotation', lockout: 0 });
+    /* Girar el cuerpo/cámara NO cancela un casteo. El compromiso táctico es
+       permanecer plantado; el jugador puede corregir facing durante PREPARE /
+       CASTING y la validación final decide el RELEASE. */
+    if (c && c.stationary && moving) {
+      A.interruptCast(world, entity, { reason: 'movement', lockout: 0 });
     }
     if (A._weapon(entity).phase === 'WINDUP' && (moving || entity.jumpActive)) {
       A.cancelWeaponWindup(world, entity, moving ? 'movement' : 'jump');

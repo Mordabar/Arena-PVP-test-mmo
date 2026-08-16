@@ -1,0 +1,46 @@
+ARENA 86 × 62  ·  muro 4  ·  66 obstáculos  ·  4 plataformas
+
+SIMETRÍA 180°  SÍ
+
+SPAWNS
+  jugador   (-11.0, 0.0)  al centro 11.00  cobertura más cercana 2.89  espalda libre 12.00  LoS al rival sí
+  enemigo   (11.0, 0.0)  al centro 11.00  cobertura más cercana 2.89  espalda libre 12.00  LoS al rival sí
+  separación entre spawns: 22.00
+
+COBERTURA (rejilla de 1 u, 4743 puntos jugables)
+  puntos con cobertura a ≤ 4 u ....... 67.3 %
+  puntos con cobertura a ≤ 8 u ....... 99.0 %
+  distancia media a la cobertura ..... 3.26 u
+  peor caso (campo abierto) .......... 9.64 u en (-28.0, -30.0)
+
+LÍNEA DE VISIÓN (pares de puntos a rejilla de 2 u)
+  pares con LoS ...................... 33.8 %
+  pares a rango de arquero (18-26 u) con LoS ... 49.2 %
+
+CARRILES DE KITEO (anillo transitable alrededor del centro)
+  r= 6  transitable  100.0 %   tramo bloqueado más largo 0.00 u
+  r= 9  transitable   75.6 %   tramo bloqueado más largo 2.83 u
+  r=12  transitable   82.2 %   tramo bloqueado más largo 1.68 u
+  r=14  transitable   86.7 %   tramo bloqueado más largo 1.95 u
+
+CONECTIVIDAD
+  piezas del espacio jugable ......... 1 (una sola, sin bolsas aisladas)
+  mayor pieza ........................ 100.0 %
+
+VUELTA COMPLETA AL FOSO (se puede rodear el centro sin embudo)
+  disco central r=5  CERRADA  cobertura 100.0 %  hueco mayor 0°
+  disco central r=7  CERRADA  cobertura 100.0 %  hueco mayor 0°
+  disco central r=9  CERRADA  cobertura 100.0 %  hueco mayor 0°
+
+ZONAS DECLARADAS
+  foso           melee: choque          (0.0, 0.0)  r=5.5
+  carril-norte   melee: ruta de entrada (0.0, -11.0)  r=7.0
+  carril-sur     melee: ruta de entrada (0.0, 11.0)  r=7.0
+  anillo-oeste   rango: kiteo           (-15.5, 0.0)  r=7.0
+  anillo-este    rango: kiteo           (15.5, 0.0)  r=7.0
+  alto-noroeste  control: altura        (-13.0, -11.5)  r=3.5
+  alto-sureste   control: altura        (13.0, 11.5)  r=3.5
+  bosque-oeste   rango: kiteo exterior  (-30.0, 8.0)  r=8.0
+  bosque-este    rango: kiteo exterior  (30.0, -8.0)  r=8.0
+  cornisa-norte  control: flanqueo exterior (0.0, -24.0)  r=7.0
+  cornisa-sur    control: flanqueo exterior (0.0, 24.0)  r=7.0

@@ -1,133 +1,176 @@
+# Project Arena Ladder PvP
+
+## Alpha v0.16 · UAL2 Retarget Locomotion
+
+Esta wave integra la biblioteca de animaciones suministrada sobre el Elfo Oscuro skinned de 50k sin entregar autoridad a los clips. UAL2 aporta idle corporal, marcha forward/backpedal base, salto, recoil de impacto y familias melee; caster y arquero conservan sus gestos específicos de báculo/casteo y arco/draw.
+
+También corrige dos defectos visibles del build anterior:
+
+- piel facetada → normales suaves recalculadas en runtime;
+- controles → `A/D = strafe`, `Q/E = giro`.
+
+El retarget se realiza por delta de rotación desde el bind de la librería al **bind local real del Dark Elf**. El root motion del asset nunca mueve la entidad de simulación.
+
+**QA:** 383/383 tests · UAL2 audit 24/24 · power parity 20/20 · 12/12 auditores especializados · ARBITER v0.16 APROBADO · VISUAL CRITIC estático APROBADO. El browser smoke local sigue bloqueado por política del entorno y el juicio visual final debe cerrarse en Hostinger.
+
+Ver `CURRENT_BUILD_STATE.md`, `docs/ANIMATION_INTEGRATION_V016.md`, `docs/BUILD_REPORT_V016.md` y `docs/QA_BROWSER_POLICY_BLOCK_V016.png`.
+
+---
+
 # Project Arena · Ladder PvP Vertical Slice
 
-## Alpha v0.8 · Product Loop Integration
+## Alpha v0.11 · Character & Animation / Power Fidelity
 
-La versión hospedada usa Three.js vendorizado y mantiene el núcleo de simulación independiente.
-Esta iteración conserva el **Animation Reference Pass v0.7** y añade el loop de producto competitivo: lobby, selección de las seis clases, Training Lab, 1v1 Ladder local, 2v2, countdown, resultados, rating/placements persistentes y rematch.
+Esta wave parte de v0.10 sin reescribir el núcleo validado y ataca los tres defectos visibles del playtest: anatomía procedural demasiado ortogonal, lenguaje corporal repetitivo y iconografía masiva poco diferenciada. También endurece la paridad mecánica de la biblioteca completa de poderes.
 
-La regla central sigue intacta: **la simulación decide; Three.js, UI y Product Flow representan/orquestan**.
+**Regla inviolable:** la simulación decide; Three.js, UI, libro de poderes y Product Flow sólo representan/orquestan.
 
-Validación de entrega: `node tools/run-tests.js`, `node tools/arbiter.js` y `node tools/visual-audit.js`.
+### Qué cambia en v0.11
 
+- **320 registros fuente auditados** → **290 poderes reales** + **30 placeholders `undefined` descartados** de forma explícita.
+- **410 asignaciones a las seis subclases** al compartir las ramas base: Devastador 65, Guardián 65, Centinela 65, Rastreador 65, Arcanista 75 y Vinculador 75.
+- **344 poderes activos + 66 pasivos** derivados de la fuente, todos con nombre e iconografía originales de Project Arena.
+- Daño de esta expansión **fijo y determinista (`pure`)**. Fórmulas de armadura/resistencias para estos poderes quedan deliberadamente para la siguiente fase de balance.
+- Libro de poderes con búsqueda y disciplinas; los activos se pueden **arrastrar** a la barra y los pasivos se muestran pero no se arrastran.
+- **4 barras × 12 slots** persistentes por subclase.
+- El caster puede **girar mientras castea**. Moverse o saltar sigue cancelando antes de `RELEASE` sin coste/cooldown fantasma.
+- Arena `El Foso de Ceniza · Frontera`: **86 × 62**, 66 obstáculos, 4 plataformas y rutas exteriores simétricas para kite, flank y LoS.
+- **Modelos:** anatomía curva con elipsoides/cápsulas, equipo crítico rehecho y toro real para aros/coronas.
+- **Animación:** siete familias caster, cuatro familias de arquero y lenguaje guerrero diferenciado, siempre subordinados a `AnimationIntent`/`RELEASE`.
+- **Iconografía:** las 410 asignaciones poseen firma y SVG visible globalmente únicos.
+- **Fidelidad:** cast, GCD, cooldown y duración rank-5 quedan protegidos por pruebas; mecánicas especiales/lockouts se traducen a datos.
+- Diez agentes/revisores especializados + árbitro adversarial v0.11.
 
-Prototipo jugable del combate de un MMO PvP de fantasía en tercera persona.
-**HTML, CSS y JavaScript con presentación Three.js vendorizada y fallback WebGL2. Sin npm ni build step.**
-
-En Hostinger se sirve `index-three.html` con Three.js vendorizado. `index.html` conserva la ruta de compatibilidad/fallback.
-
-> *"Si el combate es divertido en una sala gris con personajes genéricos, existe
-> una base real sobre la cual construir el juego."*
-
+El documento fuente se usa como procedencia mecánica. Los nombres, descripciones e iconos se sustituyen por identidad original de Arena; v0.11 preserva cast, categoría GCD, cooldown y duración rank-5, además de las magnitudes funcionales que tienen canal equivalente. El daño de la expansión sigue fixed/pure por decisión explícita del milestone y las fórmulas de armadura quedan diferidas.
 
 ---
 
 ## Documentos de ejecución autónoma
 
-Antes de pedir a un agente una macro-iteración del Arena Ladder PvP, debe leer en este orden:
+Antes de una macro-iteración:
 
-1. [`CLAUDE.md`](CLAUDE.md) — constitución y reglas globales.
-2. [`AGENTS.md`](AGENTS.md) — fan-out, ownership e integración.
-3. [`ARENA_VERTICAL_SLICE_SPEC.md`](ARENA_VERTICAL_SLICE_SPEC.md) — objetivo de producto completo.
-4. [`QA_GATE.md`](QA_GATE.md) — gates automáticos, adversariales, visuales y de rendimiento.
+1. [`CLAUDE.md`](CLAUDE.md)
+2. [`AGENTS.md`](AGENTS.md)
+3. [`ARENA_VERTICAL_SLICE_SPEC.md`](ARENA_VERTICAL_SLICE_SPEC.md)
+4. [`QA_GATE.md`](QA_GATE.md)
+5. [`ARCHITECTURE.md`](ARCHITECTURE.md)
+6. [`CURRENT_BUILD_STATE.md`](CURRENT_BUILD_STATE.md)
 
-Estos documentos convierten el proyecto en un flujo de trabajo de largo horizonte: **planificar → paralelizar → construir → integrar → probar → criticar → corregir → repetir**.
+Flujo: **planificar → construir → probar → criticar → corregir → repetir**.
 
 ---
 
 ## Empezar
 
-| Quiero… | Abre |
+| Quiero… | Abre / ejecuta |
 |---|---|
 | Jugar | `index.html` |
-| Ver que las reglas se cumplen | `tests.html` |
-| Verificar sin navegador | `node tools/run-tests.js` |
-| Entender el código antes de tocarlo | [`ARCHITECTURE.md`](ARCHITECTURE.md) |
+| Ver reglas en navegador | `tests.html` |
+| Suite headless completa | `node tools/run-tests.js` |
+| Agentes especialistas | `node tools/run-agents.js` |
+| Árbitro adversarial | `node tools/arbiter.js` |
+| Critic visual estático | `node tools/visual-audit.js` |
+| Gates sin navegador | `node tools/run-gates.js --rapido` |
+| Gates con navegador | `node tools/run-gates.js` |
 
 ## Controles
 
 | Acción | Tecla |
 |---|---|
-| Mover | `W/S` frente/atrás · `A/D` strafe relativo al personaje |
-| Girar personaje | `Q/E` o arrastre con **click izquierdo** 1:1 |
-| Free-look | mantener **click derecho**; sólo gira cámara |
+| Mover | `W/S` frente/atrás · `A/D` strafe |
+| Girar personaje | `Q/E` o arrastre con click izquierdo |
+| Free-look | mantener click derecho |
 | Cámara | rueda para zoom |
 | Saltar | `Espacio` |
-| Seleccionar objetivo | clic · `Tab` enemigos · `⇧Tab` aliados |
-| Seleccionarte a ti | `F` |
-| Habilidades | `1` … `6` |
+| Objetivo | clic · `Tab` enemigo · `⇧Tab` aliado |
+| Self target | `F` |
+| Slots activos | `1 2 3 4 5 6 7 8 9 0 - =` |
+| Cambiar barra | `Shift+1` … `Shift+4` |
+| Libro de poderes | `B` |
 | Ataque normal | `T` |
-| Cancelar casteo | `Esc` |
+| Cancelar casteo / cerrar libro | `Esc` |
 | Reiniciar escenario | `R` |
 
 ---
 
-## Qué hay dentro
+## Las seis subclases
 
-**Seis subclases**, cada una con 6 habilidades activas y 1 pasiva, y con un
-papel que ninguna otra cubre igual:
+| Subclase | Hereda | Especialización | Poderes fuente traducidos |
+|---|---|---|---:|
+| **Devastador** | Guerrero | Bárbaro | 65 |
+| **Guardián** | Guerrero | Caballero | 65 |
+| **Centinela** | Arquero | Tirador | 65 |
+| **Rastreador** | Arquero | Cazador | 65 |
+| **Arcanista** | Mago | Brujo | 75 |
+| **Vinculador** | Mago | Conjurador | 75 |
 
-| Subclase | Rol | Lo que sólo ella hace |
-|---|---|---|
-| **Devastador** | Burst melee / iniciación | Derribo, ruptura de armadura y purga en cuerpo a cuerpo |
-| **Guardián** | Protección / peel | Bloqueo determinista, reflejo mágico y redirección de daño |
-| **Centinela** | Daño físico a distancia | Alcance largo, penetración de armadura y estasis a distancia |
-| **Rastreador** | Control táctico | Sigilo, trampas, antiheal y bloqueo de utility enemiga |
-| **Arcanista** | Burst mágico / anti-soporte | Root, estasis y AntiBuff |
-| **Vinculador** | Curación / counters | Barreras, cleanse, Intervención y enlace protector |
+Las ramas base Guerrero/Arquero/Mago aparecen en ambas especializaciones de su familia, por eso hay **410 asignaciones de clase** a partir de **290 poderes fuente reales**.
 
-**Sistemas de combate implementados**
-
-* Orden de resolución obligatorio: Estasis → Intervención → Reflejo → Bloqueo →
-  mitigación → estados → cleanse/purga.
-* Taxonomía completa de control: noqueo, aturdimiento, mareo, enraizar,
-  desarmar, estasis, bloqueo de utility, slow, rotura de defensa, AntiHeal y
-  AntiBuff, cada uno con sus reglas propias de apilado y disipación.
-* Diminishing Returns por categoría, con interruptor para comparar el estándar
-  moderno con la cadena de control larga del MMO clásico.
-* GCD en tres tramos, cola de input de 200 ms, interrupción con bloqueo de
-  escuela, y casteos que se cancelan al moverse.
-* Línea de visión por raycast, rango medido en el plano, colisión contra muros y
-  entre personajes, proyectiles que resuelven al impactar.
-
-**Loop Ladder / Combat Lab**
-
-El arranque entra ahora en un lobby de producto con las seis clases, resumen del kit, perfil Ladder y elección 1v1/2v2. El flujo competitivo es:
-
-`LOBBY → COUNTDOWN → ACTIVE → RESULTS → REMATCH / LOBBY`
-
-Training conserva los escenarios de laboratorio (sacos de daño, duelo, 2v2, counters y Timing Lab) y los controles de DR, RNG, cooldowns, recurso, IA, invulnerabilidad, telegraphs y cámara lenta.
-
-La IA dispone de perfiles explícitos de presión melee, kiter, caster de control, soporte sanador, peel defensivo y sparring Ladder. Los bots giran mediante el límite de la simulación y no reciben auto-face instantáneo privilegiado.
-
-Registro de combate con marca de tiempo de simulación y copia al portapapeles:
-cualquier secuencia rara se puede reproducir y pegar en un informe.
+La traducción cubre daño directo y DoT fijo, hard/soft CC, barreras, curación, recurso, buffs/debuffs, cleanse/purge, stealth/reveal, santuario, reflejo, redirección, auras, revive y compañeros/invocaciones. Los 30 encabezados `undefined` de las tablas Warmaster se diagnostican y excluyen; no se fabrican habilidades inexistentes para inflar la cifra.
 
 ---
 
-## Verificación
+## Powerbook y barras
 
-```bash
-node tools/run-tests.js      # 215 pruebas
-node tools/arbiter.js        # gates adversariales de autoridad/RELEASE/producto
-node tools/visual-audit.js   # critic estático Three.js + UI + assets
-node tools/browser.js smoke  # smoke real cuando Chromium permite localhost/HTTP local
-```
+`B` abre el libro. Cada entrada muestra icono, nombre fuente con variación rastreable, disciplina, tipo y resumen mecánico. Los poderes activos se arrastran a cualquiera de los 48 slots; click derecho limpia un slot. Las cuatro páginas son independientes y persisten por subclase.
 
-Las pruebas no comprueban sólo fórmulas. Los objetivos de ritmo del documento
-—tiempo hasta la muerte, ventana de burst, cadenas de control, valor del
-soporte— se verifican **simulando combates completos entre bots** y fallan si el
-ritmo se sale de márgenes. Un ajuste de números que rompa el juego no pasa
-inadvertido.
+Contrato:
 
-El runner headless lee el orden de carga del propio `tests.html`, así que no
-puede divergir de lo que se ejecuta en el navegador.
+`POWERBOOK → DRAG INTENT → ACTION BAR STATE → INPUT → COMMAND → VALIDATION → ACTION STATE → RELEASE → RESOLUTION`
+
+La UI nunca modifica HP, recurso, cooldown, GCD o estados directamente.
 
 ---
 
-## Estado y siguiente milestone
+## Casteo v0.11
 
-El repositorio ya contiene el **Vertical Slice local de producto** sobre el núcleo Tactical Rhythm: simulación fija, seis clases, bots, arena, Three.js, animación procedural, VFX, audio, HUD, Training, 1v1/2v2, resultados y Ladder local reemplazable.
+El caster debe estar plantado para mantener el cast, pero **orientar el cuerpo/cámara no es movimiento**. Girar no cancela `PREPARE/CASTING`; caminar o saltar sí. Antes de `RELEASE`, cancelar devuelve la acción sin pagar recurso, cooldown ni GCD. En `RELEASE` se vuelve a validar rango, LoS y facing cuando la habilidad lo requiere.
 
-Deliberadamente fuera del slice local: producción online autoritativa, matchmaking real, cuentas remotas, mundo abierto, quests, economía, loot y monetización.
+---
 
-El próximo milestone de producto es validar visualmente v0.8 en navegador no administrado, realizar playtests humanos del loop completo y, después, decidir entre profundizar el backend GLB/skinned en Three.js o iniciar la migración visual a Unity manteniendo la simulación y contratos ya validados.
+## Arena ampliada
+
+`El Foso de Ceniza · Frontera` mide **86 × 62** y preserva el núcleo del duelo, añadiendo un anillo exterior de cobertura y rutas de flanqueo. El análisis del mismo `sim/arena` usado por la simulación verifica:
+
+- simetría 180°;
+- una sola región navegable;
+- separación de spawn táctica;
+- cobertura a ≤4 u por encima del suelo mínimo de QA;
+- LoS suficiente para ranged sin convertir el mapa en una explanada;
+- loops centrales cerrados para kite y reposicionamiento.
+
+---
+
+## QA v0.11
+
+La expansión tiene pruebas específicas que verifican, entre otros contratos:
+
+- cobertura 320 → 290 → 410;
+- los 290 índices fuente reales aparecen en runtime;
+- ningún placeholder llega al juego;
+- todo poder activo tiene implementación ejecutable;
+- los **344 activos** recorren `request → RELEASE` sin excepción;
+- los pasivos no se pueden usar como activos;
+- los iconos generados son únicos por subclase;
+- resistencias de CC no se traducen por error como auto-CC;
+- el giro no cancela cast, el movimiento sí;
+- 4×12 exacto, páginas independientes y asignaciones inválidas rechazadas;
+- arena grande, simétrica, conectada y con cobertura.
+
+El fan-out ejecutable está en `tools/agents/`. El árbitro `tools/arbiter.js` intenta romper autoridad, RELEASE, cancelaciones, catálogo, action bars, caster y mapa.
+
+---
+
+## Estado honesto
+
+El milestone de **poderes + powerbook + arena ampliada** queda cerrado por gates headless y árbitro. Permanecen dos verificaciones externas del baseline que un proceso headless no puede convertir honestamente en verde:
+
+1. **Pointer Lock**: `MANUAL_BROWSER_REQUIRED` en navegador desplegado (`docs/POINTER_LOCK_MANUAL.md`).
+2. **Playtest humano** de 10–15 min (`docs/PLAYTEST_CHECKLIST.md`).
+
+Además, el objetivo de 60 FPS debe volver a medirse en GPU real después de esta ampliación; no se inventa una cifra de FPS desde un entorno sin GPU.
+
+
+## v0.16 · UAL2 Retarget Locomotion
+
+La biblioteca UAL2 Standard suministrada por el usuario se integra como animación de presentación: idle corporal, marcha forward/backpedal, salto, recoil de impacto y familias melee. El root motion del asset se descarta; posición/yaw siguen siendo autoridad de simulación. A/D = strafe, Q/E = giro. La piel del GLB se suaviza recalculando normales en runtime.

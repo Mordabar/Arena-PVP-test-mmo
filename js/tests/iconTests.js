@@ -49,6 +49,37 @@ Arena.define('tests/iconTests', ['tests/testRunner', 'ui/abilityIcons'], functio
         'iconos repetidos dentro de una clase: ' + offenders.join(' | '));
     });
 
+    T.test('los 410 poderes importados tienen firma de icono globalmente única', function () {
+      var seen = {}, dup = [], total = 0;
+      for (var id in Arena.Data.abilities) {
+        if (!Object.prototype.hasOwnProperty.call(Arena.Data.abilities, id)) continue;
+        var ab = Arena.Data.abilities[id];
+        if (!ab.sourceDerived) continue;
+        total++;
+        var sig = ab.iconMeta && ab.iconMeta.signature;
+        if (!sig) { dup.push(id + ' sin signature'); continue; }
+        if (seen[sig]) dup.push(id + ' = ' + seen[sig]);
+        seen[sig] = id;
+      }
+      T.assertEqual(total, 410, 'deben auditarse las 410 asignaciones');
+      T.assertEqual(dup.length, 0, 'firmas de icono repetidas: ' + dup.join(' | '));
+    });
+
+    T.test('los 410 SVG visibles importados también son distintos entre sí', function () {
+      var seen = {}, dup = [], total = 0;
+      for (var id in Arena.Data.abilities) {
+        if (!Object.prototype.hasOwnProperty.call(Arena.Data.abilities, id)) continue;
+        var ab = Arena.Data.abilities[id];
+        if (!ab.sourceDerived) continue;
+        total++;
+        var svg = Icons.svg(ab);
+        if (seen[svg]) dup.push(id + ' = ' + seen[svg]);
+        seen[svg] = id;
+      }
+      T.assertEqual(total, 410, 'deben renderizarse las 410 asignaciones');
+      T.assertEqual(dup.length, 0, 'SVG visibles repetidos: ' + dup.join(' | '));
+    });
+
     T.test('todas las habilidades producen un SVG con contenido', function () {
       var empty = [];
       for (var id in Arena.Data.abilities) {
@@ -64,8 +95,12 @@ Arena.define('tests/iconTests', ['tests/testRunner', 'ui/abilityIcons'], functio
       var missing = [];
       for (var id in Arena.Data.abilities) {
         if (!Object.prototype.hasOwnProperty.call(Arena.Data.abilities, id)) continue;
-        var g = Icons.glyphOf(Arena.Data.abilities[id]);
-        if (!Icons.SHAPES[g]) missing.push(id + ' → ' + g);
+        var ab = Arena.Data.abilities[id];
+        var g = Icons.glyphOf(ab);
+        if (ab.sourceDerived) {
+          var shape = Icons.sourceShape && Icons.sourceShape(ab);
+          if (!shape || shape.indexOf('<path') < 0) missing.push(id + ' → sourceShape vacío');
+        } else if (!Icons.SHAPES[g]) missing.push(id + ' → ' + g);
       }
       T.assertEqual(missing.length, 0,
         'glifos sin forma asociada (caerían al genérico): ' + missing.join(', '));

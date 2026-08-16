@@ -1,0 +1,57 @@
+
+[1m══ VISTA FRONTAL ══[0m
+clase        piezas  alto  ancho  cintura/hombro  bajo/hombro  desvío  esbeltez  relleno
+devastador     52   1.95   0.83           0.66         0.57    0.039      2.36     1.01
+guardian       48   1.78   0.96           0.85         0.56    0.021      1.84     1.03
+centinela      49   2.37   0.61           0.76         0.92    0.020      3.91     0.98
+rastreador     52   1.78   0.64           0.73         0.51    0.018      2.76     1.04
+arcanista      38   2.65   0.91           0.56         0.38    0.058      2.91     1.05
+vinculador     43   1.88   0.68           0.78         0.84    0.045      2.77     1.03
+
+distancia de contorno (%):
+                devast  guardi  centin  rastre  arcani  vincul
+  devastador         ·    27.9    24.3    20.9    26.9    18.9
+  guardian        27.9       ·    38.9    37.1    34.6    29.0
+  centinela       24.3    38.9       ·    18.4    32.1    22.1
+  rastreador      20.9    37.1    18.4       ·    25.1    28.2
+  arcanista       26.9    34.6    32.1    25.1       ·    35.8
+  vinculador      18.9    29.0    22.1    28.2    35.8       ·
+  peor pareja: centinela ≈ rastreador con 18.4 %  [32m✓[0m
+
+[1m══ VISTA 3/4 ══[0m
+clase        piezas  alto  ancho  cintura/hombro  bajo/hombro  desvío  esbeltez  relleno
+devastador     52   1.95   0.70           0.74         0.63    0.019      2.79     1.06
+guardian       48   1.78   1.08           0.96         0.45    0.102      1.64     1.04
+centinela      49   2.37   0.73           0.66         0.75    0.058      3.23     0.97
+rastreador     52   1.78   0.70           0.83         0.54    0.025      2.56     1.03
+arcanista      38   2.65   0.58           0.70         0.74    0.028      4.59     1.06
+vinculador     43   1.88   0.66           1.05         1.00    0.014      2.85     1.04
+
+distancia de contorno (%):
+                devast  guardi  centin  rastre  arcani  vincul
+  devastador         ·    41.7    30.5    21.6    27.3    28.0
+  guardian        41.7       ·    43.8    41.6    51.7    37.2
+  centinela       30.5    43.8       ·    24.4    25.4    21.7
+  rastreador      21.6    41.6    24.4       ·    29.4    24.5
+  arcanista       27.3    51.7    25.4    29.4       ·    30.7
+  vinculador      28.0    37.2    21.7    24.5    30.7       ·
+  peor pareja: devastador ≈ rastreador con 21.6 %  [32m✓[0m
+
+[1m══ VISTA PERFIL ══[0m
+clase        piezas  alto  ancho  cintura/hombro  bajo/hombro  desvío  esbeltez  relleno
+devastador     52   1.95   0.95           0.59         0.37    0.067      2.06     0.96
+guardian       48   1.78   0.87           1.15         0.42    0.115      2.04     1.01
+centinela      49   2.37   0.70           0.58         0.54    0.051      3.40     0.98
+rastreador     52   1.78   0.54           1.05         0.63    0.037      3.27     1.06
+arcanista      38   2.65   0.56           0.54         0.81    0.030      4.70     1.03
+vinculador     43   1.88   0.63           0.86         1.03    0.021      2.98     1.05
+
+distancia de contorno (%):
+                devast  guardi  centin  rastre  arcani  vincul
+  devastador         ·    37.9    36.0    28.4    42.9    37.9
+  guardian        37.9       ·    40.2    42.3    45.8    32.6
+  centinela       36.0    40.2       ·    32.8    28.2    31.0
+  rastreador      28.4    42.3    32.8       ·    42.8    35.6
+  arcanista       42.9    45.8    28.2    42.8       ·    29.8
+  vinculador      37.9    32.6    31.0    35.6    29.8       ·
+  peor pareja: centinela ≈ arcanista con 28.2 %  [32m✓[0m

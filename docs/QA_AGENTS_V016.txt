@@ -1,0 +1,267 @@
+PROJECT ARENA v0.16 · UAL2 RETARGET LOCOMOTION · SPECIALIZED AUDIT FAN-OUT
+
+
+══ UAL2 ASSET / LICENSE ══
+✓ UAL2 Standard local incluida
+✓ licencia CC0 incluida junto al asset
+✓ auditor binario UAL2 24/24
+→ APROBADO
+
+══ RETARGET CONTRACT ══
+✓ retarget declara 17 cadenas humanoides
+✓ retarget trabaja por delta world desde bind
+✓ salida vuelve al bind local del Elfo
+✓ retarget no puede escribir simulación
+✓ traslación pélvica visual acotada
+→ APROBADO
+
+══ LOCOMOTION / IDLE / HIT ══
+✓ idle + gait UAL2 conectados
+✓ backpedal conserva yaw y revierte fase
+✓ strafe puro queda fuera del clip frontal
+✓ gramática lateral dedicada existe
+✓ turn-in-place tiene ruta propia
+✓ tests locomoción/controles v0.16 16/16
+→ APROBADO
+
+══ CONTROL MAP A/D Q/E ══
+✓ A=-1 / D=+1 strafe
+✓ Q=-1 / E=+1 giro
+✓ main consume contrato único
+✓ ayuda A/D correcta
+✓ ayuda Q/E correcta
+→ APROBADO
+
+══ SMOOTH SKIN ══
+✓ vértices compatibles se sueldan para normales suaves
+✓ normales facetadas se recalculan
+✓ material fuerza smooth shading
+✓ normal map de piel moderado
+✓ piel evita brillo plástico excesivo
+→ APROBADO
+
+══ MELEE UAL2 ══
+✓ clip melee Sword_Regular_A
+✓ clip melee Sword_Regular_B
+✓ clip melee Sword_Regular_C
+✓ clip melee Sword_Heavy_Combo
+✓ clip melee Sword_Block
+✓ clip melee Sword_Dash
+✓ clip melee Shield_OneShot
+✓ ataques melee externos marcan fullAction
+✓ sin doble ataque procedural + UAL2
+✓ se recortan bordes T-pose de clips
+→ APROBADO
+
+══ CASTER + ARCHER PRESERVATION ══
+✓ caster conserva cast y normal propios
+✓ arquero conserva draw/release propio
+✓ clips externos no borran guardia de arma
+✓ locomoción UAL2 no pisa brazos de arco/báculo
+→ APROBADO
+
+══ SIMULATION AUTHORITY ══
+✓ js/render/three/threeRetarget.js no escribe autoridad
+✓ js/render/three/threeCharacter.js no escribe autoridad
+✓ js/data/animationLibraryMap.js no escribe autoridad
+✓ root motion fuente no gobierna personaje
+→ APROBADO
+
+══ BODY + WEAPON CLEANUP ══
+✓ ruta GLB termina antes del procedural
+✓ ruta GLB no construye atuendo procedural
+✓ sólo tres armas base se crean para el skinned
+✓ una sola arma visible por arquetipo
+→ APROBADO
+
+══ RIG LOCAL BASIS ══
+✓ v0.14 matrix bridge eliminado
+✓ cada frame parte del bind local del GLB
+✓ traslación mundial vive en root visual
+✓ yaw autoritativo se copia a root sin resolver combate
+✓ cada entidad conserva skeleton independiente
+→ APROBADO
+
+══ INTEGRATION / QA ══
+✓ Sintaxis JS completa
+✓ Suite completa en verde — 383 pruebas
+✓ Identidad visual sigue medible
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+→ APROBADO
+
+══ FRESH REVIEWER ══
+✓ Build visible inequívoco v0.16
+✓ paridad de poderes no se perdió
+✓ main no vuelve a duplicar teclado
+✓ A/D son strafe
+✓ Q/E son giro
+✓ biblioteca UAL2 se usa realmente
+✓ piel recibe suavizado real
+✓ contrato documenta frontera de root motion
+→ APROBADO
+
+AGENTS: APROBADO · 12/12

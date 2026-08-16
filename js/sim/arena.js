@@ -45,7 +45,7 @@ Arena.define('sim/arena', ['math/ray'], function (Arena) {
 
   var Ray = Arena.Math.Ray;
 
-  var W = 46, D = 34, WALL_H = 4.0;
+  var W = 86, D = 62, WALL_H = 4.0;
 
   function box(cx, cy, cz, sx, sy, sz, kind) {
     var b = Ray.makeBox(cx, cy, cz, sx, sy, sz);
@@ -98,6 +98,36 @@ Arena.define('sim/arena', ['math/ray'], function (Arena) {
     pair(obstacles, -19.0, -6.6, 0.8, 2.1, 4.4, 'lowWall');
     pair(obstacles, 19.0, -6.6, 0.8, 2.1, 4.4, 'lowWall');
 
+    /* --- Anillo exterior: tres rutas por lado, cobertura de relevo --------
+       La ampliación no es una explanada vacía: cada 6–9 u aparece una pieza
+       que permite cortar LoS, cambiar de carril o invertir un kite. Todas las
+       piezas nacen por pares a 180° para mantener justicia de ladder. */
+    pair(obstacles, -25.0, -4.5, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, 25.0, -4.5, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, -32.5, -8.0, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, 32.5, -8.0, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, -37.0, -15.0, 1.7, 4.0, 1.7, 'pillar');
+    pair(obstacles, 37.0, -15.0, 1.7, 4.0, 1.7, 'pillar');
+
+    pair(obstacles, -23.5, -14.0, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, 23.5, -14.0, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, -31.0, -18.5, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, 31.0, -18.5, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, -19.0, -24.0, 1.7, 4.0, 1.7, 'pillar');
+    pair(obstacles, 19.0, -24.0, 1.7, 4.0, 1.7, 'pillar');
+
+    pair(obstacles, -8.0, -22.0, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, 8.0, -22.0, 1.7, 1.4, 1.7, 'pillar');
+    pair(obstacles, -1.0, -27.0, 1.7, 4.0, 1.7, 'pillar');
+    pair(obstacles, 1.0, -27.0, 1.7, 4.0, 1.7, 'pillar');
+
+    /* Cobertura intermedia conecta el core con el anillo exterior. */
+    pair(obstacles, -35.0, 2.5, 1.7, 4.0, 1.7, 'pillar');
+    pair(obstacles, 35.0, 2.5, 1.7, 4.0, 1.7, 'pillar');
+
+    pair(obstacles, -38.0, -25.0, 1.8, 3.7, 1.8, 'pillar');
+    pair(obstacles, 38.0, -25.0, 1.8, 3.7, 1.8, 'pillar');
+
     /* --- Plataformas elevadas + rampas ------------------------------------
        Rotacionalmente simétricas. Dan altura para leer el foso, y la rampa
        obliga a comprometerse: subir cuesta tiempo y se ve venir. */
@@ -106,6 +136,11 @@ Arena.define('sim/arena', ['math/ray'], function (Arena) {
         ramp: { x: -13.0, z: -7.5, sx: 6.0, sz: 3.2, from: 0, to: 1.5, axis: 'z', dir: -1 } },
       { x: 13.0, z: 11.5, sx: 6.0, sz: 5.0, h: 1.5,
         ramp: { x: 13.0, z: 7.5, sx: 6.0, sz: 3.2, from: 0, to: 1.5, axis: 'z', dir: 1 } }
+,
+      { x: -29.0, z: 20.0, sx: 7.0, sz: 5.5, h: 1.8,
+        ramp: { x: -25.0, z: 20.0, sx: 3.4, sz: 5.5, from: 0, to: 1.8, axis: 'x', dir: -1 } },
+      { x: 29.0, z: -20.0, sx: 7.0, sz: 5.5, h: 1.8,
+        ramp: { x: 25.0, z: -20.0, sx: 3.4, sz: 5.5, from: 0, to: 1.8, axis: 'x', dir: 1 } }
     ];
 
     /* Las plataformas NO son obstáculos: se camina sobre ellas y no cortan la
@@ -150,10 +185,19 @@ Arena.define('sim/arena', ['math/ray'], function (Arena) {
         note: 'Lee el foso desde arriba. Subir cuesta rampa y se ve venir.' },
       { id: 'alto-sureste', role: 'control: altura', x: 13.0, z: 11.5, radius: 3.5,
         note: 'Espejo del alto noroeste.' }
+,
+      { id: 'bosque-oeste', role: 'rango: kiteo exterior', x: -30, z: 8, radius: 8,
+        note: 'Carril exterior con ruinas alternas para rotaciones largas y disengage.' },
+      { id: 'bosque-este', role: 'rango: kiteo exterior', x: 30, z: -8, radius: 8,
+        note: 'Espejo rotacional del bosque oeste.' },
+      { id: 'cornisa-norte', role: 'control: flanqueo exterior', x: 0, z: -24, radius: 7,
+        note: 'Acceso ancho para cambiar de lado sin atravesar el foso.' },
+      { id: 'cornisa-sur', role: 'control: flanqueo exterior', x: 0, z: 24, radius: 7,
+        note: 'Espejo de la cornisa norte.' }
     ];
 
     return {
-      name: 'El Foso de Ceniza',
+      name: 'El Foso de Ceniza · Frontera',
       width: W, depth: D, wallHeight: WALL_H,
       bounds: { minX: -W / 2, maxX: W / 2, minZ: -D / 2, maxZ: D / 2 },
       obstacles: obstacles,

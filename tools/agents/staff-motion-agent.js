@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+'use strict';const cp=require('child_process'),path=require('path'),R=path.join(__dirname,'../..');try{let o=cp.execFileSync(process.execPath,[path.join(R,'tools/run-tests.js'),'Skinned Animation v0.15'],{cwd:R,encoding:'utf8'});process.stdout.write(o);let ok=/caster usa sólo báculo/.test(o)&&/caster casteando/.test(o)&&/pulso normal de báculo/.test(o)&&/TODO OK/.test(o);process.exit(ok?0:1)}catch(e){process.stderr.write((e.stdout||'')+(e.stderr||''));process.exit(1)}

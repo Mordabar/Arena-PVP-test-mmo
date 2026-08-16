@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+'use strict';const fs=require('fs'),path=require('path'),R=path.join(__dirname,'../..');let f=0,s=fs.readFileSync(path.join(R,'js/render/three/bootstrap.js'),'utf8');function g(x,n){console.log((x?'✓ ':'✗ ')+n);if(!x)f++;}
+g(/mergeVertices/.test(s),'vértices compatibles se sueldan para normales suaves');g(/deleteAttribute\('normal'\)/.test(s)&&/computeVertexNormals/.test(s)&&/normalizeNormals/.test(s),'normales facetadas se recalculan');g(/flatShading\s*=\s*false/.test(s),'material fuerza smooth shading');g(/normalScale\.set\(0\.42,0\.42\)/.test(s),'normal map de piel moderado');g(/roughness.*0\.68/.test(s),'piel evita brillo plástico excesivo');process.exit(f?1:0);

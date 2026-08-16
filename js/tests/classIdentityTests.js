@@ -542,4 +542,29 @@ Arena.define('tests/classIdentityTests',
       }
     });
   });
+
+  T.suite('Modelo skinned v0.14 · puente de rig', function () {
+    var joints = ['Hips','Spine','Chest','Neck','Head',
+      'LeftUpperArm','LeftLowerArm','LeftHand','RightUpperArm','RightLowerArm','RightHand',
+      'LeftUpperLeg','LeftLowerLeg','LeftFoot','RightUpperLeg','RightLowerLeg','RightFoot'];
+
+    T.test('las seis subclases producen los 17 pivotes del rig humanoide', function () {
+      for (var c=0; c<CLASSES.length; c++) {
+        var r = poseOf(CLASSES[c], { frames: 12, forward: 1.8 });
+        T.assert(r.state.rigPose, CLASSES[c] + ': no expone rigPose');
+        for (var j=0; j<joints.length; j++) {
+          var m = r.state.rigPose[joints[j]];
+          T.assert(m && m.length === 16, CLASSES[c] + ': falta ' + joints[j]);
+          for (var k=0;k<16;k++) T.assert(isFinite(m[k]), CLASSES[c] + '/' + joints[j] + ': matriz no finita');
+        }
+      }
+    });
+
+    T.test('izquierda y derecha conservan pivotes separados', function () {
+      var r = poseOf('devastador');
+      var p = r.state.rigPose;
+      T.assert(p.LeftUpperArm[12] < p.RightUpperArm[12], 'brazos invertidos o colapsados');
+      T.assert(p.LeftUpperLeg[12] < p.RightUpperLeg[12], 'piernas invertidas o colapsadas');
+    });
+  });
 });

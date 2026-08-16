@@ -69,6 +69,97 @@ export function createVfxRenderer(Arena, scene) {
   var _quat = new THREE.Quaternion();
   var _scale = new THREE.Vector3();
 
+  /* v0.12 — structured spell silhouettes. These objects are presentation-only:
+     they consume VFX.spells emitted at authoritative RELEASE and never decide
+     damage or impact. */
+  var MAX_SEMANTIC = 96;
+  var semanticCoreGeo = new THREE.IcosahedronGeometry(0.5, 1);
+  var semanticMeteorGeo = new THREE.DodecahedronGeometry(0.58, 0);
+  var semanticShardGeo = new THREE.ConeGeometry(0.12, 0.82, 5);
+  var semanticRingGeo = new THREE.TorusGeometry(0.62, 0.045, 6, 28);
+  var semanticPool = [];
+  for (var spx=0; spx<MAX_SEMANTIC; spx++) {
+    var root=new THREE.Group(); root.visible=false;
+    var cm=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending});
+    var rm=cm.clone(); rm.opacity=.7;
+    var core=new THREE.Mesh(semanticCoreGeo,cm); root.add(core);
+    var ring=new THREE.Mesh(semanticRingGeo,rm); ring.rotation.x=Math.PI/2; root.add(ring);
+    var shards=[];
+    for (var sj=0;sj<8;sj++){ var sm=new THREE.Mesh(semanticShardGeo,cm); root.add(sm); shards.push(sm); }
+    var arr=new Float32Array(9*3); var lg=new THREE.BufferGeometry(); lg.setAttribute('position',new THREE.BufferAttribute(arr,3));
+    var lm=new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:1,depthWrite:false,blending:THREE.AdditiveBlending});
+    var line=new THREE.Line(lg,lm); root.add(line);
+    scene.add(root); semanticPool.push({root:root,core:core,ring:ring,shards:shards,line:line,cm:cm,rm:rm,lm:lm,lg:lg});
+  }
+
+  function semColor(element) {
+    var c=VFX.elementColor ? VFX.elementColor(element) : [0.65,0.4,1];
+    return new THREE.Color(c[0],c[1],c[2]);
+  }
+  function semLerp(a,b,t){ return a+(b-a)*t; }
+  function setSemantic(h,sp,time) {
+    var t=Math.max(0,Math.min(1,sp.life/Math.max(sp.maxLife,1e-4))), fade=1-t;
+    var col=semColor(sp.element); h.cm.color.copy(col); h.rm.color.copy(col); h.lm.color.copy(col);
+    h.cm.opacity=Math.max(.15,fade); h.rm.opacity=Math.max(.08,fade*.72); h.lm.opacity=Math.max(.08,fade);
+    h.root.visible=true; h.core.visible=true; h.ring.visible=true; h.line.visible=false;
+    for(var j=0;j<h.shards.length;j++) h.shards[j].visible=false;
+    var ex=sp.ex,ey=sp.ey,ez=sp.ez,sx=sp.sx,sy=sp.sy,sz=sp.sz;
+    var type=sp.type||'arcaneBolt', px=ex,py=ey,pz=ez;
+    h.core.geometry=(type==='meteor'?semanticMeteorGeo:semanticCoreGeo);
+    if(type==='fireball'||type==='magmaOrb'||type==='fireBolt'||type==='shadowBolt'||type==='arcaneBolt'){
+      var travel=Math.min(1,t/.78); travel=1-Math.pow(1-travel,2);
+      px=semLerp(sx,ex,travel); py=semLerp(sy,ey,travel)+Math.sin(travel*Math.PI)*.24; pz=semLerp(sz,ez,travel);
+      h.core.position.set(px,py,pz); var k=(type==='magmaOrb'?.72:.48)*(1+.12*Math.sin((time||0)*20)); h.core.scale.setScalar(k);
+      h.ring.position.set(px,py,pz); h.ring.scale.setScalar(k*1.45); h.ring.rotation.z=(time||0)*5;
+      for(j=0;j<5;j++){var sh=h.shards[j];sh.visible=true;var q=(j+1)*.11;sh.position.set(semLerp(px,sx,q),semLerp(py,sy,q),semLerp(pz,sz,q));sh.scale.setScalar(.22+q*.3);sh.rotation.z=(time||0)*4+j;}
+    } else if(type==='meteor'){
+      var mt=Math.min(1,t/.78); mt=mt*mt;
+      px=semLerp(sx,ex,mt);py=semLerp(sy,ey,mt);pz=semLerp(sz,ez,mt);
+      h.core.position.set(px,py,pz);h.core.scale.setScalar(.76);h.core.rotation.x=(time||0)*5;h.core.rotation.z=(time||0)*3;
+      h.ring.position.set(ex,ey+.05,ez);h.ring.scale.setScalar(.7+1.9*t);h.ring.rotation.x=Math.PI/2;
+      for(j=0;j<8;j++){var ms=h.shards[j];ms.visible=true;ms.position.set(px+Math.sin(j*2.1)*.20,py+.35+j*.25,pz+Math.cos(j*1.7)*.20);ms.scale.set(.16,.7,.16);ms.rotation.z=Math.PI;}
+    } else if(type==='lightningBolt'){
+      h.core.position.set(ex,ey,ez);h.core.scale.setScalar(.22+.45*fade);h.ring.visible=false;h.line.visible=true;
+      var pos=h.lg.attributes.position.array;
+      var dx=ex-sx,dy=ey-sy,dz=ez-sz,len=Math.sqrt(dx*dx+dz*dz)||1, nx=-dz/len,nz=dx/len;
+      for(j=0;j<9;j++){var u=j/8,jitter=(j===0||j===8)?0:Math.sin((j*7.13+sp.seed*1.37+(time||0)*44))*0.22*(1-Math.abs(.5-u));pos[j*3]=semLerp(sx,ex,u)+nx*jitter;pos[j*3+1]=semLerp(sy,ey,u)+Math.sin(j*4.7+sp.seed)*.10;pos[j*3+2]=semLerp(sz,ez,u)+nz*jitter;} h.lg.attributes.position.needsUpdate=true;
+    } else if(type==='fireImpact'||type==='magmaImpact'||type==='meteorImpact'){
+      h.core.position.set(ex,ey+.16,ez); h.core.scale.setScalar((type==='magmaImpact'?.42:.30)*fade+.12);
+      h.ring.position.set(ex,ey+.03,ez); h.ring.scale.setScalar(.45+(1.5+(sp.radius||1)*.12)*t); h.ring.rotation.x=Math.PI/2;
+      for(j=0;j<8;j++){var fs=h.shards[j];fs.visible=true;var fa=j*Math.PI/4+sp.seed*.11,fr=.15+(1.15+(sp.radius||1)*.08)*t;fs.position.set(ex+Math.cos(fa)*fr,ey+.10+Math.sin(t*Math.PI)*.65+((j%2)*.18),ez+Math.sin(fa)*fr);fs.scale.set(.18,.42+.55*fade,.18);fs.rotation.z=-fa;}
+    } else if(type==='iceBurst'||type==='crystalBurst'||type==='freezePrison'||type==='earthSpike'||type==='stoneFist'){
+      h.core.visible=type!=='freezePrison'; h.core.position.set(ex,ey,ez);h.core.scale.setScalar(type==='stoneFist'?.55:.30*fade+.12);
+      h.ring.position.set(ex,ey+.02,ez);h.ring.scale.setScalar(.7+1.5*t);
+      for(j=0;j<8;j++){var is=h.shards[j];is.visible=true;var a=j*Math.PI/4+(type==='freezePrison'?.25:0),rr=(type==='freezePrison'?.72:(.2+1.0*t));is.position.set(ex+Math.cos(a)*rr,ey+(type==='freezePrison'?.55+t*.65:.12+Math.sin(a*2)*.18),ez+Math.sin(a)*rr);is.scale.set(type==='freezePrison'?.30:.18,type==='freezePrison'?1.25:(.65+.65*fade),type==='freezePrison'?.30:.18);is.rotation.z=-a;}
+    } else if(type==='iceStorm'||type==='lightningStorm'||type==='tornado'||type==='doomAura'||type==='dreadWave'||type==='fireField'||type==='darkTide'){
+      h.core.visible=false;h.ring.position.set(ex,ey+.05,ez);h.ring.scale.setScalar((.65+(sp.radius||4)*.10)*(1+.18*Math.sin(t*Math.PI)));h.ring.rotation.z=(time||0)*(type==='tornado'?4:1.5);
+      for(j=0;j<8;j++){var ss=h.shards[j];ss.visible=true;var aa=j*Math.PI/4+(time||0)*(type==='tornado'?2.8:.8),rr2=Math.max(.8,(sp.radius||4)*.18)*(type==='dreadWave'||type==='darkTide'?(1+t*2):1);ss.position.set(ex+Math.cos(aa)*rr2,ey+.25+(type==='tornado'?j*.18:Math.sin(aa*2)*.22),ez+Math.sin(aa)*rr2);ss.scale.set(.18,type==='tornado'?.85:.45,.18);ss.rotation.z=-aa;}
+    } else if(type==='controlSeal'||type==='darkSeal'||type==='elementExpose'||type==='debilitate'||type==='fracture'||type==='slowField'||type==='stoneBind'){
+      /* Debuff/control: sello legible bajo el objetivo + cuatro agujas que
+         cierran el espacio. La forma comunica restricción aunque el color no
+         se perciba. */
+      h.core.visible=false; h.ring.position.set(ex,ey+.04,ez); h.ring.scale.setScalar(.70+1.05*t); h.ring.rotation.z=(time||0)*2.6;
+      for(j=0;j<4;j++){var ds=h.shards[j],da=j*Math.PI/2+(time||0)*.35,dr=.72+.25*Math.sin(t*Math.PI);ds.visible=true;ds.position.set(ex+Math.cos(da)*dr,ey+.38+.34*fade,ez+Math.sin(da)*dr);ds.scale.set(.16,.72+.25*fade,.16);ds.rotation.z=-da;}
+    } else if(type==='ward'||type==='windWard'||type==='elementWard'||type==='healPulse'||type==='mastery'||type==='warCouncil'||type==='bloodPact'||type==='enrage'){
+      /* Buff/defensa/curación: doble lectura ascendente, nunca parece un
+         proyectil ofensivo. */
+      h.core.position.set(ex,ey+.55,ez);h.core.scale.setScalar(type==='healPulse'?.28:.20);h.ring.position.set(ex,ey+.05,ez);h.ring.scale.setScalar(.70+1.45*t);h.ring.rotation.x=Math.PI/2;
+      for(j=0;j<6;j++){var bs=h.shards[j],ba=j*Math.PI/3+(time||0)*.7,br=.42+.22*Math.sin(t*Math.PI);bs.visible=true;bs.position.set(ex+Math.cos(ba)*br,ey+.15+t*1.15+(j%2)*.14,ez+Math.sin(ba)*br);bs.scale.set(.12,.42,.12);bs.rotation.z=ba;}
+    } else if(type==='summonSigil'||type==='possession'||type==='spiritSwarm'||type==='massRoots'||type==='aoeRune'){
+      /* Invocación/ritual: anillo estable con piezas orbitales. */
+      h.core.visible=type==='possession';h.core.position.set(ex,ey+.65,ez);h.core.scale.setScalar(.24+.14*fade);h.ring.position.set(ex,ey+.03,ez);h.ring.scale.setScalar(.92+(.45+(sp.radius||2)*.06)*t);h.ring.rotation.z=-(time||0)*2.1;
+      for(j=0;j<8;j++){var rs=h.shards[j],ra=j*Math.PI/4+(time||0)*(type==='spiritSwarm'?2.2:1.0),rr=.55+(sp.radius||2)*.055;rs.visible=true;rs.position.set(ex+Math.cos(ra)*rr,ey+.22+.35*Math.sin(ra*2+(time||0)*2),ez+Math.sin(ra)*rr);rs.scale.set(.12,.36,.12);rs.rotation.z=-ra;}
+    } else if(type==='lifeDrain'||type==='soulDrain'||type==='cremation'){
+      /* Drain/cremación: vínculo visible objetivo→caster; la vida no se mueve
+         aquí, sólo la representación del evento ya resuelto. */
+      h.core.position.set(ex,ey,ez);h.core.scale.setScalar(.22+.20*fade);h.ring.position.set(ex,ey+.02,ez);h.ring.scale.setScalar(.55+1.1*t);h.line.visible=true;
+      var dp=h.lg.attributes.position.array;
+      for(j=0;j<9;j++){var du=j/8,dj=(j===0||j===8)?0:Math.sin(j*3.7+(time||0)*8)*.10;dp[j*3]=semLerp(ex,sx,du)+dj;dp[j*3+1]=semLerp(ey,sy,du)+Math.sin(du*Math.PI)*.30;dp[j*3+2]=semLerp(ez,sz,du)-dj;}h.lg.attributes.position.needsUpdate=true;
+    } else {
+      h.core.position.set(ex,ey,ez);h.core.scale.setScalar(.24+.25*fade);h.ring.position.set(ex,ey,ez);h.ring.scale.setScalar(.7+1.0*t);h.ring.rotation.z=(time||0)*2;
+    }
+  }
+
   return {
     /**
      * Pinta el estado actual del pool de partículas.
@@ -107,12 +198,21 @@ export function createVfxRenderer(Arena, scene) {
         if (!pool[j].visible) break;      // el pool se llena por delante
         pool[j].visible = false;
       }
+
+      var su=0, spells=VFX.spells||[];
+      for (var si=0;si<spells.length && su<semanticPool.length;si++) {
+        var sp=spells[si]; if(!sp.alive) continue;
+        setSemantic(semanticPool[su++],sp,(typeof performance!=='undefined'?performance.now()/1000:0));
+      }
+      for (var sh=su;sh<semanticPool.length;sh++) semanticPool[sh].root.visible=false;
     },
 
     dispose: function () {
       for (var i = 0; i < pool.length; i++) scene.remove(pool[i]);
       pool.length = 0;
       sphereGeo.dispose(); shardGeo.dispose(); sparkGeo.dispose(); runeGeo.dispose();
+      for (var spd=0;spd<semanticPool.length;spd++){ scene.remove(semanticPool[spd].root); semanticPool[spd].lg.dispose(); semanticPool[spd].cm.dispose(); semanticPool[spd].rm.dispose(); semanticPool[spd].lm.dispose(); }
+      semanticCoreGeo.dispose(); semanticMeteorGeo.dispose(); semanticShardGeo.dispose(); semanticRingGeo.dispose();
     }
   };
 }
@@ -131,17 +231,18 @@ export function createProjectileRenderer(Arena, scene) {
   const arrowBodyGeo = new THREE.CylinderGeometry(0.018, 0.018, 0.72, 5);
   const arrowHeadGeo = new THREE.ConeGeometry(0.055, 0.18, 6);
   const boltCoreGeo = new THREE.IcosahedronGeometry(0.115, 1);
+  const fireballCoreGeo = new THREE.IcosahedronGeometry(0.185, 2);
+  const magmaCoreGeo = new THREE.DodecahedronGeometry(0.205, 0);
   const haloGeo = new THREE.TorusGeometry(0.20, 0.018, 5, 20);
   const trailGeo = new THREE.IcosahedronGeometry(0.055, 0);
   const arrowMat = new THREE.MeshStandardMaterial({ color: 0xd6c29a, roughness: 0.72, metalness: 0.05 });
   const arrowHeadMat = new THREE.MeshStandardMaterial({ color: 0xb8c1ca, roughness: 0.34, metalness: 0.72 });
 
-  function magicColor(id) {
-    if (/invernal|estasis/i.test(id || '')) return 0x79d9ff;
-    if (/impacto_celeste/i.test(id || '')) return 0xc59cff;
-    if (/corrupcion|marca_corrosiva/i.test(id || '')) return 0xc76aff;
-    if (/descarga/i.test(id || '')) return 0xff8b51;
-    return 0x9f8cff;
+  function magicPresentation(id) {
+    var ab=Arena.Data&&Arena.Data.abilities&&Arena.Data.abilities[id];
+    var pr=ab&&ab.presentation||{};
+    var palette={fire:0xff5a22,ice:0x67dcff,lightning:0xffdf45,wind:0x88ffd6,earth:0xc78a4b,shadow:0x994bff,nature:0x65dc6d,life:0x53ff9a,arcane:0xac78ff};
+    return {color:palette[pr.element]||0x9f8cff,shape:pr.shape||'arcaneBolt'};
   }
 
   const pool = [];
@@ -191,11 +292,13 @@ export function createProjectileRenderer(Arena, scene) {
           h.arrow.quaternion.setFromUnitVectors(yAxis,dir);
           h.arrow.scale.setScalar(1.0);
         } else {
-          const col=magicColor(p.abilityId);
+          const mp=magicPresentation(p.abilityId), col=mp.color;
           h.coreMat.color.setHex(col); h.haloMat.color.setHex(col);
-          h.core.scale.setScalar(0.90+Math.sin((time||0)*18+i)*0.12);
-          h.halo.rotation.z=(time||0)*7+i*.7;
-          h.halo.scale.setScalar(0.86+Math.sin((time||0)*11+i)*0.12);
+          h.core.geometry=mp.shape==='fireball'?fireballCoreGeo:(mp.shape==='magmaOrb'?magmaCoreGeo:boltCoreGeo);
+          const baseScale=mp.shape==='fireball'?1.45:(mp.shape==='magmaOrb'?1.55:.90);
+          h.core.scale.setScalar(baseScale+Math.sin((time||0)*18+i)*0.12);
+          h.halo.rotation.z=(time||0)*(mp.shape==='magmaOrb'?3.5:7)+i*.7;
+          h.halo.scale.setScalar((mp.shape==='fireball'||mp.shape==='magmaOrb'?1.34:.86)+Math.sin((time||0)*11+i)*0.12);
           for (let t=0;t<h.trails.length;t++) {
             const tr=h.trails[t], d=.16*(t+1);
             tr.position.set(-dir.x*d,-dir.y*d,-dir.z*d);
@@ -208,7 +311,7 @@ export function createProjectileRenderer(Arena, scene) {
     },
     dispose() {
       for (const h of pool) scene.remove(h.root);
-      arrowBodyGeo.dispose(); arrowHeadGeo.dispose(); boltCoreGeo.dispose(); haloGeo.dispose(); trailGeo.dispose();
+      arrowBodyGeo.dispose(); arrowHeadGeo.dispose(); boltCoreGeo.dispose(); fireballCoreGeo.dispose(); magmaCoreGeo.dispose(); haloGeo.dispose(); trailGeo.dispose();
     }
   };
 }

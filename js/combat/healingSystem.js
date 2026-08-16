@@ -58,13 +58,14 @@ Arena.define('combat/healingSystem',
     }
 
     var amount = result.raw;
-    if (source) amount *= (1 + (p.healPowerPct || 0));
+    if (source) amount *= (1 + (p.healPowerPct || 0) + (source.mods().healingBonusPct || 0));
 
     var antiHeal = target.mods().antiHealPct;
     result.antiHealPct = antiHeal;
     amount *= (1 - antiHeal);
 
-    var missing = target.hpMax - target.hp;
+    var hpMax = target.effectiveHpMax ? target.effectiveHpMax() : target.hpMax;
+    var missing = hpMax - target.hp;
     result.applied = Math.min(amount, missing);
     result.overheal = amount - result.applied;
 

@@ -95,7 +95,7 @@ Arena.define('data/castFamilies', ['data/abilities'], function (Arena) {
     if (ab.target === 'ground' || ab.target === 'aoeSelf' ||
         ab.radius > 0 || hasEffect(ab, ['zone'])) return FAMILY.AOE;
 
-    if (hasEffect(ab, ['heal', 'hot'])) return FAMILY.HEAL;
+    if (hasEffect(ab, ['heal', 'hot', 'sourceHeal', 'sourceHot'])) return FAMILY.HEAL;
     if (appliesControl(ab)) return FAMILY.CONTROL;
     if (ab.flags && ab.flags.projectile) return FAMILY.PROJECTILE;
 
@@ -396,8 +396,14 @@ Arena.define('data/castFamilies', ['data/abilities'], function (Arena) {
     return false;
   }
 
+  function selfEffectTypes(ability, types) {
+    var fx = ability.selfEffects || [];
+    for (var i = 0; i < fx.length; i++) if (types.indexOf(fx[i].type) >= 0) return true;
+    return false;
+  }
+
   function hasDirectDamage(ability) {
-    return effectTypes(ability, ['physicalDamage', 'magicalDamage', 'pureDamage']) ||
+    return effectTypes(ability, ['physicalDamage', 'magicalDamage', 'pureDamage', 'sourceDamage', 'sourceWeaponDamage', 'sourceDrain', 'manaBurn']) ||
       (function () {
         var fx = ability.effects || [];
         for (var i = 0; i < fx.length; i++) {
@@ -457,14 +463,27 @@ Arena.define('data/castFamilies', ['data/abilities'], function (Arena) {
     var ab = resolveAbility(abilityOrId);
     if (!ab) return ROLE.STRIKE;
     if (groundShaped(ab)) return ROLE.AREA;
-    if (effectTypes(ab, ['heal', 'hot'])) return ROLE.HEAL;
+    if (effectTypes(ab, ['heal', 'hot', 'sourceHeal', 'sourceHot'])) return ROLE.HEAL;
     if (effectTypes(ab, ['barrier'])) return ROLE.BARRIER;
     if (ab.flags && ab.flags.projectile) return ROLE.PROJECTILE;
+    /* Un execute sin payload de daño explícito sigue siendo una amenaza de
+       remate: visualmente debe leerse como golpe decisivo, no caer al genérico. */
+    if (effectTypes(ab, ['execute'])) return ROLE.STRIKE;
     if (hasDirectDamage(ab)) return ROLE.STRIKE;
     if (appliesControl(ab)) return ROLE.CONTROL;
-    if (!isFriendly(ab) && (effectTypes(ab, ['dot']) || appliesHostileStatus(ab))) return ROLE.CURSE;
+    if (!isFriendly(ab) && (effectTypes(ab, ['dot', 'sourceDot', 'sourceDrainDot', 'sourceManaDrain', 'sourceManaDrainDot', 'drainResource']) || appliesHostileStatus(ab))) return ROLE.CURSE;
     if (effectTypes(ab, ['cleanse', 'purge'])) return ROLE.DISPEL;
     if (effectTypes(ab, ['dash'])) return ROLE.MOBILITY;
+    /* Tomar control de una invocación enemiga no es un buff amistoso ni un
+       golpe. Se lee como control táctico aunque no use la categoría de DR de
+       un CC corporal. Esto evita que una mecánica completa caiga al fallback
+       visual y le da una silueta de VFX coherente con su función. */
+    if (effectTypes(ab, ['possessCompanion'])) return ROLE.CONTROL;
+    /* Cremar/sellar un cadáver cambia el estado táctico de una baja: impide
+       futuras resurrecciones. No es un hit ni un CC corporal, pero sí una
+       utilidad hostil que necesita lectura propia y nunca debe caer al fallback. */
+    if (effectTypes(ab, ['cremate'])) return ROLE.UTILITY;
+    if (effectTypes(ab, ['companionEffect', 'companionProtectOwner', 'companionAoE', 'summon', 'companionRevive', 'tameCreature']) || selfEffectTypes(ab, ['companionEffect', 'companionProtectOwner', 'companionAoE', 'summon', 'companionRevive', 'tameCreature'])) return ROLE.BUFF;
     if (isFriendly(ab)) return ROLE.BUFF;
     if (effectTypes(ab, ['reveal'])) return ROLE.UTILITY;
     return null;                                  // sin clasificar: lo dirá la firma

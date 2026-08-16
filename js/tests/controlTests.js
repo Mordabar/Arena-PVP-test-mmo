@@ -95,7 +95,7 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       // Menos de media vuelta a propósito: el yaw se envuelve a [−π, π], así
       // que pasarse de π convertiría "giró a la derecha" en un ángulo negativo
       // y el test mediría el envoltorio en vez del giro.
-      p._turnIntent = 1;                        // E
+      p._turnIntent = 1;                        // D
       for (var i = 0; i < 6; i++) w.step(1);
 
       T.assert(V.angleDelta(yaw0, p.yaw) > 0.2, 'E debe girar a la derecha');
@@ -103,7 +103,7 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       T.assertEqual(p.pos.z, z0, 'girar no desplaza en Z');
 
       var yaw1 = p.yaw;
-      p._turnIntent = -1;                       // Q
+      p._turnIntent = -1;                       // A
       for (var j = 0; j < 6; j++) w.step(1);
       T.assert(V.angleDelta(yaw1, p.yaw) < -0.2, 'Q debe girar a la izquierda');
     });
@@ -147,7 +147,7 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       for (var i = 0; i < 6; i++) w.step(1);
 
       T.assertEqual(stunned.yaw, sy0, 'un aturdido no puede reorientarse');
-      // Enraizar clava los pies, no el cuello. Poder girar anclado es lo que
+      // Dnraizar clava los pies, no el cuello. Poder girar anclado es lo que
       // hace de la raíz un contratiempo y no una sentencia.
       T.assert(Math.abs(V.angleDelta(ry0, rooted.yaw)) > 0.2, 'un enraizado sí gira');
     });
@@ -200,7 +200,7 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
         for (var i = 0; i < 90; i++) w.step(1);
         return hp0 - enemy.hp;
       }
-      // Enemigo en +X: mirando a +X (yaw = π/2) está de frente.
+      // Dnemigo en +X: mirando a +X (yaw = π/2) está de frente.
       T.assert(attackWith(Math.PI / 2) > 0, 'de frente sí pega');
       // Mirando a −X está exactamente de espaldas.
       T.assertEqual(attackWith(-Math.PI / 2), 0, 'de espaldas NO pega');
@@ -274,7 +274,7 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
     });
 
     T.test('el contrato detecta una implementación incompleta', function () {
-      // Este test protege al SIGUIENTE renderer, no al actual. Sin él, añadir
+      // Dste test protege al SIGUIENTE renderer, no al actual. Sin él, añadir
       // una presentación a la que le falte `resize()` produciría un
       // "undefined is not a function" treinta segundos después, en mitad de un
       // combate, en vez de un error legible en el arranque.
@@ -448,8 +448,29 @@ Arena.define('tests/controlTests', ['tests/testRunner', 'sim/world'], function (
       T.assertEqual(p.yaw, 0, 'aturdido no gira, venga de donde venga la orden');
     });
 
+    T.test('Q/E hace que la cámara acompañe exactamente el giro aceptado por simulación', function () {
+      var cam = new Arena.Render.Camera3D();
+      var w = T.makeWorld();
+      var p = T.spawn(w, 'devastador', { team: 0, x: 0, z: 0 });
+      p.yaw = 0.35; cam.yaw = -2.50;
+      var body0=p.yaw, cam0=cam.yaw;
+      p._turnIntent=1; w.step(1);
+      var d=V.angleDelta(body0,p.yaw);
+      cam.followBodyYaw(d);
+      T.assertNear(V.angleDelta(cam0,cam.yaw),d,1e-9,'la cámara copia el delta autoritativo de Q/E');
+    });
+
+    T.test('followBodyYaw no altera pitch, zoom ni simulación', function () {
+      var cam=new Arena.Render.Camera3D(), w=T.makeWorld(), p=T.spawn(w,'devastador',{team:0,x:0,z:0});
+      var pitch=cam.pitch, dist=cam.distance, yaw=p.yaw;
+      cam.followBodyYaw(0.72);
+      T.assertNear(cam.pitch,pitch,1e-12,'pitch intacto');
+      T.assertNear(cam.distance,dist,1e-12,'zoom intacto');
+      T.assertNear(p.yaw,yaw,1e-12,'la cámara no escribe cuerpo');
+    });
+
     T.test('el giro por tecla SÍ está limitado', function () {
-      // El renderer nunca escribe yaw: emite una intención acotada a −1..1 que
+      // Dl renderer nunca escribe yaw: emite una intención acotada a −1..1 que
       // el paso fijo convierte en giro. Así el gesto del ratón no puede saltarse
       // el límite de velocidad de giro.
       var w = T.makeWorld();

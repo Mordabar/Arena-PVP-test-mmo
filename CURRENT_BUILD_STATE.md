@@ -1,178 +1,73 @@
-# CURRENT_BUILD_STATE
+# CURRENT BUILD STATE — Project Arena
 
-> Estado vivo de la construcción. Se actualiza al cierre de cada wave.
-> Si una ejecución se interrumpe, el siguiente agente continúa **desde aquí**
-> sin volver a descubrir el proyecto.
+**Build:** v0.16 · UAL2 RETARGET LOCOMOTION  
+**Runtime:** `Arena.VERSION = 0.16.0` · `Arena.BUILD = ual2-retarget-locomotion-v016`
 
-**Wave actual:** Character Identity Pass cerrado · build de playtest preparada
-**Build:** Ladder Vertical Slice **v0.9 · PLAYTEST** (`ladder-vertical-slice-v09-playtest`)
-**Rama:** `claude/arena-mmo-concept-qeboc7`
-**Ledger:** **145 / 146 VERIFIED + 1 MANUAL_BROWSER_REQUIRED**
+## Estado de QA
 
-> Los gates técnicos están cerrados. **Falta el gate humano: nadie ha jugado
-> esto.** `docs/PLAYTEST_CHECKLIST.md` (10–15 min) es el siguiente paso, y
-> `docs/DEPLOY_HOSTINGER.md` explica cómo subirla.
+- **383/383 tests verdes.**
+- Auditor de la biblioteca UAL2 suministrada: **24/24**.
+- Auditor DOCX de poderes: **20/20**; la paridad funcional v0.13 permanece intacta.
+- **12/12 auditores especializados**: asset/licencia, retarget, locomoción, controles, piel, melee, caster/arquero, autoridad, body+weapon, rig local, integración y fresh reviewer.
+- **ARBITER v0.16: APROBADO.**
+- **VISUAL CRITIC estático v0.16: APROBADO.**
+- Sintaxis: **126 ficheros JS verificados, PASS**.
+- Dark Elf: **50.000 triángulos · 76.070 vértices · 17 huesos · 1 SkinnedMesh**, skinning validado.
+- Smoke de navegador local: **BLOQUEADO POR POLÍTICA DEL ENTORNO** (`127.0.0.1 is blocked`) antes de cargar Arena. Evidencia: `docs/QA_BROWSER_POLICY_BLOCK_V016.png`.
 
----
+El milestone está **TESTED**, no `VERIFIED` visualmente. El juicio de locomoción integrada debe cerrarse en Hostinger con playtest humano.
 
-## Reproducir el estado en un comando
+## Qué se integró de Universal Animation Library 2 Standard
 
+El paquete entregado por el usuario se conserva local en `assets/animations/ual2-standard.glb` junto a su licencia CC0. El runtime lo precarga antes del boot y retargetea las rotaciones al rig de 17 huesos del Elfo Oscuro.
+
+Se usan clips externos para:
+
+- micro-idle corporal;
+- marcha forward;
+- base temporal de backpedal mediante fase invertida, sin invertir yaw;
+- takeoff / airborne / landing;
+- reacción de impacto en upper-body;
+- normales melee A/B/C;
+- heavy;
+- block;
+- dash/charge;
+- shield one-shot.
+
+El paquete UAL2 Standard suministrado **no contiene una locomoción competitiva 8-direcciones completa**. Por ello strafe no reutiliza una caminata frontal rotada: A/D mantienen una gramática lateral dedicada hasta que exista un clip lateral real. Caster y arquero conservan sus gestos propios de báculo/casteo y draw/release porque UAL2 Standard no aporta esas familias específicas.
+
+## Retarget y autoridad
+
+```text
+SIMULACIÓN / AnimationIntent
+        ↓
+selector de clip de presentación
+        ↓
+UAL2 source skeleton
+        ↓  delta world desde bind
+threeRetarget
+        ↓  bind local Dark Elf
+SkinnedAnimationContract (capas Arena)
+        ↓
+GLB Dark Elf + una sola arma
 ```
-node tools/run-gates.js            # todo
-node tools/run-gates.js --rapido   # sólo lo que no necesita navegador
-```
 
-Once puertas: la batería sin navegador, los números de la arena, el contorno de
-las seis clases, la composición del HUD en las tres fases, casteo, las seis
-clases, ratón, control, combate, rendimiento, Pointer Lock y animación/VFX.
-Termina en rojo si algo falla. Ahora mismo: **todo en verde, 288/288 pruebas**.
+Root translation/yaw de UAL2 se descartan. Posición, yaw, RELEASE, daño, GCD y demás verdad de combate siguen viniendo únicamente de simulación.
 
-La última puerta pinta por software y tarda varios minutos: es la única forma
-de comprobar que lo que la simulación decide llega de verdad a la pantalla.
+## Controles corregidos
 
----
+- `W/S`: avanzar / retroceder.
+- `A/D`: **strafe izquierda / derecha**.
+- `Q/E`: **giro del cuerpo izquierda / derecha**, acompañado por cámara según el contrato existente.
+- Mouse izquierdo: steer cuerpo+cámara 1:1.
+- Mouse derecho: free-look.
 
-## Qué se cerró en esta sesión
+El mapeo vive ahora en `js/core/controlMap.js`, con tests que impiden volver a intercambiar A/D con Q/E.
 
-### D1 — el HUD y el chrome de producto compartían píxeles
-Reportado como «el panel de laboratorio se superpone al HUD de partida». En
-partida de ladder no ocurría; en el Combat Lab ocurría **seis veces**. Al
-convertir la medición en puerta ejecutable apareció un séptimo, ese sí en la
-partida real: el roster de equipo se colocaba en un `top` fijo mientras el marco
-del jugador crece con los estados activos.
+## Piel del modelo
 
-De paso: el roster se reconstruía con `innerHTML` sesenta veces por segundo, y
-la carga emitía un 404 de `favicon.ico`.
+El aspecto facetado de la decimación se corrige en runtime sobre una copia de la geometría: se elimina la normal importada, se sueldan vértices compatibles, se recalculan y normalizan las normales, `flatShading=false`, y se modera el normal map. No modifica la simulación ni el asset fuente de 50k.
 
-### La cámara se metía dentro del escenario
-La colisión sólo miraba `arena.obstacles`, y las plataformas no están ahí
-—se caminan y no cortan LoS—, así que la cámara las atravesaba y enseñaba el
-reverso del nivel. Además el suelo mínimo del ojo era un absoluto (`y = 0.35`),
-que sobre una plataforma de 1.5 deja el ojo por debajo del suelo pisado.
+## Límite honesto
 
-### WAVE 5 — la arena pasó de decorado a diseño de nivel
-`docs/ARENA_LEVEL_DESIGN.md` tiene el detalle. Resumen: geometría simétrica por
-construcción, spawns espejo exacto (antes uno estaba 2 u más cerca del centro),
-eje de salida despejado para que los duelistas se vean, foso central limpio,
-vuelta de 360° comprobada y 17 pruebas que son el contrato.
-
-Rediseñar destapó cuatro cosas que el mapa anterior tapaba: tres fixtures atados
-a coordenadas mágicas que seguían verdes probando aire, un bot que nacía dentro
-de un muro y hacía parecer un problema de balance, dos maniquíes dentro de
-columnas, y un TTK fuera de banda que se corrigió moviendo el mapa, no la banda.
-
-### Barrido observable de las seis clases y del casteo
-36/36 habilidades ejecutadas en navegador por la ruta real del jugador: todas
-cobran, enfrían, castean si declaran casteo y aplican sus estados. Siete puertas
-de casteo (prepare, release, GCD, cola, tres cancelaciones) en verde.
-
-### P0 — el entrypoint del producto no animaba ningún combate
-`visuals[id]` estaba en el contrato del renderer; su contenido no. El nativo
-guardaba ahí el handle del backend de personaje y el de Three.js un envoltorio
-de escena. `vfx.js` pasaba el envoltorio a `triggerAttack`, que empieza con
-`if (!st.cfg) return;`. Resultado: cero ataques, cero casteos y cero reacciones
-al daño en la presentación de Three.js, durante commits enteros, con la suite
-verde. La locomoción va por otro camino y por eso los personajes seguían
-andando con normalidad.
-
-Corregido añadiendo `characterHandleOf(id)` al contrato, no parcheando la
-llamada. `docs/ANIMATION_VFX_AUDIT.md` tiene la medición antes/después.
-
----
-
-## Falsos positivos ya descartados — no reabrir
-
-1. **El reloj de partida no está roto.** El navegador headless corre rAF a ~4 fps
-   y `realDt` está topado a 0.1 s, así que el tiempo de producto avanza a ~0.35×
-   del de pared **sólo en headless**. `MatchFlow.update` además topa a 0.25 s por
-   llamada. A 60 fps ningún tope se activa. Sigue siendo P2 documentado: por
-   debajo de 10 fps la cuenta atrás va lenta.
-
-2. **«El jugador no hace daño».** Era un melee parado frente a un arquero que
-   kitea. En rango y encarado: 1100 → 1046 en 6 s.
-
-3. **Tres «defectos» de casteo que eran del arnés.** El bucle rAF simulando entre
-   sondas, `pendingCast = null` a mano dejando el estado a medias, y medir antes
-   de que llegue el proyectil. Los tres habrían sido informes falsos.
-
-4. **«La estasis no llega a la animación».** Era la fatiga global de control
-   rechazando la cuarta aplicación seguida. Comprobado en aislado:
-   `stasis → STASIS`, `silence → SILENCE`, `disarm → DISARM`.
-
-5. **«La pose está vacía».** `pose` se rellena en `render()`, no en
-   `syncVisuals()`. Una sonda que no pinta mide cero piezas y pasa en vacío.
-
-6. **«La intención dice DEATH sobre una entidad viva».** Costó seis ejecuciones
-   del barrido. La sonda guardaba la **referencia viva** a la intención y la
-   serializaba al final, con la entidad ya muerta: comparaba una foto contra un
-   vídeo. El producto nunca estuvo mal.
-
----
-
-## Qué se cerró en esta wave
-
-### Las nueve filas de identidad visual
-Las seis clases eran tres parejas de gemelos y estaba medido: `centinela ≈
-rastreador` con un 0.3 % de diferencia. Ahora el peor par difiere un **18.5 %**
-de contorno, medido desde tres vistas con `render/poseMetrics.js`.
-
-Lo importante no es el número: es que el equipo pasó a ser un **sistema de
-datos**. `render/equipment.js` tiene 24 fábricas paramétricas y
-`data/classVisuals.js` describe cada clase con números. Añadir una séptima clase
-no toca el renderer, y hay una prueba que lo comprueba (`buildPose` no puede
-volver a mencionar una clase por su nombre).
-
-De paso se terminó lo que el agente de personajes dejó a medias: `composeBuild()`
-y `girth` existían en `data/races.js` y no los usaba nadie.
-
-### El audio, que nadie había ejecutado
-1602 líneas escritas por un agente que murió por límite externo. Nueve pruebas
-juegan una partida real y comprueban las 31 rutas, los 55 cues y los 25 motivos
-de rechazo. **Estaba bien**: los cuatro fallos iniciales eran del arnés.
-
-### Pointer Lock, sin seguir peleando con el navegador
-`js/ui/pointerLockDiag.js` (F9 o `?diag=pointerlock`), un gate que verifica lo
-automatizable y deja constancia medida de lo que no, y
-`docs/POINTER_LOCK_MANUAL.md` con el procedimiento de un minuto.
-
-### Dos puertas del árbitro que llevaban tiempo podridas
-Leía `index-three.html`, que ya no existe, y buscaba el Timing Lab en un
-`switch` de `main.js` que se convirtió en datos. Además exigía exactamente 215
-pruebas, lo que convierte cada prueba nueva en un fallo del árbitro.
-
----
-
-## Siguiente tarea inmediata
-
-**Ya no es código.** Es:
-
-1. **Subir la build** siguiendo `docs/DEPLOY_HOSTINGER.md` y confirmar que la
-   cabecera dice `v0.9 · PLAYTEST` (Hostinger cachea con agresividad y este
-   proyecto ya ha probado una versión antigua creyendo probar la nueva).
-2. **Cerrar Pointer Lock** con `docs/POINTER_LOCK_MANUAL.md`: un minuto, y el
-   ledger pasa a 146/146 con evidencia en vez de con confianza.
-3. **Jugar** con `docs/PLAYTEST_CHECKLIST.md` delante.
-
-## Lo que NO falta y conviene no rehacer
-
-- Las 60 filas de combate (normal, casteo, weaving, CC, counters), verificadas
-  dentro del juego con 18 sondas.
-- Movimiento, cámara y targeting, con 9 sondas más y arrastre de ratón real.
-- Animación y VFX: 15 sondas, incluida la gramática visual de los 36 efectos.
-- Las seis identidades de clase: 20 pruebas y tres vistas medidas.
-- El audio: 9 pruebas sobre una partida real.
-- Rendimiento: la simulación ocupa el 0.4 % de su presupuesto y diez partidas
-  seguidas no dejan ni un nodo de DOM de más.
-
-## Sin juicio humano todavía
-
-Todo lo anterior es medición. **Nadie ha jugado esto.** El peso de un mandoble,
-la legibilidad de un telegraph a distancia de duelo, si las seis siluetas se
-distinguen jugando y no sólo mirándolas, y si el combate divierte, siguen
-necesitando a una persona con las manos en el teclado.
-
-Un 18.5 % de contorno distinto es un suelo, no un aprobado: una diferencia
-estadística no garantiza una diferencia perceptual. El punto 8 del checklist
-pregunta lo único que decide —«si estuvieran todas en gris y sin nombre, ¿las
-distinguirías?»— y esa respuesta gana a la métrica.
-
+Los tests, el auditor binario y el critic estático pueden detectar contratos rotos, clips desconectados, root-motion indebido y regresiones de teclado. No sustituyen observar el personaje real moviéndose a cámara MMO. El navegador administrado del entorno bloquea localhost antes de ejecutar JavaScript; el siguiente gate es desplegar v0.16 y revisar idle, forward/backpedal, strafe, Q/E, salto, hit y melee en Hostinger.

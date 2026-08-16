@@ -38,14 +38,14 @@ Arena.define('data/races', ['data/balance'], function (Arena) {
       /* --- Proporciones: multiplicadores sobre el humanoide base ---------- */
       build: {
         height: 1.04,        // algo más altos
-        shoulders: 0.92,     // más estrechos
+        shoulders: 0.95,     // esbelto, pero con lectura heroica a cámara MMO
         limbs: 1.06,         // extremidades largas
-        head: 0.96,          // cabeza pequeña
+        head: 1.02,          // ligeramente mayor: rostro/manos deben leer a distancia
         neck: 1.15,
         // Grosor del tronco. Un elfo oscuro es enjuto: quitarle masa al torso
         // es lo que impide que un Guardián elfo se lea como un humano gordo con
         // orejas. Se compone con la masa de la clase, no la sustituye.
-        girth: 0.95
+        girth: 0.99
       },
 
       /* --- Rasgos ---------------------------------------------------------- */

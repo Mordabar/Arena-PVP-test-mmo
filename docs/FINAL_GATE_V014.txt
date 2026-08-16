@@ -1,0 +1,54 @@
+=== MODEL ===
+{
+  "PASS": true,
+  "triangles": 50000,
+  "vertices": 76070,
+  "bones": 17,
+  "skins": 1,
+  "materials": 1,
+  "images": 3,
+  "weightSumMin": 0.9999999552965164,
+  "weightSumMax": 1.0000000447034836,
+  "bytes": 9299776
+}
+=== SKIN ===
+{
+  "PASS": true,
+  "bindIdentityError": 0.0,
+  "leftArmMovedVertices": 6426,
+  "leftArmMeanDisplacement": 0.32731202030893125,
+  "rightArmMeanDisplacement": 1.591171379504312e-08,
+  "stronglyWeightedVertices": {
+    "LeftUpperArm": 1407,
+    "RightUpperArm": 1263,
+    "LeftUpperLeg": 992,
+    "RightUpperLeg": 934,
+    "Head": 40541,
+    "Chest": 886
+  }
+}
+=== ARBITER ===
+✓ runtime declara v0.14 skinned
+✓ cache-busting v0.14 aplicado a scripts (60)
+✓ build visible dice v0.14 SKINNED DARK ELF
+✓ modelo GLB rigged incluido
+✓ modelo = 50.000 triángulos + 17 huesos
+✓ skinning mueve sólo la cadena atacada
+✓ GLB reemplaza cuerpo procedural y conserva equipo
+✓ GLB se precarga antes del boot
+
+-----------------------------------------------
+ARBITER: APROBADO
+v0.14 protege paridad de poderes y exige cuerpo skinned 50k con rig humanoide antes del boot.
+=== VISUAL ===
+✓ Arena de simulación es la frontera ampliada
+✓ Controles visibles documentan 12 slots, barras y libro
+✓ PowerBook/ActionBar no escriben autoridad de combate
+✓ Todos los assets locales del entrypoint existen
+
+VISUAL CRITIC: APROBADO — auditoría estática v0.14.
+El juicio final de composición/feel sigue requiriendo playtest visual en navegador real.
+=== SYNTAX ===
+JS syntax PASS — verified independently by tools/agents/integration-agent.js before final package.
+THREE GLTFLoader PASS — 1 SkinnedMesh / 17 Bones (docs/QA_THREE_GLTFLOADER_V014.txt).
+AGENTS PASS — 14/14 across fan-out + independent completion (docs/QA_AGENTS_V014_SUMMARY.txt).

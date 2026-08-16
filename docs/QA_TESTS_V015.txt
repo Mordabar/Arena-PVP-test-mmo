@@ -1,0 +1,593 @@
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+[Arena.EventBus] listener falló en "Tick": Error: listener roto a propósito
+    at js/tests/combatTests.js:993:44
+    at EventBus._safeCall (js/core/eventBus.js:72:7)
+    at EventBus.emit (js/core/eventBus.js:59:56)
+    at World._tick (js/sim/world.js:702:14)
+    at FixedTick.onTick (js/sim/world.js:49:36)
+    at FixedTick.step (js/core/fixedTick.js:69:12)
+    at FixedTick.stepSeconds (js/core/fixedTick.js:75:10)
+    at World.stepSeconds (js/sim/world.js:727:59)
+    at T.advance (js/tests/testRunner.js:210:49)
+    at Object.fn (js/tests/combatTests.js:994:9)
+✓ §26 · Counters obligatorios  (14/14)
+    ✓ Intervención + Root sin daño → la habilidad es rechazada y no aplica Root
+    ✓ Intervención + habilidad con daño + CC → impacta y resuelve todo
+    ✓ Reflejo + proyectil mágico de objetivo único → se resuelve contra el lanzador
+    ✓ Reflejo + AoE → no se refleja
+    ✓ AntiBuff + curación → la curación no surte efecto
+    ✓ AntiBuff + barrera y buffs → todo lo positivo se bloquea
+    ✓ AntiBuff no elimina los buffs ya activos
+    ✓ AntiHeal 40 % + heal 300 → se reciben 180 HP
+    ✓ AntiHeal no afecta a las barreras
+    ✓ Freeze/Estasis → ni actúa ni recibe impactos mientras está aislado
+    ✓ Root → no se mueve pero sí puede castear y atacar
+    ✓ Silence/Mareo → no usa habilidades, sí se mueve y ataca
+    ✓ Knockdown → cancela el cast y bloquea acciones hasta expirar
+    ✓ DR → aplicaciones repetidas reducen la duración y acaban en inmunidad
+✓ §7 · Fórmulas, caps y apilado  (8/8)
+    ✓ Mitigación física: 100 bruto contra armadura 100 → 50
+    ✓ Los slows no se suman: se aplica el más fuerte
+    ✓ El slow tiene un tope global del 60 %
+    ✓ La reducción de defensa se acumula con tope del 40 %
+    ✓ AntiHeal tiene un tope del 60 %
+    ✓ Las barreras absorben daño ya mitigado antes de tocar la vida
+    ✓ Barreras del mismo poder no se suman: se queda la mayor
+    ✓ La curación nunca sobrecura por encima del máximo
+✓ §9-10 · Orden de resolución y counters  (11/11)
+    ✓ Estasis tiene prioridad sobre Intervención y Reflejo
+    ✓ Bloqueo anula impactos directos de un solo objetivo
+    ✓ Bloqueo impide al Guardián usar poderes ofensivos
+    ✓ Postura inexpugnable bloquea las habilidades dañinas, no las de apoyo
+    ✓ Confusión táctica bloquea utility y defensivos, no el daño
+    ✓ Purga elimina buffs pero nunca los counters activos
+    ✓ Cleanse quita 1 control duro antes que los debuffs menores
+    ✓ AntiBuff también bloquea el Cleanse (decisión documentada de §30)
+    ✓ Estasis no es disipable: quitarla sería un regalo, no un rescate
+    ✓ Interponer desvía daño al Guardián resolviéndolo contra SU armadura
+    ✓ Enlace protector nunca puede matar al Vinculador
+✓ §6 · Ritmo, GCD, cola e interrupción  (7/7)
+    ✓ El GCD empieza en RELEASE y después bloquea la siguiente acción
+    ✓ Una pulsación dentro de la ventana de cola se ejecuta al terminar el GCD
+    ✓ Fuera de la ventana de cola la pulsación se rechaza, no se guarda
+    ✓ El rango y la línea de visión nunca se encolan
+    ✓ Moverse cancela un casteo estacionario
+    ✓ Interrumpir bloquea la escuela de la habilidad cortada
+    ✓ Un cast que pierde la línea de visión se disipa sin gastar el efecto
+✓ §5 · Targeting, rango y movimiento  (8/8)
+    ✓ Una columna corta la línea de visión
+    ✓ El rango se mide en el plano XZ: una rampa no regala alcance
+    ✓ Nadie atraviesa un muro al moverse
+    ✓ Una carga no atraviesa paredes
+    ✓ Los personajes no se atraviesan entre sí
+    ✓ Un objetivo en sigilo no puede seleccionarse
+    ✓ Recibir daño rompe el sigilo; un daño periódico no
+    ✓ Un desplazamiento no rompe Enraizar
+✓ §11 · Diminishing Returns  (7/7)
+    ✓ Con DR desactivado no hay reducción de duración
+    ✓ La inmunidad a Estasis existe incluso con DR desactivado
+    ✓ El DR se reinicia pasada la ventana
+    ✓ Una cadena completa de control duro no supera el objetivo de 4 s
+    ✓ Alternar categorías no permite encadenar control indefinidamente
+    ✓ La fatiga de control se recupera pasada su ventana
+    ✓ Categorías distintas de CC no comparten DR
+✓ Pasivas de clase  (5/5)
+    ✓ Ímpetu: 5 cargas abaratan la siguiente ofensiva un 30 %
+    ✓ Resonancia: 3 habilidades ofensivas reducen el siguiente casteo un 25 %
+    ✓ Bastión: reducción de daño sólo con un aliado cerca
+    ✓ Distancia ideal: +8 % de daño sólo más allá de 16 unidades
+    ✓ Flujo compartido: curar por debajo del 60 % devuelve maná una vez cada 3 s
+✓ Robustez  (7/7)
+    ✓ Morir limpia estados, casteo y cola
+    ✓ Un DoT puede matar y no deja tics colgando
+    ✓ Un listener que lanza excepción no tumba el tick
+    ✓ Los eventos emitidos son inmutables
+    ✓ El paso fijo es independiente de los fotogramas
+    ✓ Todas las habilidades declaradas usan tipos de efecto implementados
+    ✓ Cada clase tiene exactamente 6 activas y 1 pasiva
+✓ §19 · Objetivos de ritmo y balance  (15/15)
+    ✓ El cap Arena del 30 % sólo protege el kit legado; la fuente rank-5 NO se re-balancea
+    ✓ Ninguna aplicación de control duro supera los 2.4 s
+    ✓ Presión normal en 5 s: entre el 30 % y el 52 % de la vida
+    ✓ Burst máximo con todos los cooldowns duele pero no mata desde el 100 %
+    ✓ Un duelo Devastador vs Centinela se decide entre 12 y 30 s
+    ✓ Un duelo Arcanista vs Centinela se decide entre 12 y 30 s
+    ✓ Un duelo Devastador vs Arcanista se decide entre 12 y 30 s
+    ✓ Ninguna clase de daño gana todos los duelos: no hay dominante absoluta
+    ✓ Un 2v2 con soporte se decide dentro del límite
+    ✓ El soporte alarga la pelea de forma medible
+    ✓ El coste de maná de cada poder fuente es exactamente el rank-5 del libro
+    ✓ Las clases frágiles mueren más rápido que el Guardián
+    ✓ La cadencia de decisión permite actuar al menos cada 0.9 s
+    ✓ Todo poder de alto impacto tiene coste, cooldown o casteo
+    ✓ Cada subclase conserva al menos una respuesta defensiva/escape de la fuente completa
+✓ Control · movimiento relativo al personaje  (7/7)
+    ✓ W avanza según el yaw del personaje, no según la cámara
+    ✓ S retrocede sin darse la vuelta
+    ✓ A y D son strafe: desplazan de lado y NO giran
+    ✓ Q y E giran sin desplazar
+    ✓ el giro está limitado por TURN_SPEED, no es instantáneo
+    ✓ el giro se aplica en el tick fijo, no por fotograma
+    ✓ aturdido no gira; enraizado SÍ
+✓ Control · el objetivo no gobierna la orientación  (6/6)
+    ✓ seleccionar objetivo NO gira al personaje
+    ✓ lanzar una habilidad NO auto-encara
+    ✓ el ataque normal NO auto-encara
+    ✓ el ataque normal exige tener al objetivo delante
+    ✓ el arco frontal del ataque normal es simétrico y acotado
+    ✓ una habilidad con requiresFacing falla fuera del arco
+✓ Control · contrato de renderer  (6/6)
+    ✓ el registro entrega el renderer pedido y lo verifica
+    ✓ un renderer incompleto no llega a usarse
+    ✓ el contrato detecta una implementación incompleta
+    ✓ el contrato acepta una implementación completa
+    ✓ el contrato nombra exactamente lo que el juego consume
+    ✓ el handle de personaje se pide por método, no leyendo visuals[id]
+✓ Control · salto  (3/3)
+    ✓ Space/request inicia un arco autoritativo y vuelve al suelo
+    ✓ un enraizado/aturdido no puede iniciar salto
+    ✓ saltar cancela un casteo estacionario sin aplicar lockout
+✓ Control · la cámara no escribe simulación  (8/8)
+    ✓ el free look no toca el yaw del personaje
+    ✓ el arrastre de ratón gira 1:1, sin límite de velocidad
+    ✓ el delta del ratón se aplica exactamente una vez y 1:1
+    ✓ el mismo gesto horizontal produce exactamente el mismo delta en cámara y cuerpo
+    ✓ el giro por ratón sigue respetando el control
+    ✓ Q/E hace que la cámara acompañe exactamente el giro aceptado por simulación
+    ✓ followBodyYaw no altera pitch, zoom ni simulación
+    ✓ el giro por tecla SÍ está limitado
+✓ Cámara · nunca dentro del escenario  (4/4)
+    ✓ las plataformas son sólidas para la cámara y transitables para el jugador
+    ✓ la caja de cámara de una plataforma cubre su volumen real
+    ✓ el ojo nunca queda por debajo del suelo que el jugador pisa
+    ✓ la cámara sigue sin escribir nada en la simulación
+✓ Animación · locomoción direccional  (7/7)
+    ✓ avanzar produce estado FORWARD y velocidad normalizada creciente
+    ✓ retroceder NO usa el ciclo de avance
+    ✓ desplazarse de lado da STRAFE del lado correcto
+    ✓ avanzar y desplazarse a la vez da DIAGONAL
+    ✓ girar parado dispara giro en el sitio, no deslizamiento
+    ✓ arrancar pasa por START y parar por STOP
+    ✓ la aceleración es más lenta que el frenado (peso)
+✓ Animación · foot locking  (6/6)
+    ✓ el pie apoyado no se desplaza mientras dura el apoyo
+    ✓ parado, ambos pies quedan anclados
+    ✓ caminando siempre hay un pie en el suelo
+    ✓ el pie apoyado nunca sale del alcance de la pierna
+    ✓ la cadencia se deriva de la velocidad, no está fijada
+    ✓ correr abre fase de vuelo; andar no
+✓ Animación · fronteras de autoridad  (5/5)
+    ✓ la locomoción no escribe NADA en la entidad
+    ✓ seguir al objetivo mueve la cabeza, no el personaje
+    ✓ el seguimiento de cabeza respeta el límite anatómico
+    ✓ la capa de acción es determinista: misma semilla, misma pose
+    ✓ el código de animación no contiene Math.random()
+✓ Animación · acciones de combate  (11/11)
+    ✓ cada arquetipo usa su familia de acción
+    ✓ una acción recorre sus fases y termina volviendo a la guardia
+    ✓ la acción entra y sale mezclada, sin corte en las costuras
+    ✓ el poder del arquero es una variación del disparo, no otro gesto
+    ✓ el mago tiene pose de casteo distinta de la de ataque
+    ✓ el ataque normal del mago no es la liberación de un hechizo
+    ✓ la liberación gana a la canalización que se disuelve
+    ✓ cada familia de hechizo se ve distinta
+    ✓ el báculo del caster conserva una orientación física durante el channel
+    ✓ la reacción al daño es aditiva y se disuelve sola
+    ✓ golpear no congela las piernas (capas independientes)
+✓ Animación · lenguaje corporal del control  (6/6)
+    ✓ sin control no hay pose de control
+    ✓ derribo y aturdimiento NO se ven igual
+    ✓ la estasis congela en vez de dejar de actualizar
+    ✓ enraizar bloquea los pies pero no derriba
+    ✓ el desarme baja el arma sin tocar las piernas
+    ✓ la muerte tiene prioridad sobre cualquier control
+✓ Animación · familias de hechizo  (5/5)
+    ✓ cada hechizo del catálogo recibe una familia válida
+    ✓ la clasificación es determinista
+    ✓ un hechizo instantáneo no finge una animación larga
+    ✓ curar, controlar y lanzar no comparten familia
+    ✓ un casteo muy largo se lee como canalización
+✓ Animación · contrato neutral (AnimationIntent)  (13/13)
+    ✓ construir la intención NO escribe en la entidad
+    ✓ la intención no depende de WebGL ni de geometría
+    ✓ el caster conserva su familia de locomoción en la intención
+    ✓ la intención transporta si la habilidad permite moverse
+    ✓ el progreso de casteo lo dicta la simulación
+    ✓ la muerte tiene prioridad sobre cualquier control
+    ✓ el orden de prioridad del control se respeta
+    ✓ el enraizado NO se comunica como aturdimiento
+    ✓ el salto viaja por AnimationIntent sin introducir geometría
+    ✓ un salto REAL de la simulación llega al aire y aterriza en la animación
+    ✓ saltar no rompe la locomoción: se sigue avanzando en el aire
+    ✓ un slow no detiene la locomoción
+    ✓ la reacción al daño viaja como aditiva, no como estado
+✓ Animación · cinemática inversa  (3/3)
+    ✓ la cadena alcanza un objetivo dentro de su rango
+    ✓ un objetivo inalcanzable no rompe la solución
+    ✓ la rodilla dobla hacia atrás y el codo hacia delante
+✓ Misión · ataque normal y RELEASE  (5/5)
+    ✓ moverse impide iniciar normal sin resetear el intervalo
+    ✓ stop-shot: al detenerse con arma lista empieza el windup en el siguiente tick
+    ✓ moverse durante windup cancela antes de release y no hace daño
+    ✓ el daño melee aparece sólo al alcanzar RELEASE
+    ✓ normal exige facing, rango, LoS, no casteo y suelo
+✓ Misión · casteo transaccional  (5/5)
+    ✓ BEGIN no consume recurso, cooldown ni GCD; RELEASE sí
+    ✓ movimiento antes de RELEASE cancela sin coste, CD ni GCD
+    ✓ cancelación manual conserva recurso, CD y GCD
+    ✓ salto cancela cast estacionario sin commit
+    ✓ proyectil nace en RELEASE y permanece después de que el caster se mueva
+✓ Misión · weaving y prioridad  (6/6)
+    ✓ arquero: normal → Flecha perforante se encola y conserva ambos releases
+    ✓ arquero: normal → Pulso invernal también es weave
+    ✓ guerrero: normal → Impacto sísmico permite normal + CC
+    ✓ weapon skill antes de RELEASE reemplaza el normal sin daño fantasma
+    ✓ después del RELEASE un weapon skill no borra el normal y respeta intervalo
+    ✓ mago: un spell solicitado cancela el normal no liberado y gana prioridad
+✓ Misión · cadena del mago  (1/1)
+    ✓ spell B en últimos 200 ms de GCD se encola y comienza al liberarse
+✓ Misión · bordes adversariales  (5/5)
+    ✓ el normal también exige LoS: una columna bloquea el windup
+    ✓ target que sale de rango antes de RELEASE hace fizzle sin commit
+    ✓ movimiento en el último tick antes de RELEASE gana y cancela
+    ✓ resultado del normal es coherente a 30/60/120/144 FPS de presentación
+    ✓ la cola mantiene una sola intención: el último input válido reemplaza al anterior
+✓ Animation Reference Pass · locomoción  (3/3)
+    ✓ backpedal usa una zancada visual menor que avanzar
+    ✓ strafe del arquero tiene perfil propio y no reutiliza forward
+    ✓ diagonal conserva más amplitud que strafe puro
+✓ Animation Reference Pass · mago  (3/3)
+    ✓ la guardia del mago compensa el báculo contra el paso
+    ✓ el báculo conserva orientación física en ambos extremos de zancada
+    ✓ casteo y pulso normal siguen siendo siluetas distintas
+✓ Animation Reference Pass · arquero  (2/2)
+    ✓ draw del arco flexiona el brazo de cuerda sin doblar el brazo del arco
+    ✓ release del arco reduce draw y produce recoil
+✓ Animation Reference Pass · guerrero  (4/4)
+    ✓ los normales melee alternan horizontal y diagonal determinísticamente
+    ✓ las dos variantes del normal producen siluetas distintas
+    ✓ puntapié tiene familia propia y extensión de pierna
+    ✓ golpe de escudo y carga no reutilizan heavy swing
+✓ Animation Reference Pass · metadata visual  (3/3)
+    ✓ habilidades utility pasivas no fingen un heavy swing
+    ✓ las habilidades de arco declaran gesto de arquero
+    ✓ los hechizos del mago declaran gesto de cast
+✓ Animation Reference Pass · sincronía de RELEASE  (6/6)
+    ✓ un cast de arquero prepara draw antes del release
+    ✓ un weapon skill melee carga cuerpo antes de release
+    ✓ beginCast transporta visualAction sin conocer ids
+    ✓ AnimationIntent conserva visualAction durante pre-release sin actionFamily
+    ✓ todas las habilidades declaran visualAction
+    ✓ las familias especiales siguen siendo deterministas
+✓ Vertical Slice · ladder local reemplazable  (4/4)
+    ✓ los tiers se resuelven por rating y exponen progreso
+    ✓ ganar suma rating y perder resta con delta visible
+    ✓ los posicionamientos consumen una partida y usan K más alto
+    ✓ storage corrupto no rompe boot y vuelve al perfil seguro
+✓ Vertical Slice · match flow  (5/5)
+    ✓ lobby → countdown → active es determinista
+    ✓ training entra activo y nunca genera resultado ladder
+    ✓ finish sólo se acepta durante match activo y guarda stats/result
+    ✓ doble KO produce empate sin rating fantasma
+    ✓ volver al lobby limpia resultado sin borrar progresión
+✓ Iconografía · una habilidad, un icono  (6/6)
+    ✓ ninguna clase repite glifo entre sus habilidades
+    ✓ los 410 poderes importados tienen firma de icono globalmente única
+    ✓ los 410 SVG visibles importados también son distintos entre sí
+    ✓ todas las habilidades producen un SVG con contenido
+    ✓ cada glifo declarado existe como forma dibujable
+    ✓ el color del icono distingue la clase
+✓ Arena · justicia del ladder  (4/4)
+    ✓ la geometría es simétrica a 180°
+    ✓ los dos spawns reciben exactamente lo mismo
+    ✓ los spawns de equipo también son espejo
+    ✓ nadie nace dentro de geometría
+✓ Arena · apertura del duelo  (3/3)
+    ✓ los dos duelistas se ven al empezar
+    ✓ la separación de salida deja abrir al rango y llegar al melee
+    ✓ el spawn tiene la espalda despejada
+✓ Arena · las tres preguntas del mapa  (5/5)
+    ✓ DÓNDE ROMPE LoS: siempre hay una esquina a un paso
+    ✓ DÓNDE KITEA: se puede rodear el foso entero sin embudo
+    ✓ DÓNDE ENTRA EL MELEE: el foso central está limpio
+    ✓ el espacio jugable es una sola pieza
+    ✓ ni explanada ni laberinto
+✓ Arena · zonas declaradas  (2/2)
+    ✓ cada zona declarada existe de verdad y se puede pisar
+    ✓ las zonas cubren los tres roles
+✓ Arena · escenarios del laboratorio  (3/3)
+    ✓ ningún escenario coloca a nadie dentro de una columna
+    ✓ en cada escenario todos caben sin solaparse entre ellos
+    ✓ todos los escenarios tienen nombre legible
+✓ Presentación · gramática visual de efectos  (8/8)
+    ✓ toda habilidad resuelve a una firma completa
+    ✓ ninguna habilidad del catálogo cae en el genérico por defecto
+    ✓ dos escuelas nunca se confunden de un vistazo
+    ✓ cada control duro tiene marca propia e inconfundible
+    ✓ la magnitud escala el efecto: un burst no se ve como un roce
+    ✓ un crítico se nota sobre el mismo golpe sin crítico
+    ✓ sólo se telegrafía lo que da tiempo a reaccionar
+    ✓ la gramática visual no usa Math.random
+✓ Presentación · lo que el HUD tiene que contar  (8/8)
+    ✓ las barras nunca mienten ni se salen
+    ✓ la barrera se lee ENCIMA de la vida, no en lugar de ella
+    ✓ los tiempos se leen distinto según urjan
+    ✓ cada motivo de fallo se explica con palabras del jugador
+    ✓ el kit explica su relación con el ataque normal
+    ✓ los estados se ordenan por lo que urge, no por cómo llegaron
+    ✓ la pantalla de resultados cuenta la partida, no sólo quién ganó
+    ✓ el modelo del HUD es una función pura: no toca el mundo
+✓ Identidad de clase · contrato de datos  (8/8)
+    ✓ las seis clases declaran perfil visual
+    ✓ el arma declarada coincide con la de animConfig
+    ✓ toda malla declarada por una clase existe en la biblioteca
+    ✓ no hay geometría muerta subida a GPU
+    ✓ ningún color declarado cae en el reserva por estar mal escrito
+    ✓ cada pieza declara de qué material está hecha
+    ✓ la constitución compuesta de cada clase cabe en el rig
+    ✓ el renderer no decide identidad por identificador de clase
+✓ Identidad de clase · silueta  (8/8)
+    ✓ cada clase produce una pose no vacía y sin NaN
+    ✓ ningún par de clases comparte el mismo juego de piezas
+    ✓ seis contornos distinguibles · vista frontal
+    ✓ seis contornos distinguibles · vista tres cuartos
+    ✓ seis contornos distinguibles · vista perfil
+    ✓ cada pareja difiere en al menos dos rasgos gruesos
+    ✓ las dos clases de cada arquetipo son las más difíciles y aun así separan
+    ✓ cada clase cumple la lectura que declara
+✓ Identidad de clase · el equipo sigue al cuerpo  (5/5)
+    ✓ ninguna pieza se desprende del cuerpo en locomoción
+    ✓ el equipo no se queda quieto mientras el cuerpo camina
+    ✓ el equipo no introduce jitter entre fotogramas
+    ✓ la silueta sobrevive a los estados de combate y de control
+    ✓ el arma nunca tapa la cabeza en reposo
+✓ Modelo skinned v0.14 · puente de rig  (2/2)
+    ✓ las seis subclases producen los 17 pivotes del rig humanoide
+    ✓ izquierda y derecha conservan pivotes separados
+✓ Audio · el enrutado llega a cues que existen  (4/4)
+    ✓ la mesa de rutas y el banco están completos
+    ✓ cada cue del banco se sintetiza en capas audibles
+    ✓ la síntesis es determinista con la misma semilla
+    ✓ la distancia atenúa y nunca amplifica
+✓ Audio · una partida real produce sonido  (5/5)
+    ✓ los eventos de una partida real encuentran su ruta
+    ✓ el enrutado devuelve cues existentes para los eventos reales
+    ✓ cada motivo de rechazo tiene su familia de sonido
+    ✓ el audio no escribe una sola vez en el mundo
+    ✓ instalar y desinstalar no deja oyentes colgando
+✓ v0.10 · Biblioteca completa de poderes  (10/10)
+    ✓ la fuente queda cubierta: 320 registros, 290 poderes reales, 30 placeholders
+    ✓ cada subclase recibe base + especialización completa
+    ✓ los 290 índices fuente reales aparecen al menos una vez
+    ✓ ningún placeholder o nombre vacío llega al juego
+    ✓ todo poder activo tiene un efecto ejecutable y sólo pertenece a su clase
+    ✓ el catálogo fuente no usa los tipos de daño legacy de Arena
+    ✓ cada poder generado tiene firma de icono única dentro de su subclase
+    ✓ todos los tipos de efecto generados tienen resolver
+    ✓ las resistencias de CC no se convierten accidentalmente en auto-CC
+    ✓ los 344 poderes activos recorren request → RELEASE sin excepciones
+✓ v0.10 · Casteo plantado pero libre de giro  (2/2)
+    ✓ girar durante CASTING no cancela el poder
+    ✓ moverse durante CASTING sí cancela y no paga coste/cooldown
+✓ v0.10 · Barra 4×12 y libro de poderes  (3/3)
+    ✓ el contrato es exactamente cuatro barras de doce slots
+    ✓ las cuatro páginas se pueden seleccionar y conservan asignaciones independientes
+    ✓ un pasivo o poder de otra clase no se puede arrastrar a la barra
+✓ v0.10 · Arena ampliada  (2/2)
+    ✓ el campo táctico crece ampliamente sin alterar la salida del duelo
+    ✓ la ampliación sigue siendo simétrica, conectada y con cobertura útil
+✓ v0.11 · Paridad mecánica, iconos y lenguaje corporal  (11/11)
+    ✓ cast y cooldown del runtime son idénticos a la fuente rank-5
+    ✓ la categoría de GCD conserva la semántica de la fuente
+    ✓ ningún efecto temporal inventa o recorta la duración fuente
+    ✓ activables son posturas propias persistentes hasta toggle-off
+    ✓ el SVG visible también es único dentro de cada subclase
+    ✓ los poderes físicos y mágicos no caen todos en un único gesto
+    ✓ ninguna regla fuente residual queda sin clasificar
+    ✓ Cúpula de protección fuente se traduce a domo aliado sin afectar al caster
+    ✓ Cremación fuente exige cadáver enemigo y ejecuta cremate en RELEASE
+    ✓ las cuatro mecánicas sin bullets no quedan como stubs
+    ✓ las nuevas primitivas anatómicas son finitas y suficientemente densas
+✓ v0.12 · Poderes elementales y cámara confortable  (6/6)
+    ✓ brujo elemental conserva los contratos de casteo/recarga/rango/área
+    ✓ meteorito, fuego, hielo y rayo usan nombres Arena y lecturas distintas
+    ✓ Explosión glacial ralentiza 40% durante 2s y no se auto-buffea
+    ✓ cada poder fuente expone contrato de presentación semántico
+    ✓ los cuatro poderes emblemáticos producen iconos visualmente distintos
+    ✓ eventos de RELEASE transportan el punto de suelo sin autoridad visual
+✓ v0.12 · Gate adversarial de hechizos emblemáticos  (5/5)
+    ✓ Orbe de Ascua es proyectil AoE anclado al objetivo y sólo daña al impactar
+    ✓ Relámpago del Vacío conserva cinco segundos de daño periódico fuente
+    ✓ Explosión de magma del Vacío conserva impacto exacto y quemadura de 15s
+    ✓ Tempestad de Cristal usa aturdimiento real, no mareo que se rompe con daño
+    ✓ la primera barra del Arcanista prioriza sus doce poderes emblemáticos
+✓ v0.13 · Documento Maestro como fuente única  (21/21)
+    ✓ 320 registros → 290 poderes reales + 30 placeholders → 410 asignaciones
+    ✓ cada subclase contiene exactamente su base + especialización fuente
+    ✓ el libro jugable no contiene poderes ajenos a la fuente
+    ✓ cada nombre conserva el nombre fuente y añade sólo una variación rastreable
+    ✓ todo poder lanzable tiene efecto runtime y usa daño source-rank5-exact
+    ✓ Meteorito del Vacío conserva casteo, coste, rango, daño dual y mareo
+    ✓ Bola de fuego / Hielo / Relámpago conservan literalmente el rango 5
+    ✓ Vampirismo realmente drena al enemigo y cura al brujo
+    ✓ Curar aliado suma +700 y +5% de salud máxima; Salvador cura 60%
+    ✓ Aplasta mentes conserva +100% arma y purga 2 con 100% de chance
+    ✓ Sirvientes sádicos drena 25 maná por segundo durante 30 s
+    ✓ Defensa salvaje y Lazo extraplanar preservan 30%/50% de redirección
+    ✓ Furia natural explota desde la mascota: 750 punzante + 500 fuego + derribo 3s
+    ✓ pasivos de mascota se aplican a la criatura y las invocaciones expiran
+    ✓ resistencias físicas y mágicas no se mezclan en un modificador genérico
+    ✓ Asistencia del Paladín protege al aliado objetivo y recibe 100% de su daño
+    ✓ Represalia devuelve 90% del próximo daño recibido y se consume
+    ✓ Espejo del karma devuelve 30% de cada daño durante su duración, sin consumirse
+    ✓ Campo estático pulsa 100 eléctrico/s y 30% slow sólo a enemigos dentro de 10
+    ✓ Comunión de mana restaura 15 por segundo a aliados y lanzador dentro del aura
+    ✓ Curación mayor usa un área de 6 alrededor del objetivo y no cura enemigos
+✓ Skinned Animation v0.15 · cuerpo importado  (12/12)
+    ✓ caster usa sólo báculo como arma base
+    ✓ archer usa sólo arco como arma base
+    ✓ melee usa espada como arma base
+    ✓ locomoción no cruza las piernas: swings opuestos
+    ✓ caster casteando eleva ambos brazos y mantiene cuerpo plantado
+    ✓ pulso normal de báculo es menor que release de hechizo
+    ✓ arquero aumenta tensión del arco antes del release
+    ✓ arquero libera la cuerda después del marker de impacto
+    ✓ full draw coloca mano de arco adelante y mano de cuerda cerca del rostro
+    ✓ melee normal alterna dirección por variant
+    ✓ knockdown inclina cuerpo completo sin contaminar arma
+    ✓ todas las rotaciones son finitas tras movimiento+acción
+
+TODO OK — 367 pruebas en 15290 ms

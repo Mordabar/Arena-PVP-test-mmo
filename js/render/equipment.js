@@ -165,7 +165,18 @@ Arena.define('render/equipment', ['render/primitives'], function (Arena) {
   /** Peto. `vTaper` estrecha la cintura: es lo que da la V del atacante. */
   F.cuirass = function (s) {
     var rx = num(s.rx, 0.17), ry = num(s.ry, 0.145), rz = num(s.rz, 0.115);
-    var parts = [P.scale(P.sphere(0.5, 9, 12), rx * 2, ry * 2, rz * 2)];
+    /* Una placa sigue siendo rígida, pero no debe parecer una caja pegada al
+       tórax. La elipsoide da curvatura frontal; las costillas inferiores
+       sugieren placas superpuestas sin multiplicar draw calls (se fusionan). */
+    var parts = [P.ellipsoid(rx, ry, rz, 10, 14)];
+    if (s.ribs !== false) {
+      var nr = num(s.ribs, 2) | 0;
+      for (var rr = 0; rr < nr; rr++) {
+        var yy = -ry * (0.06 + rr * 0.34);
+        parts.push(at(P.scale(P.torus(rx * (0.72 - rr * 0.07), num(s.ribT, 0.012), 18, 5, Math.PI),
+          1, 1, rz / Math.max(0.001, rx) * 0.95), 0, yy, rz * 0.18));
+      }
+    }
     if (s.vTaper) {
       // Faldilla inferior estrechada: el peto termina en punta hacia el ombligo.
       parts.push(at(P.scale(P.cylinder(rx * 0.92, ry * 0.85, 12, num(s.vTaper, 0.45)), 1, -1, rz / rx),
@@ -555,16 +566,23 @@ Arena.define('render/equipment', ['render/primitives'], function (Arena) {
     var shape = s.shape || 'round';
     var parts = [];
     if (shape === 'tower') {
-      parts.push(P.scale(P.sphere(0.5, 6, 8), w, h, d * 2));
-      parts.push(at(P.box(w * 1.00, h * 0.86, d * 1.15), 0, 0, 0));
+      /* Escudo torre con panza frontal y esquinas suavizadas. La versión
+         anterior era una caja alta; de tres cuartos se leía como un tablón.
+         Aquí el volumen principal es curvo y la placa plana sólo ocupa el
+         centro, por lo que el contorno conserva hombros redondeados. */
+      parts.push(P.ellipsoid(w * 0.53, h * 0.53, d * 0.92, 10, 14));
+      parts.push(at(P.box(w * 0.74, h * 0.82, d * 1.05), 0, -h * 0.01, -d * 0.06));
+      // Espina vertical ligeramente adelantada: da orientación visual incluso
+      // cuando la cámara mira casi de canto.
+      parts.push(at(P.ellipsoid(w * 0.055, h * 0.43, d * 0.72, 7, 9), 0, 0, d * 0.52));
       // Refuerzos horizontales: dan escala y dicen "esto pesa".
       var nb = num(s.bands, 2) | 0;
       for (var i = 0; i < nb; i++) {
         var y = (nb === 1) ? 0 : (i / (nb - 1) - 0.5) * h * 0.66;
-        parts.push(at(P.box(w * 1.06, num(s.bandH, 0.055), d * 1.55), 0, y, 0));
+        parts.push(at(P.ellipsoid(w * 0.53, num(s.bandH, 0.055) * 0.55, d * 0.86, 6, 10), 0, y, d * 0.32));
       }
-      parts.push(at(P.box(w * 1.05, num(s.rimH, 0.045), d * 1.5), 0, h * 0.5, 0));
-      parts.push(at(P.box(w * 1.05, num(s.rimH, 0.045), d * 1.5), 0, -h * 0.5, 0));
+      parts.push(at(P.ellipsoid(w * 0.53, num(s.rimH, 0.045) * 0.58, d * 0.88, 6, 10), 0, h * 0.47, d * 0.28));
+      parts.push(at(P.ellipsoid(w * 0.53, num(s.rimH, 0.045) * 0.58, d * 0.88, 6, 10), 0, -h * 0.47, d * 0.28));
     } else if (shape === 'kite') {
       parts.push(P.scale(P.sphere(0.5, 8, 11), w, h * 1.15, d * 2));
       parts.push(at(P.scale(spike(w * 0.5, h * 0.55, 5), 1, -1, d * 2 / w), 0, -h * 0.42, 0));
@@ -590,15 +608,34 @@ Arena.define('render/equipment', ['render/primitives'], function (Arena) {
    */
   F.bow = function (s) {
     var limb = num(s.limb, 0.30), r = num(s.r, 0.019), taper = num(s.taper, 0.42);
-    var parts = [
-      at(P.cylinder(r, limb, 6, taper), 0, num(s.gripHalf, 0.075), num(s.bend, -0.010)),
-      at(P.scale(P.cylinder(r, limb, 6, taper), 1, -1, 1), 0, -num(s.gripHalf, 0.075), num(s.bend, -0.010)),
-      at(P.box(num(s.gripW, 0.034), num(s.gripLen, 0.17), num(s.gripD, 0.046)), 0, 0, 0.008)
-    ];
+    var gripHalf = num(s.gripHalf, 0.075), bend = num(s.bend, -0.010);
+    var parts = [at(P.ellipsoid(num(s.gripW, 0.034) * 0.55, num(s.gripLen, 0.17) * 0.52,
+      num(s.gripD, 0.046) * 0.56, 7, 9), 0, 0, 0.008)];
+
+    /* Tres tramos por pala. Esto conserva el coste mínimo de un low-poly pero
+       hace que el arco sea una curva reconocible en vez de dos cilindros
+       verticales. Las puntas recurvan hacia el tirador (+Z). */
+    function bowLimb(sign) {
+      var segLen = limb / 3.05;
+      var angles = [-0.18, -0.34, -0.52];
+      for (var q = 0; q < 3; q++) {
+        var m = P.cylinder(r * (1 - q * 0.13), segLen, 7, Math.max(0.34, taper + q * 0.08));
+        P.rotateX(m, sign * angles[q]);
+        var y = sign * (gripHalf + segLen * (q + 0.54));
+        var z = bend + (q * q) * num(s.curveZ, 0.018);
+        if (sign < 0) m = P.scale(m, 1, -1, 1);
+        parts.push(at(m, 0, y, z));
+      }
+    }
+    bowLimb(1); bowLimb(-1);
     if (s.recurve) {
-      var ty = num(s.gripHalf, 0.075) + limb * taper * 0 + limb;
-      parts.push(at(P.cylinder(r * 0.58, num(s.recurve, 0.10), 5, 0.75), 0, ty, num(s.recurveZ, 0.030)));
-      parts.push(at(P.scale(P.cylinder(r * 0.58, num(s.recurve, 0.10), 5, 0.75), 1, -1, 1), 0, -ty, num(s.recurveZ, 0.030)));
+      var ty = gripHalf + limb * 0.96;
+      var rt = P.cylinder(r * 0.58, num(s.recurve, 0.10), 6, 0.70);
+      P.rotateX(rt, -0.78);
+      parts.push(at(rt, 0, ty, num(s.recurveZ, 0.060)));
+      var rb = P.cylinder(r * 0.58, num(s.recurve, 0.10), 6, 0.70);
+      P.rotateX(rb, 0.78); rb=P.scale(rb,1,-1,1);
+      parts.push(at(rb, 0, -ty, num(s.recurveZ, 0.060)));
     }
     if (s.riser) {
       parts.push(at(P.box(num(s.gripW, 0.034) * 1.5, num(s.riser, 0.30), num(s.gripD, 0.046) * 1.3), 0, 0, -0.010));
@@ -638,14 +675,13 @@ Arena.define('render/equipment', ['render/primitives'], function (Arena) {
       }
       parts.push(at(P.box(num(s.crownR, 0.105) * 2.05, 0.026, 0.035), 0, top - 0.06, 0));
     } else if (crown === 'ring') {
-      // Aro cerrado: la forma protectora por excelencia. Se compone de
-      // segmentos para que sea un anillo real y no un disco.
-      var R = num(s.ringR, 0.145), nr = num(s.ringSeg, 14) | 0, th = num(s.ringT, 0.028);
-      for (var i = 0; i < nr; i++) {
-        var a = (i / nr) * Math.PI * 2;
-        parts.push(at(P.box(th, R * 2 * Math.PI / nr * 1.25, th),
-          Math.cos(a) * R, top + num(s.ringY, 0.10) + Math.sin(a) * R, 0));
-      }
+      // Aro orgánico real. El torus nace en XZ (eje Y); lo rotamos 90° para
+      // que quede vertical en XY. El anterior era un polígono de cajas y de
+      // cerca parecía un engranaje, defecto ya documentado en FUTURE_DECISIONS.
+      var R = num(s.ringR, 0.145), nr = num(s.ringSeg, 18) | 0, th = num(s.ringT, 0.028);
+      var ring = P.torus(R, th * 0.52, Math.max(14, nr), 7);
+      P.rotateX(ring, Math.PI * 0.5);
+      parts.push(at(ring, 0, top + num(s.ringY, 0.10), 0));
       parts.push(at(P.box(th * 1.6, num(s.ringY, 0.10), th * 1.6), 0, top + num(s.ringY, 0.10) * 0.5, 0));
       if (s.beads) {
         var nbd = s.beads | 0;

@@ -18,7 +18,8 @@ const path = require('path');
 const http = require('http');
 
 const ROOT = path.join(__dirname, '..');
-const CHROME = process.env.CHROME_BIN || '/opt/pw-browsers/chromium-1194/chrome-linux/chrome';
+const CHROME_CANDIDATES = [process.env.CHROME_BIN, '/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome'].filter(Boolean);
+const CHROME = CHROME_CANDIDATES.find(p => fs.existsSync(p)) || CHROME_CANDIDATES[0];
 const PORT = Number(process.env.CDP_PORT || 9333);
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }

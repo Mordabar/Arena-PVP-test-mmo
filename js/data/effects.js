@@ -292,6 +292,25 @@ Arena.define('data/effects', ['data/balance'], function (Arena) {
     desc: 'Refleja el próximo hechizo mágico dirigido de objetivo único.'
   });
 
+
+  // Source-faithful counters from the Regnum power book. Unlike the legacy
+  // magic reflector above, Represalia returns a percentage of the NEXT damage
+  // actually received, while Espejo del karma returns a percentage of EVERY
+  // damage packet received during its source duration.
+  def('sourceRetaliation', {
+    name: 'Represalia fuente', kind: 'buff', charges: 1,
+    dispel: { cleanse: null, purge: true }, purgePriority: 60,
+    icon: '↩', color: '#d5b3ff',
+    desc: 'Devuelve un porcentaje del daño del próximo ataque recibido.'
+  });
+
+  def('sourceDamageReflect', {
+    name: 'Espejo de daño fuente', kind: 'buff',
+    dispel: { cleanse: null, purge: true }, purgePriority: 60,
+    icon: '◈', color: '#d5b3ff',
+    desc: 'Devuelve un porcentaje de cada daño recibido mientras esté activo.'
+  });
+
   def('intervention', {
     name: 'Intervención',
     kind: 'buff',
@@ -414,6 +433,62 @@ Arena.define('data/effects', ['data/balance'], function (Arena) {
     icon: '⬢',
     color: '#b8c7d9',
     desc: 'Gran reducción de daño, pero no puede lanzar habilidades dañinas.'
+  });
+
+  /* =========================================================================
+   * 4. POWER LIBRARY — efectos genéricos de la expansión
+   *
+   * Estos estados permiten traducir centenares de poderes a datos sin abrir
+   * ramas por id. Las estadísticas no deterministas (crítico/evasión) se
+   * representan mediante modificadores tácticos deterministas durante esta
+   * fase; la fórmula fina llegará con el milestone de armadura/atributos.
+   * ====================================================================== */
+
+  def('sourceBuff', {
+    name: 'Potenciación', kind: 'buff', stackRule: 'refresh',
+    dispel: { cleanse: null, purge: true }, purgePriority: 35,
+    icon: '✦', color: '#9de0c8', desc: 'Potenciación data-driven de la biblioteca de poderes.'
+  });
+
+  def('sourceDebuff', {
+    name: 'Penalización', kind: 'debuff', stackRule: 'refresh',
+    dispel: { cleanse: 'minor', purge: false },
+    icon: '◇', color: '#d48383', desc: 'Penalización data-driven de la biblioteca de poderes.'
+  });
+
+  def('sourceDaze', {
+    name: 'Aturdimiento quebrable', kind: 'cc', drCategory: 'hardDisable',
+    prevents: { move: true, ability: true, weaponAttack: true }, interruptsCast: true,
+    breaksOnDamage: true, dispel: { cleanse: 'hard', purge: false },
+    icon: '✺', color: '#ffb36b', desc: 'No puede actuar; recibir daño rompe el efecto.'
+  });
+
+  def('noAttack', {
+    name: 'Pacificado', kind: 'cc', drCategory: 'disarm',
+    prevents: { weaponAttack: true, offensive: true }, interruptsCast: false,
+    dispel: { cleanse: 'hard', purge: false },
+    icon: '⊘', color: '#cf8aff', desc: 'No puede atacar ni lanzar poderes ofensivos.'
+  });
+
+  def('noDamage', {
+    name: 'Voto defensivo', kind: 'debuff',
+    prevents: { damageAbilities: true }, interruptsCast: false,
+    dispel: { cleanse: 'minor', purge: false },
+    icon: '⬡', color: '#8ca8d9', desc: 'No puede usar habilidades que causen daño.'
+  });
+
+  def('sanctuary', {
+    name: 'Santuario', kind: 'buff', isolate: true,
+    prevents: { weaponAttack: true, offensive: true },
+    dispel: { cleanse: null, purge: false },
+    icon: '◯', color: '#fff0a8', desc: 'No puede ser atacado; puede moverse y usar utilidades.'
+  });
+
+  def('ccWard', {
+    name: 'Velo de control', kind: 'buff',
+    immuneTo: ['knockdown','stun','sourceDaze','silence','root','disarm','noAttack','utilityLock'],
+    dispel: { cleanse: null, purge: true }, purgePriority: 75,
+    icon: '✥', color: '#cdefff', desc: 'Resiste los controles principales mientras esté activo.'
   });
 
   /* =========================================================================

@@ -68,7 +68,7 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
   // Distancia de trabajo por clase, medida de borde a borde (los radios se
   // suman aparte). El melee busca contacto real, no "cerca".
   var DESIRED_RANGE = {
-    devastador: 1.6, guardian: 1.6, centinela: 17, rastreador: 14,
+    devastador: 1.6, guardian: 1.6, centinela: 18, rastreador: 14,
     arcanista: 15, vinculador: 12
   };
 

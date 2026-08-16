@@ -69,10 +69,10 @@ Arena.define('render/characterBackend', ['render/characterVisual'], function (Ar
     archetypeOf: function (classId) { return CV.archetypeOf(classId); },
     materialOf: function (mesh) { return CV.materialOf(mesh); },
 
-    triggerAttack: function (handle, archetype, isPower, castFamily, visualAction) {
-      CV.triggerAttack(handle, archetype, isPower, castFamily, visualAction);
+    triggerAttack: function (handle, archetype, isPower, castFamily, visualAction, visualVariant, spellGesture) {
+      CV.triggerAttack(handle, archetype, isPower, castFamily, visualAction, visualVariant, spellGesture);
     },
-    beginCast: function (handle, castFamily, visualAction) { CV.beginCast(handle, castFamily, visualAction); },
+    beginCast: function (handle, castFamily, visualAction, spellGesture) { CV.beginCast(handle, castFamily, visualAction, spellGesture); },
     triggerHurt: function (handle, entity, fromPos) {
       CV.triggerHurt(handle, entity, fromPos);
     },

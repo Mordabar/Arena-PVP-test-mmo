@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 
-<title>Project Arena · Ladder Vertical Slice v0.8</title>
+<title>Project Arena · Ladder Vertical Slice v0.16 · UAL2 Retarget Locomotion</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230c1412'/%3E%3Cpath d='M32 12 46 52 32 43 18 52Z' fill='%23e7c678'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/arena.css?build=v090-20260814-playtest">
+<link rel="stylesheet" href="css/arena.css?build=v0160-20260816-ual2-retarget-locomotion">
 </head>
 <body class="three-theme">
 
@@ -18,21 +18,22 @@
 <div id="hud">
   <div id="brand" class="passthrough">
     <div class="t">Project Arena</div>
-    <div class="s">Ladder Vertical Slice · v0.9 · PLAYTEST · Tactical Rhythm · Three.js 0.160 · seis identidades de clase</div>
+    <div class="s">Ladder Vertical Slice · v0.16 · UAL2 RETARGET · SMOOTH SKIN · A/D STRAFE · Q/E TURN</div>
   </div>
 
   <div id="help">
     <div class="head">Controles ▾</div>
     <div class="rows">
       <b>Mover</b> <kbd>W</kbd><kbd>S</kbd> · <b>Strafe</b> <kbd>A</kbd> izquierda · <kbd>D</kbd> derecha<br>
-      <b>Girar</b> <kbd>Q</kbd><kbd>E</kbd> · relativo a tu propio frente<br>
-      <b>Cámara + girar</b> mantener botón izquierdo<br>
+      <b>Girar</b> <kbd>Q</kbd><kbd>E</kbd> · cuerpo + cámara juntos<br>
+      <b>Cámara + girar</b> mantener botón izquierdo · cuerpo mira donde orientas la cámara<br>
       <b>Mirar libre</b> mantener botón derecho · no gira el cuerpo<br>
       <b>Zoom</b> rueda · <b>Saltar</b> <kbd>Espacio</kbd><br>
       <b>Objetivo</b> clic corto · <kbd>Tab</kbd> enemigos · <kbd>⇧Tab</kbd> aliados<br>
       <span style="color:rgba(255,200,120,.75)">El objetivo NO gira tu personaje: apunta tú.</span><br>
       <b>Uno mismo</b> <kbd>F</kbd><br>
-      <b>Habilidades</b> <kbd>1</kbd>…<kbd>6</kbd> · <b>Ataque normal</b> <kbd>T</kbd><br>
+      <b>Habilidades</b> <kbd>1</kbd>…<kbd>9</kbd><kbd>0</kbd><kbd>-</kbd><kbd>=</kbd> · <b>Barras</b> <kbd>⇧1</kbd>…<kbd>⇧4</kbd><br>
+      <b>Libro de poderes</b> <kbd>B</kbd> · arrastra poderes a cualquier slot · <b>Ataque normal</b> <kbd>T</kbd><br>
       <b>Cancelar casteo</b> <kbd>Esc</kbd> · <b>Reiniciar</b> <kbd>R</kbd><br>
       <b>Depurar animación</b> <kbd>F3</kbd>
     </div>
@@ -59,70 +60,76 @@
      ====================================================================== -->
 
 <!-- Núcleo -->
-<script src="js/namespace.js?build=v090-20260814-playtest"></script>
-<script src="js/math/vec3.js?build=v090-20260814-playtest"></script>
-<script src="js/math/mat4.js?build=v090-20260814-playtest"></script>
-<script src="js/math/ray.js?build=v090-20260814-playtest"></script>
-<script src="js/core/eventBus.js?build=v090-20260814-playtest"></script>
-<script src="js/core/rng.js?build=v090-20260814-playtest"></script>
-<script src="js/core/fixedTick.js?build=v090-20260814-playtest"></script>
+<script src="js/namespace.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/math/vec3.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/math/mat4.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/math/ray.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/core/eventBus.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/core/rng.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/core/fixedTick.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/core/controlMap.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
 
 <!-- Datos y reglas -->
-<script src="js/data/balance.js?build=v090-20260814-playtest"></script>
-<script src="js/data/effects.js?build=v090-20260814-playtest"></script>
-<script src="js/core/entity.js?build=v090-20260814-playtest"></script>
-<script src="js/combat/statusSystem.js?build=v090-20260814-playtest"></script>
-<script src="js/combat/damageSystem.js?build=v090-20260814-playtest"></script>
-<script src="js/combat/healingSystem.js?build=v090-20260814-playtest"></script>
-<script src="js/combat/resolver.js?build=v090-20260814-playtest"></script>
-<script src="js/combat/abilitySystem.js?build=v090-20260814-playtest"></script>
-<script src="js/data/races.js?build=v090-20260814-playtest"></script>
-<script src="js/data/animConfig.js?build=v090-20260814-playtest"></script>
-<script src="js/data/classVisuals.js?build=v090-20260814-playtest"></script>
-<script src="js/data/classes.js?build=v090-20260814-playtest"></script>
-<script src="js/data/abilities.js?build=v090-20260814-playtest"></script>
-<script src="js/data/passives.js?build=v090-20260814-playtest"></script>
-<script src="js/data/castFamilies.js?build=v090-20260814-playtest"></script>
-<script src="js/data/scenarios.js?build=v090-20260814-playtest"></script>
-<script src="js/ui/hudModel.js?build=v090-20260814-playtest"></script>
-<script src="js/ui/pointerLockDiag.js?build=v090-20260814-playtest"></script>
-<script src="js/anim/animationIntent.js?build=v090-20260814-playtest"></script>
-<script src="js/product/ladder.js?build=v090-20260814-playtest"></script>
-<script src="js/product/matchFlow.js?build=v090-20260814-playtest"></script>
+<script src="js/data/balance.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/effects.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/core/entity.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/combat/statusSystem.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/combat/damageSystem.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/combat/healingSystem.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/combat/resolver.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/combat/abilitySystem.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/races.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/animConfig.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+  <script src="js/data/animationLibraryMap.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/classVisuals.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/classes.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/abilities.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/powerLibrary.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/passives.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/castFamilies.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/data/scenarios.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/hudModel.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/pointerLockDiag.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/anim/animationIntent.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/product/ladder.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/product/matchFlow.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
 
 <!-- Simulación -->
-<script src="js/sim/arena.js?build=v090-20260814-playtest"></script>
-<script src="js/sim/arenaMetrics.js?build=v090-20260814-playtest"></script>
-<script src="js/sim/world.js?build=v090-20260814-playtest"></script>
-<script src="js/ai/dummyAI.js?build=v090-20260814-playtest"></script>
+<script src="js/sim/arena.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/sim/arenaMetrics.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/sim/world.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ai/dummyAI.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
 
 <!-- Presentación 3D -->
-<script src="js/render/rendererBackend.js?build=v090-20260814-playtest"></script>
-<script src="js/render/shaders.js?build=v090-20260814-playtest"></script>
-<script src="js/render/primitives.js?build=v090-20260814-playtest"></script>
-<script src="js/render/equipment.js?build=v090-20260814-playtest"></script>
-<script src="js/render/poseMetrics.js?build=v090-20260814-playtest"></script>
-<script src="js/render/camera3d.js?build=v090-20260814-playtest"></script>
-<script src="js/render/anim/skeleton.js?build=v090-20260814-playtest"></script>
-<script src="js/render/anim/locomotion.js?build=v090-20260814-playtest"></script>
-<script src="js/render/anim/actions.js?build=v090-20260814-playtest"></script>
-<script src="js/render/characterVisual.js?build=v090-20260814-playtest"></script>
-<script src="js/render/characterBackend.js?build=v090-20260814-playtest"></script>
-<script src="js/render/animDebug.js?build=v090-20260814-playtest"></script>
-<script src="js/render/webglRenderer.js?build=v090-20260814-playtest"></script>
-<script src="js/render/vfx.js?build=v090-20260814-playtest"></script>
-<script src="js/render/picking.js?build=v090-20260814-playtest"></script>
+<script src="js/render/rendererBackend.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/shaders.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/primitives.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/equipment.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/poseMetrics.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/camera3d.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/anim/skeleton.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/anim/locomotion.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/anim/actions.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/skinnedAnimationContract.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/characterVisual.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/characterBackend.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/animDebug.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/webglRenderer.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/vfx.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/render/picking.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
 
 <!-- Interfaz -->
-<script src="js/ui/abilityIcons.js?build=v090-20260814-playtest"></script>
-<script src="js/ui/gameShell.js?build=v090-20260814-playtest"></script>
-<script src="js/ui/hud.js?build=v090-20260814-playtest"></script>
-<script src="js/ui/combatLog.js?build=v090-20260814-playtest"></script>
-<script src="js/ui/labPanel.js?build=v090-20260814-playtest"></script>
-<script src="js/ui/tooltips.js?build=v090-20260814-playtest"></script>
+<script src="js/ui/abilityIcons.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/actionBarState.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/powerBook.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/gameShell.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/hud.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/combatLog.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/labPanel.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
+<script src="js/ui/tooltips.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
 
 <!-- Audio -->
-<script src="js/audio/audio.js?build=v090-20260814-playtest"></script>
+<script src="js/audio/audio.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
 
 <!-- Arranque -->
 <!-- =========================================================================
@@ -142,7 +149,7 @@
      https://dominio.com/arena/ que en https://arena.dominio.com/.
      ====================================================================== -->
 <script>window.ARENA_DEFER_BOOT = true;</script>
-<script src="js/main.js?build=v090-20260814-playtest"></script>
+<script src="js/main.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
 
 <script type="importmap">
 {
@@ -152,7 +159,7 @@
   }
 }
 </script>
-<script type="module" src="js/render/three/bootstrap.js?build=v090-20260814-playtest"></script>
+<script type="module" src="js/render/three/bootstrap.js?build=v0160-20260816-ual2-retarget-locomotion"></script>
 
 <script>
 (function () {

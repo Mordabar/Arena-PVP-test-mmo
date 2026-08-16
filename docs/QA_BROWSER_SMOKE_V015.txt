@@ -1,0 +1,2 @@
+ARRANQUE: {"ok":false,"why":"Arena no está definido"}
+CAPTURA: /mnt/data/arena_v015_work/Project-Arena-Ladder-v0.15/docs/screenshot.png

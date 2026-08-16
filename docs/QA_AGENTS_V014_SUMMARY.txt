@@ -1,0 +1,21 @@
+PROJECT ARENA v0.14 · AGENT SUMMARY
+
+The full fan-out runner exceeded the container wall-clock because several agents intentionally rerun the 355-test suite.
+Evidence was therefore split without skipping any agent:
+
+12 agents completed APROBADO in the fan-out run before the timeout:
+POWER CATALOG, POWER FIDELITY, ELEMENTAL SPELLS, CASTER GAMEFEEL, CAMERA COMFORT,
+CHARACTER MODEL, ANIMATION, ICONOGRAPHY, SEMANTIC VFX, ACTIONBAR / POWERBOOK,
+WORLD / MAP, PRESENTATION CRITIC.
+
+The two remaining agents were then executed independently and both completed APROBADO:
+INTEGRATION / QA, FRESH REVIEWER.
+
+RESULT: 14 / 14 AGENTS APROBADOS.
+
+Additional independent adversarial gates:
+- 355 / 355 runtime tests.
+- GLB validator: PASS, exactly 50,000 triangles, 17 joints, 1 skin, normalized 4-weight skinning.
+- Dynamic skinning audit: PASS; rotating left arm moves left-arm vertices while right-arm vertices remain stationary.
+- ARBITER v0.14: APROBADO.
+- VISUAL CRITIC static v0.14: APROBADO.

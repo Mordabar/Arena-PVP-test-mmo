@@ -34,6 +34,7 @@ Arena.define('combat/damageSystem',
       sourceId: source ? source.id : null,
       abilityId: p.abilityId || null,
       school: p.school || 'physical',
+      element: p.element || 'generic',
       raw: p.raw || 0,
       mitigated: 0,
       absorbed: 0,
@@ -74,9 +75,11 @@ Arena.define('combat/damageSystem',
     if (source) {
       var sm = source.mods();
       dmg *= (1 + sm.damageDealtPct);
+      dmg += Math.max(0, sm.bonusDamageFlat || 0);
       if (p.canCrit && world.settings.rngEnabled) {
         var critChance = p.critChance === undefined ? 0.15 : p.critChance;
-        if (world.rng.chance(critChance)) { dmg *= 1.5; result.crit = true; }
+        critChance = Math.max(0, Math.min(1, critChance + (sm.critChancePct || 0)));
+        if (world.rng.chance(critChance)) { dmg *= 1.5 * Math.max(0.1, 1 + (sm.critDamagePct || 0)); result.crit = true; }
       }
     }
 
@@ -88,7 +91,14 @@ Arena.define('combat/damageSystem',
     dmg = (result.school === 'pure') ? dmg : B.mitigate(dmg, defense);
 
     /* 3 — Modificadores del receptor */
-    dmg *= (1 + target.mods().damageTakenPct);
+    var tm = target.mods();
+    dmg *= (1 + tm.damageTakenPct);
+    dmg *= Math.max(0.01, 1 + (tm.sourceDamageTakenPct || 0));
+    if (result.school === 'physical') dmg *= (1 + (tm.physicalDamageTakenPct || 0));
+    else if (result.school === 'magical') dmg *= (1 + (tm.magicalDamageTakenPct || 0));
+    if (tm.elementDamageTakenPct && tm.elementDamageTakenPct[result.element] !== undefined) dmg *= (1 + tm.elementDamageTakenPct[result.element]);
+    if (p.rangeKind === 'ranged') dmg *= (1 + (tm.rangedDamageTakenPct || 0));
+    else if (p.rangeKind === 'melee') dmg *= (1 + (tm.meleeDamageTakenPct || 0));
     result.mitigated = dmg;
 
     /* 4 — Redirección: Interponer desvía una fracción al protector.
@@ -167,6 +177,59 @@ Arena.define('combat/damageSystem',
       if (source) source.stats.damageDealt += Math.min(remaining, before);
       target.lastCombatAt = world.time;
       if (source) source.lastCombatAt = world.time;
+
+      /* Absorción vital source-derived. Sigue siendo simulación autoritativa:
+         sólo cura por el daño de HP realmente aplicado, nunca por barrera ni
+         overkill. No introduce una dependencia circular con HealingSystem. */
+      if (source && source.alive && source !== target && source.mods().lifestealPct > 0) {
+        var maxHp = source.effectiveHpMax ? source.effectiveHpMax() : source.hpMax;
+        var steal = Math.min(maxHp - source.hp, Math.min(remaining, before) * source.mods().lifestealPct);
+        if (steal > 0) {
+          source.hp += steal;
+          world.bus.emit('HealApplied', {
+            targetId: source.id, sourceId: source.id, abilityId: p.abilityId || null,
+            raw: steal, antiHealPct: 0, applied: steal, overheal: 0, reason: 'lifesteal'
+          });
+        }
+      }
+
+
+      /* Source-faithful damage return.
+       * Represalia: one charge, returns rank-5 % of the NEXT HP damage received.
+       * Espejo del karma: returns rank-5 % of EVERY HP damage packet while active.
+       * Returned damage is based on damage actually received (after defenses and
+       * barriers) and is pure, so the returned amount is not re-mitigated. The
+       * noSourceReflect guard prevents infinite mirror/retaliation recursion. */
+      if (source && source.alive && source !== target && !p.noSourceReflect) {
+        var received = Math.min(remaining, before);
+        if (received > 0) {
+          var ret = target.getStatus('sourceRetaliation');
+          if (ret) {
+            var retPct = Math.max(0, Number(ret.data.returnPct || 0));
+            Status.removeInstance(world, target, ret, 'consumed');
+            if (retPct > 0) D.applyDamage(world, {
+              source: target, target: source, raw: received * retPct, school: 'pure',
+              abilityId: ret.abilityId || p.abilityId, periodic: false,
+              noRedirect: true, noSourceReflect: true
+            });
+          }
+          var mirror = target.getStatus('sourceDamageReflect');
+          if (mirror && source.alive) {
+            var mirrorPct = Math.max(0, Number(mirror.data.returnPct || 0));
+            if (mirrorPct > 0) D.applyDamage(world, {
+              source: target, target: source, raw: received * mirrorPct, school: 'pure',
+              abilityId: mirror.abilityId || p.abilityId, periodic: !!p.periodic,
+              noRedirect: true, noSourceReflect: true
+            });
+          }
+        }
+      }
+    }
+
+    // El aturdimiento quebrable de la biblioteca reproduce la ventana táctica:
+    // cualquier daño real despierta al objetivo antes de procesar el siguiente hit.
+    if (result.applied > 0 && target.hasStatus('sourceDaze')) {
+      Status.remove(world, target, 'sourceDaze', 'brokenByDamage');
     }
 
     // Recibir daño directo revela; los tics periódicos no delatan al que huye.

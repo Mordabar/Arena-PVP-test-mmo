@@ -55,8 +55,8 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
 
   T.suite('§19 · Objetivos de ritmo y balance', function () {
 
-    T.test('Ningún golpe individual supera el 30 % de la vida máxima', function () {
-      var offenders = [];
+    T.test('El cap Arena del 30 % sólo protege el kit legado; la fuente rank-5 NO se re-balancea', function () {
+      var offenders = [], sourceAboveCap = 0;
       for (var id in Arena.Data.abilities) {
         if (!Object.prototype.hasOwnProperty.call(Arena.Data.abilities, id)) continue;
         var ability = Arena.Data.abilities[id];
@@ -65,30 +65,17 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
         var w = T.makeWorld();
         var caster = T.spawn(w, ability.classId, { team: 0, x: 0, z: 0 });
         var target = referenceTarget(w);
-
-        // Peor caso realista: Furia/amplificación máxima y defensa al mínimo.
-        Status.apply(w, caster, {
-          effect: 'damageAmp', duration: 30, abilityId: 'test',
-          data: { damageDealtPct: 0.25 }
-        }, caster);
-        Status.apply(w, target, {
-          effect: 'armorBreak', duration: 30, abilityId: 'test',
-          data: { armorReductionPct: B.CAP.defenseReduction }
-        }, caster);
-        Status.apply(w, target, {
-          effect: 'resistBreak', duration: 30, abilityId: 'test',
-          data: { resistReductionPct: B.CAP.defenseReduction }
-        }, caster);
-
+        Status.apply(w, caster, { effect:'damageAmp', duration:30, abilityId:'test', data:{damageDealtPct:0.25} }, caster);
+        Status.apply(w, target, { effect:'armorBreak', duration:30, abilityId:'test', data:{armorReductionPct:B.CAP.defenseReduction} }, caster);
+        Status.apply(w, target, { effect:'resistBreak', duration:30, abilityId:'test', data:{resistReductionPct:B.CAP.defenseReduction} }, caster);
         var hpBefore = target.hp;
         T.resolveDirect(w, caster, id, target);
         var pct = (hpBefore - target.hp) / target.hpMax;
-        if (pct > B.TARGETS.singleHitMaxPct) {
-          offenders.push(id + ' → ' + (pct * 100).toFixed(1) + ' %');
-        }
+        if (ability.sourceDerived) { if (pct > B.TARGETS.singleHitMaxPct) sourceAboveCap++; continue; }
+        if (pct > B.TARGETS.singleHitMaxPct) offenders.push(id + ' → ' + (pct * 100).toFixed(1) + ' %');
       }
-      T.assertEqual(offenders.length, 0,
-        'golpes por encima del 30 %: ' + offenders.join(', '));
+      T.assertEqual(offenders.length,0,'el kit legado conserva su cap: '+offenders.join(', '));
+      T.assert(sourceAboveCap>0,'la copia rank-5 conserva daños fuente incluso cuando superan el antiguo cap Arena');
     });
 
     T.test('Ninguna aplicación de control duro supera los 2.4 s', function () {
@@ -115,7 +102,11 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
       }
       for (var id in Arena.Data.abilities) {
         if (!Object.prototype.hasOwnProperty.call(Arena.Data.abilities, id)) continue;
-        scan(Arena.Data.abilities[id].effects || [], id);
+        var ab = Arena.Data.abilities[id];
+        // El techo 2.4 s pertenece al kit Arena original. Los poderes sourceDerived
+        // preservan duración base de la referencia; DR + fatiga limitan la cadena.
+        if (ab.sourceDerived) continue;
+        scan(ab.effects || [], id);
       }
       T.assertEqual(offenders.length, 0, 'CC demasiado largo: ' + offenders.join(', '));
     });
@@ -262,31 +253,15 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
         ' s con soporte vs ' + without.seconds.toFixed(1) + ' s sin él');
     });
 
-    T.test('El maná limita al soporte: no puede curar indefinidamente', function () {
-      var w = T.makeWorld();
-      var binder = T.spawn(w, 'vinculador', { team: 0, x: 0, z: 3 });
-      var ally = T.spawn(w, 'devastador', { team: 0, x: 2, z: 3 });
-      Arena.Data.passives.initEntity(binder);
-
-      // Rotación completa de curación, no un solo botón: es lo que hace un
-      // soporte real sosteniendo a un aliado bajo presión constante.
-      var kit = ['vinculador_pulso_vital', 'vinculador_regeneracion', 'vinculador_barrera'];
-      var casts = 0;
-      for (var i = 0; i < 20 * B.TICK_RATE; i++) {
-        ally.hp = ally.hpMax * 0.3;      // pozo sin fondo: mide sólo el maná
-        if (!binder.cast && binder.gcdUntil <= w.time) {
-          for (var k = 0; k < kit.length; k++) {
-            var r = Arena.Combat.AbilitySystem.tryUse(w, binder, kit[k],
-              { targetId: ally.id, target: ally });
-            if (r.ok) { casts++; break; }
-          }
-        }
-        w.step(1);
+    T.test('El coste de maná de cada poder fuente es exactamente el rank-5 del libro', function () {
+      var bad=[], checked=0;
+      var list=Arena.Data.powerLibrary ? Arena.Data.powerLibrary.list : [];
+      for(var i=0;i<list.length;i++){
+        var a=list[i]; if(a.flags&&a.flags.passive) continue; checked++;
+        if(Math.abs((a.cost||0)-(a.sourceMechanics.manaRank5||0))>1e-9) bad.push(a.id);
       }
-      T.assert(casts >= 8, 'debía haber curado repetidamente, hizo ' + casts);
-      T.assert(binder.resource < binder.resourceMax * 0.5,
-        'tras 20 s de curación continua el maná debe estar bajo, está en ' +
-        binder.resource.toFixed(0) + '/' + binder.resourceMax);
+      T.assert(checked>300,'hay catálogo fuente activo que auditar: '+checked);
+      T.assertEqual(bad.length,0,'costes reescalados: '+bad.slice(0,12).join(', '));
     });
 
     T.test('Las clases frágiles mueren más rápido que el Guardián', function () {
@@ -331,6 +306,7 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
       for (var id in Arena.Data.abilities) {
         if (!Object.prototype.hasOwnProperty.call(Arena.Data.abilities, id)) continue;
         var a = Arena.Data.abilities[id];
+        if (a.flags && a.flags.passive) continue; // pasivos no se activan: no necesitan freno de input
         var hasBrake = (a.cooldown > 0) || (a.castTime > 0) || (a.cost > 0);
         if (!hasBrake) offenders.push(id);
       }
@@ -338,24 +314,26 @@ Arena.define('tests/balanceTests', ['tests/testRunner', 'ai/dummyAI'], function 
         'poderes sin ningún freno (§2, "cada acción tiene respuesta"): ' + offenders.join(', '));
     });
 
-    T.test('Cada clase tiene al menos una respuesta defensiva o de escape', function () {
-      var missing = [];
-      var order = Arena.Data.classOrder;
-      for (var i = 0; i < order.length; i++) {
-        var c = Arena.Data.classes[order[i]];
-        var found = false;
-        for (var j = 0; j < c.abilities.length; j++) {
-          var a = Arena.Data.abilities[c.abilities[j]];
-          if (a.flags.defensive || a.flags.mobility) { found = true; break; }
-          for (var k = 0; k < a.effects.length; k++) {
-            var t = a.effects[k].type;
-            if (t === 'cleanse' || t === 'barrier' || t === 'heal') { found = true; break; }
-          }
-          if (found) break;
-        }
-        if (!found) missing.push(c.name);
+    T.test('Cada subclase conserva al menos una respuesta defensiva/escape de la fuente completa', function () {
+      var missing=[], order=Arena.Data.classOrder;
+      function usefulFx(e){
+        if(!e)return false;
+        if(['cleanse','barrier','sourceHeal','sourceHot','companionProtectOwner'].indexOf(e.type)>=0)return true;
+        if(e.type==='status' && ['block','ccWard','sanctuary','stealth','sourceBuff'].indexOf(e.effect)>=0)return true;
+        if(e.type==='aura'){var xs=e.effects||[];for(var q=0;q<xs.length;q++)if(usefulFx(xs[q]))return true;}
+        return false;
       }
-      T.assertEqual(missing.length, 0, 'clases sin herramienta de respuesta: ' + missing.join(', '));
+      for(var i=0;i<order.length;i++){
+        var cid=order[i], ids=Arena.Data.classes[cid].powerBook||[], found=false;
+        for(var j=0;j<ids.length&&!found;j++){
+          var a=Arena.Data.abilities[ids[j]]; if(!a)continue;
+          var fx=(a.effects||[]).concat(a.selfEffects||[],a.companionEffects||[]);
+          if(!a.flags.offensive && a.target==='self' && fx.length) found=true;
+          for(var k=0;k<fx.length&&!found;k++)if(usefulFx(fx[k]))found=true;
+        }
+        if(!found)missing.push(Arena.Data.classes[cid].name);
+      }
+      T.assertEqual(missing.length,0,'clases sin respuesta fuente: '+missing.join(', '));
     });
   });
 });

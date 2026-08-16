@@ -72,6 +72,20 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray', 'sim/arena'], function
     while (this.yaw < -Math.PI) this.yaw += Math.PI * 2;
   };
 
+  /**
+   * Sigue un giro AUTORITATIVO del cuerpo sin alterar pitch/distancia.
+   * Se usa para Q/E: la simulación decide cuánto giró el personaje y la cámara
+   * copia ese delta después del fixed tick. No sirve para ratón izquierdo,
+   * porque en esa ruta la cámara ya fue la fuente del delta y aplicarlo otra
+   * vez duplicaría el giro. Free-look tampoco llama este método.
+   */
+  Camera3D.prototype.followBodyYaw = function (deltaYaw) {
+    if (!deltaYaw) return;
+    this.yaw += deltaYaw;
+    while (this.yaw > Math.PI) this.yaw -= Math.PI * 2;
+    while (this.yaw < -Math.PI) this.yaw += Math.PI * 2;
+  };
+
   Camera3D.prototype.zoom = function (delta) {
     this.targetDistance += delta * 0.0125;
     if (this.targetDistance < this.minDistance) this.targetDistance = this.minDistance;

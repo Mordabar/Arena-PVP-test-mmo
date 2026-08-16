@@ -1,0 +1,12 @@
+{
+  "PASS": true,
+  "triangles": 50000,
+  "vertices": 76070,
+  "bones": 17,
+  "skins": 1,
+  "materials": 1,
+  "images": 3,
+  "weightSumMin": 0.9999999552965164,
+  "weightSumMax": 1.0000000447034836,
+  "bytes": 9299776
+}

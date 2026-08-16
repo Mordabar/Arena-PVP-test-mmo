@@ -1,0 +1,27 @@
+✓ 43 clips disponibles (>=43)
+✓ clips requeridos presentes
+✓ 17 cadenas fuente para retarget presentes
+✓ Walk_Carry mueve ambas piernas (0.83/1.00 rad)
+✓ pelvis gait vertical legible sin salto (0.104 m)
+✓ Idle_FoldArms aporta micro-movimiento natural (0.081/0.018 rad)
+✓ archivo Standard sin root motion (0.000000 m)
+✓ Sword_Regular_A: brazo+torso participan (2.37/0.57 rad)
+✓ Sword_Regular_B: brazo+torso participan (1.70/1.15 rad)
+✓ Sword_Heavy_Combo: brazo+torso participan (2.87/0.88 rad)
+✓ Sword_Block: brazo+torso participan (1.50/0.60 rad)
+✓ Idle_FoldArms_Loop: 17/17 huesos mapeados con rotación
+✓ Walk_Carry_Loop: 17/17 huesos mapeados con rotación
+✓ Hit_Knockback: 17/17 huesos mapeados con rotación
+✓ NinjaJump_Start: 17/17 huesos mapeados con rotación
+✓ NinjaJump_Idle_Loop: 17/17 huesos mapeados con rotación
+✓ NinjaJump_Land: 17/17 huesos mapeados con rotación
+✓ Sword_Regular_A: 17/17 huesos mapeados con rotación
+✓ Sword_Regular_B: 17/17 huesos mapeados con rotación
+✓ Sword_Regular_C: 17/17 huesos mapeados con rotación
+✓ Sword_Heavy_Combo: 17/17 huesos mapeados con rotación
+✓ Sword_Block: 17/17 huesos mapeados con rotación
+✓ Sword_Dash: 17/17 huesos mapeados con rotación
+✓ Shield_OneShot: 17/17 huesos mapeados con rotación
+
+GATES: 24/24
+UAL2 AUDIT: APROBADO

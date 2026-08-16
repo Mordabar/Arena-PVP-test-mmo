@@ -105,6 +105,7 @@ Arena.define('anim/animationIntent',
       /* Casteo — lo gobierna la simulación, no un reloj de animación */
       casting: false,
       castFamily: null,         // data/castFamilies.js
+      spellGesture: null,       // hurl | meteor | freeze | lightning | storm | ...
       castPhase: null,          // 'PREPARE' | 'GATHER' | 'CHANNEL'
       castProgress: 0,
       /* Si la habilidad permite moverse. La decide la SIMULACIÓN; la animación
@@ -196,9 +197,11 @@ Arena.define('anim/animationIntent',
       intent.hitReaction.front = action.react.front;
       intent.hitReaction.side = action.react.side;
       intent.castFamily = action.castFamily;
+      intent.spellGesture = action.spellGesture || null;
     } else {
       intent.actionVariant = 0;
       intent.visualAction = null;
+      intent.spellGesture = null;
     }
 
     /* --- Timeline autoritativo de arma/acción ------------------------------ */
@@ -271,7 +274,7 @@ Arena.define('anim/animationIntent',
       (intent.weaponReady ? '  READY' : '  ' + intent.weaponReadyIn.toFixed(2) + 's'));
     if (intent.queuedAction) lines.push('  cola     ' + intent.queuedKind + ' → ' + intent.queuedAction);
     if (intent.casting) {
-      lines.push('  casteo   ' + (intent.castFamily || '—') + ':' + intent.castPhase +
+      lines.push('  casteo   ' + (intent.castFamily || '—') + (intent.spellGesture ? '/'+intent.spellGesture : '') + ':' + intent.castPhase +
         '  ' + Math.round(intent.castProgress * 100) + '%' +
         (intent.allowMovementDuringAction ? '  MÓVIL' : '  ANCLADO'));
     }

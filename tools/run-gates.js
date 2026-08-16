@@ -51,7 +51,7 @@ const GATES = [
     navegador: true
   },
   {
-    nombre: 'Barrido de las seis clases · 36 habilidades',
+    nombre: 'Barrido de las seis clases · acciones base en navegador',
     cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/class-sweep.json']],
     navegador: true
   },

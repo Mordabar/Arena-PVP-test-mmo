@@ -1,208 +1,69 @@
 #!/usr/bin/env node
-/* =============================================================================
- * tools/arbiter.js — árbitro adversarial Ladder Vertical Slice v0.9.
- * Ataca fronteras de autoridad y, sobre todo, bordes temporales alrededor de
- * WINDUP/RELEASE/GCD/queue que suelen crear daño o cooldowns fantasma.
- * ========================================================================== */
+/* Project Arena v0.16 — adversarial arbiter: UAL2 retarget, controls, smooth skin, authority. */
 'use strict';
-const fs = require('fs');
-const path = require('path');
-const cp = require('child_process');
-const ROOT = path.join(__dirname, '..');
-const read = rel => fs.readFileSync(path.join(ROOT, rel), 'utf8');
-let failures = [];
-function gate(ok, name, detail) {
-  if (ok) console.log('✓ ' + name);
-  else { console.log('✗ ' + name + (detail ? ' — ' + detail : '')); failures.push(name); }
-}
+const fs=require('fs'),path=require('path'),cp=require('child_process');
+const ROOT=path.join(__dirname,'..'), read=r=>fs.readFileSync(path.join(ROOT,r),'utf8');
+let fail=[];function gate(ok,n,d){console.log((ok?'✓ ':'✗ ')+n+(d?' — '+d:''));if(!ok)fail.push(n);}
+function run(cmd,args,timeout=45000){return cp.spawnSync(cmd,args,{cwd:ROOT,encoding:'utf8',timeout});}
+console.log('ARBITER · UAL2 Retarget Locomotion v0.16\n');
 
-console.log('ARBITER · auditoría adversarial Ladder Vertical Slice v0.9\n');
+// 1. Historical product/combat contract must survive the animation replacement.
+let r=run(process.execPath,[path.join(ROOT,'tools/run-tests.js')],60000),out=(r.stdout||'')+(r.stderr||'');let m=/TODO OK — (\d+) pruebas/.exec(out),n=m?+m[1]:0;
+gate(r.status===0&&n>=383,'suite completa en verde ('+n+'; suelo 383)');
 
-let testOut = '';
-try {
-  testOut = cp.execFileSync(process.execPath, [path.join(ROOT, 'tools/run-tests.js')], { encoding:'utf8', stdio:['ignore','pipe','pipe'] });
-  /* Un número exacto convierte cada prueba nueva en un fallo del árbitro y
-     empuja a no añadir pruebas. Lo que importa es que TODAS pasen y que la
-     batería no encoja: un suelo detecta igual de bien que alguien borre media
-     suite para pasar la puerta. */
-  const m = /TODO OK — (\d+) pruebas/.exec(testOut);
-  const n = m ? parseInt(m[1], 10) : 0;
-  gate(n >= 279, 'batería completa en verde (' + n + ' pruebas, suelo 279)');
-} catch (e) {
-  gate(false, 'suite de tests ejecutable', String(e.message).split('\n')[0]);
-}
+// 2. Source powers remain exact; animation work may not regress gameplay data.
+r=run('python3',[path.join(ROOT,'tools/audit-power-parity.py'),path.join(ROOT,'reference/Regnum_Documento_Maestro_Poderes.docx'),'--runtime',path.join(ROOT,'js/data/powerLibrary.js'),'--resolver',path.join(ROOT,'js/combat/resolver.js')],45000);out=(r.stdout||'')+(r.stderr||'');
+gate(r.status===0&&/GATES:\s*20\/20/.test(out),'paridad de poderes DOCX 20/20');
 
-const main = read('js/main.js');
-const world = read('js/sim/world.js');
-const ability = read('js/combat/abilitySystem.js');
-const entity = read('js/core/entity.js');
-const abilities = read('js/data/abilities.js');
-const balance = read('js/data/balance.js');
-const animIntent = read('js/anim/animationIntent.js');
-const actions = read('js/render/anim/actions.js');
-const charVis = read('js/render/characterVisual.js');
-const three = read('js/render/three/threeRenderer.js');
-const threeVfx = read('js/render/three/threeVfx.js');
-const threeChar = read('js/render/three/threeCharacter.js');
-const hud = read('js/ui/hud.js');
-const log = read('js/ui/combatLog.js');
-const icons = read('js/ui/abilityIcons.js');
-const arena = read('js/sim/arena.js');
-/* El entrypoint del producto es `index.html`: la separación en un
-   `index-three.html` aparte se deshizo cuando Three.js pasó a ser el backend
-   por defecto, y el árbitro se quedó leyendo un fichero que ya no existe. */
-const html = read('index.html');
-const missionTests = read('js/tests/gameFeelMissionTests.js');
-const refTests = read('js/tests/animationReferenceTests.js');
-const animCfg = read('js/data/animConfig.js');
-const loco = read('js/render/anim/locomotion.js');
-const ladder = read('js/product/ladder.js');
-const matchFlow = read('js/product/matchFlow.js');
-const gameShell = read('js/ui/gameShell.js');
-const productTests = read('js/tests/productTests.js');
-const ai = read('js/ai/dummyAI.js');
+// 3. Audit the user-supplied animation binary independently from runtime mapping.
+r=run('python3',[path.join(ROOT,'tools/audit-ual2-v016.py'),path.join(ROOT,'assets/animations/ual2-standard.glb')],35000);out=(r.stdout||'')+(r.stderr||'');
+gate(r.status===0&&/GATES:\s*24\/24/.test(out)&&/UAL2 AUDIT:\s*APROBADO/.test(out),'UAL2 binaria 24/24');
 
-// 1 — RELEASE realmente es el commit, BEGIN no.
-const beginBlock = ability.slice(ability.indexOf('A._begin ='), ability.indexOf('A._release ='));
-const releaseBlock = ability.slice(ability.indexOf('A._release ='), ability.indexOf('ATAQUE NORMAL'));
-gate(!/caster\.resource\s*=|gcdUntil\s*=|cooldowns\[/.test(beginBlock),
-  'BEGIN de un cast no consume recurso/CD/GCD');
-gate(/caster\.resource\s*=/.test(releaseBlock) && /caster\.gcdUntil\s*=/.test(releaseBlock) && /caster\.cooldowns\[ability\.id\]/.test(releaseBlock),
-  'RELEASE concentra el commit transaccional');
-gate(releaseBlock.includes('releaseValidation: true'), 'rango/LoS/facing se revalidan justo antes de RELEASE');
+const map=read('js/data/animationLibraryMap.js'), ret=read('js/render/three/threeRetarget.js'), tc=read('js/render/three/threeCharacter.js'), boot=read('js/render/three/bootstrap.js'), cm=read('js/core/controlMap.js'), main=read('js/main.js'), html=read('index.html'), ns=read('js/namespace.js'), contract=read('js/render/skinnedAnimationContract.js');
 
-// 2 — arma con estado propio; caminar no reinicia readyAt.
-gate(entity.includes('weaponState') && /phase:\s*'READY'/.test(entity), 'WeaponState explícito en Entity');
-gate(ability.includes("'WINDUP'") && ability.includes("'RELEASE'") && ability.includes("'RECOVERY'"),
-  'normal usa READY/WINDUP/RELEASE/RECOVERY');
-const preMove = ability.slice(ability.indexOf('A.handlePreMovementIntents'), ability.indexOf('A._processQueue'));
-gate(preMove.includes('cancelWeaponWindup') && preMove.includes('interruptCast'),
-  'movimiento cancela normal/cast antes de resolución');
-gate(!/readyAt\s*=/.test(preMove), 'caminar/cancelar no reinicia el intervalo preparado');
+// 4. Controls: attack the exact regression reported by the player.
+gate(/strafe:\(k\['d'\]\?1:0\)-\(k\['a'\]\?1:0\)/.test(cm),'A izquierda / D derecha = strafe');
+gate(/return \(k\['e'\]\?1:0\)-\(k\['q'\]\?1:0\)/.test(cm),'Q izquierda / E derecha = giro');
+gate(/ControlMap\.movement/.test(main)&&/ControlMap\.turn/.test(main),'main usa un único contrato de controles');
+gate(/Strafe<\/b> <kbd>A<\/kbd> izquierda[\s\S]{0,60}<kbd>D<\/kbd> derecha/.test(html)&&/Girar<\/b> <kbd>Q<\/kbd><kbd>E<\/kbd>/.test(html),'HUD coincide con A/D strafe + Q/E giro');
 
-// 3 — política de weaving es data, no ids dentro del motor.
-gate(abilities.includes('normalInteraction') && abilities.includes('weaponIntervalPolicy'),
-  'relación poder↔normal declarada en datos');
-gate(abilities.includes("weaveAfterNormal") && abilities.includes("replacesNormal") && abilities.includes("respectReady"),
-  'existen políticas weave/replace/intervalo');
-gate(!/devastador_|centinela_|arcanista_/.test(ability), 'AbilitySystem no ramifica por IDs concretos de poder');
-gate(ability.includes('AbilityQueuedAfterNormal') && ability.includes('AbilityQueueReplaced'),
-  'queue única expone afterNormal y latest-valid-input-wins');
+// 5. Supplied clips must be connected, not merely copied into assets.
+['Idle_FoldArms_Loop','Walk_Carry_Loop','Hit_Knockback','NinjaJump_Start','NinjaJump_Idle_Loop','NinjaJump_Land','Sword_Regular_A','Sword_Regular_B','Sword_Regular_C','Sword_Heavy_Combo','Sword_Block','Sword_Dash','Shield_OneShot'].forEach(c=>gate(map.includes(c),'clip conectado: '+c));
+gate(/phase:0\.08\+t\*0\.84/.test(map),'bordes T-pose de acciones se recortan');
+gate(/Math\.abs\(r\) < 0\.58/.test(map)&&/mostlyForward/.test(map),'strafe puro no reutiliza caminata frontal');
+gate(/hitReaction:true/.test(map)&&/mask:'upperBody'/.test(map),'recoil de impacto es upper-body y no congela piernas');
 
-// 4 — adversarial: justo antes del release, movimiento se procesa primero.
-const preIndex = world.indexOf('Ability.handlePreMovementIntents');
-const moveIndex = world.indexOf('this.moveEntityBy');
-const tickAbilityIndex = world.indexOf('Ability.tick(this');
-gate(preIndex >= 0 && preIndex < moveIndex && moveIndex < tickAbilityIndex,
-  'orden adversarial: cancelación → movimiento → RELEASE');
-gate(missionTests.includes('weapon skill antes de RELEASE') && missionTests.includes('después del RELEASE'),
-  'tests cubren ambos lados irreversibles del borde de RELEASE');
-gate(missionTests.includes('movimiento antes de RELEASE cancela') && missionTests.includes('proyectil nace en RELEASE'),
-  'tests cubren cast cancelado y proyectil post-release');
-gate(read('js/core/fixedTick.js').includes('var eps = 1e-10') && missionTests.includes('30/60/120/144 FPS'),
-  'fixed tick adversarial evita perder un tick por deriva a 30/60/120/144 FPS');
+// 6. Retarget: bind-space del Dark Elf, no el old mannequin; source root never owns gameplay.
+const srcMap=(/const SOURCE_FOR_TARGET = \{([\s\S]*?)\};/.exec(ret)||[])[1]||'';
+gate((srcMap.match(/:/g)||[]).length===17,'17 huesos objetivo mapeados');
+gate(/sourceBind/.test(ret)&&/targetBindWorld/.test(ret)&&/targetBindLocalQuat/.test(ret),'retarget usa delta de bind fuente→bind Dark Elf');
+gate(/getWorldQuaternion/.test(ret)&&/slerp/.test(ret),'rotaciones se retargetean y mezclan');
+gate(!/entity\.pos|entity\.yaw|\.hp\s*=|\.resource\s*=|gcdUntil\s*=/.test(ret),'retarget no escribe simulación');
+gate(/this\.root\.position\.set\(pos\.x, pos\.y, pos\.z\)/.test(tc)&&/this\.root\.rotation\.set\(a\.rootPitch, yaw, a\.rootRoll\)/.test(tc),'posición/yaw siguen llegando de simulación');
 
-// 5 — cámara/click: deadzone primero, luego 1:1; free-look separado.
-gate(main.includes('pendingDragDx') && main.includes('pendingDragDy') && main.includes('CLICK_MAX_PX'),
-  'click izquierdo acumula deadzone antes de convertirse en drag');
-gate(main.includes('_mouseTurnDelta') && main.includes('angleDelta(yawBefore, self.renderer.camera.yaw)'),
-  'drag izquierdo transporta exactamente el delta de cámara al cuerpo');
-gate(world.includes('e.yaw = V.wrapAngle(e.yaw + e._mouseTurnDelta)'),
-  'yaw del ratón se consume en simulación 1:1');
-gate(/var s = \(k\['d'\] \? 1 : 0\) - \(k\['a'\] \? 1 : 0\)/.test(main),
-  'A izquierda / D derecha siguen sin invertir');
+// 7. Skin surface: specific regression from visible faceting.
+gate(/mergeVertices/.test(boot)&&/deleteAttribute\('normal'\)/.test(boot)&&/computeVertexNormals/.test(boot)&&/normalizeNormals/.test(boot),'normales de piel se recalculan suaves');
+gate(/flatShading\s*=\s*false/.test(boot)&&/normalScale\.set\(0\.42,0\.42\)/.test(boot),'material evita facetado exagerado');
 
-// 6 — animación representa el reloj autoritativo, no lo inventa.
-gate(animIntent.includes('weaponPhase') && animIntent.includes('weaponProgress') && animIntent.includes('queuedAction'),
-  'AnimationIntent transporta weapon timeline y queue');
-gate(charVis.includes("ws.phase === 'WINDUP'") && charVis.includes("ws.phase === 'RELEASE'"),
-  'pose del normal se sincroniza con WeaponState');
-gate(actions.includes('cancelVisual'), 'cancelación visual hace blend-out sin devolver autoridad al renderer');
+// 8. Layering and body-only route.
+gate(/skipLocomotion:\s*externalLocomotion/.test(tc)&&/skipMeleeAction:\s*fullExternal/.test(tc),'sin doble locomoción/melee');
+gate(/casterCast/.test(contract)&&/archerShot/.test(contract)&&/meleeAction/.test(contract),'lenguaje caster/archer/melee permanece diferenciado');
+let branch=tc.slice(tc.indexOf('if (this.usedGlb) {',tc.indexOf('prototype.applyPose')),tc.indexOf('Backend.current.buildPose',tc.indexOf('prototype.applyPose')));
+gate(/return;/.test(branch)&&!/buildPose/.test(branch),'ruta GLB = cuerpo + arma, sin armadura procedural');
 
-// 7 — laboratorio y telemetría.
-/* El Timing Lab dejó de ser un `switch` en main.js: los escenarios son DATOS
-   en `data/scenarios.js` y el panel los ofrece desde ahí. La puerta sigue
-   exigiendo lo mismo —que las estaciones existan— pero en el sitio donde
-   ahora viven, que es lo que hay que verificar. */
-const scenarios = read('js/data/scenarios.js');
-const labPanel = read('js/ui/labPanel.js');
-gate(scenarios.includes('STOP-SHOT') && scenarios.includes('GCD CHAIN') &&
-     /timing\s*:/.test(scenarios) && labPanel.includes("'timing'"),
-  'Timing Lab contiene estaciones stop-shot/weave/replace/cast/GCD');
-gate(log.includes('ARMA · WINDUP') && log.includes('ARMA · RELEASE') && log.includes('QUEUE'),
-  'Combat Log expone timeline temporal con world.time');
+// 9. Model still valid after animation integration.
+const model=path.join(ROOT,'assets/models/dark-elf-base-rigged-50k.glb');r=run('python3',[path.join(ROOT,'tools/model_pipeline/validate_dark_elf_glb.py'),model],35000);out=(r.stdout||'')+(r.stderr||'');
+gate(r.status===0&&/"triangles"\s*:\s*50000/.test(out),'Dark Elf conserva 50.000 tris + rig');
+r=run('python3',[path.join(ROOT,'tools/model_pipeline/audit_skinning.py'),model],35000);gate(r.status===0,'skinning base sigue funcional');
 
-// 8 — visual v0.5 preservado: Three.js sigue sólo como presentación.
-gate(threeVfx.includes('createProjectileRenderer') && threeVfx.includes('trail'), 'proyectiles Three.js con estela preservados');
-gate(threeChar.includes('caster-fx:') && threeChar.includes('gemPos'), 'VFX del caster siguen anclados al báculo');
-gate(icons.includes('ability-svg') && icons.includes('glyphFor'), 'iconografía vectorial propia preservada');
-const forbidden = [/\.hp\s*=/, /\.resource\s*=/, /DamageSystem\./, /Resolver\.execute/];
-const presentation = three + '\n' + threeVfx + '\n' + threeChar;
-gate(forbidden.every(rx => !rx.test(presentation)), 'Three.js continúa sin autoridad sobre combate');
-
-// 9 — Animation Reference Pass: lenguaje corporal sin tocar autoridad.
-gate(animCfg.includes('directional: {') && loco.includes('resolveMotionProfile'),
-  'backpedal/strafe/diagonal usan perfiles direccionales data-driven');
-gate(actions.includes('normalSequence') && actions.includes('st.variant = st.normalSequence & 1') && actions.includes('variant === 0'),
-  'normales melee alternan horizontal/diagonal de forma determinista');
-gate(actions.includes('Act._kick') && actions.includes('Act._shieldBash') && actions.includes('Act._charge'),
-  'guerrero tiene kick/shield/charge como familias corporales propias');
-gate(abilities.includes("visualAction:'kick'") && abilities.includes("visualAction:'shield'") && abilities.includes("visualAction:'none'"),
-  'gesto visual de poderes vive en metadata, no en ids dentro del renderer');
-gate(actions.includes('weaponOffsetY') && actions.includes('staffWalkCounter') && charVis.includes('A.weaponOffsetY'),
-  'báculo usa muñeca, compensación y offset para vender masa');
-gate(animIntent.includes('actionVariant') && animIntent.includes('visualAction'),
-  'AnimationIntent transporta variante y gesto para futuro backend skinned');
-gate(refTests.includes('backpedal usa una zancada visual menor') && refTests.includes('puntapié tiene familia propia'),
-  'tests adversariales protegen locomoción y guerrero del Reference Pass');
-gate(actions.includes('Act._archerCastPose') && actions.includes('Act._meleeCastPose'),
-  'cast pre-RELEASE respeta arquetipo: arco y weapon skill no usan pose de mago');
-gate(charVis.includes('releaseT = aph.impact') && charVis.includes('releaseT - 0.012'),
-  'normal visual no puede cruzar IMPACT antes del RELEASE autoritativo');
-
-// 10 — producto: la capa Ladder orquesta, nunca decide combate.
-const productPresentation = ladder + '\n' + matchFlow + '\n' + gameShell;
-const productForbidden = [/\.hp\s*=/, /\.resource\s*=/, /DamageSystem\./, /Resolver\.execute/, /AbilitySystem\.(tryUse|requestNormal)/];
-gate(productForbidden.every(rx => !rx.test(productPresentation)),
-  'Ladder/MatchFlow/GameShell no escriben resultados autoritativos de combate');
-gate(matchFlow.includes("this.phase = 'COUNTDOWN'") && matchFlow.includes("this.phase = 'ACTIVE'") && matchFlow.includes("this.phase = 'RESULTS'"),
-  'MatchFlow declara lobby/countdown/active/results explícitos');
-gate(main.includes("world.bus.on('EntityDied'") && main.includes('_matchEndPending') && main.includes('_evaluateMatchEnd'),
-  'fin de partida nace de EntityDied y se evalúa después del tick');
-gate(main.includes("winner = (!alive0 && !alive1) ? -1") && productTests.includes('doble KO produce empate sin rating fantasma'),
-  'doble KO se resuelve como empate sin rating fantasma');
-gate(ladder.includes('placementRemaining') && ladder.includes('expectedScore') && ladder.includes('makeStorage'),
-  'rating local/placements/storage están encapsulados y son reemplazables');
-gate(gameShell.includes('ENTRAR A LA ARENA') && gameShell.includes('Training Lab') && gameShell.includes('showResults'),
-  'shell cubre lobby, selección, training y resultados/rematch');
-gate(main.includes("flow.begin('training'") && main.includes("this.flow.begin(this._lastMatch.mode") && main.includes('this.flow.finish(winner'),
-  'main integra training + 1v1/2v2 + resultado sin saltarse MatchFlow');
-gate(['chaser','kiter','caster','support','peel','sparring'].every(id => ai.includes(id + ': {')),
-  'IA expone presión melee, kiter, caster, healer, peel y sparring Ladder');
-gate(ai.includes('world.turnEntityToward(self') && !ai.includes('self.yaw = V.yawTo'),
-  'bots no tienen auto-face instantáneo: usan giro limitado por simulación');
-
-// 11 — mapa/salto/build y hosting cache.
-const m = arena.match(/var W = ([0-9.]+), D = ([0-9.]+)/);
-gate(m && Number(m[1]) >= 46 && Number(m[2]) >= 34, 'Arcane Wilds conserva mapa ampliado');
-gate(/B\.JUMP\s*=/.test(balance) && world.includes('_tickJump'), 'salto continúa en fixed tick');
-gate(/Ladder Vertical Slice · v0\.9/.test(html), 'build visible Ladder Vertical Slice v0.9');
-/* El sello tiene que cambiar en cada build que se sube: Hostinger sirve los
-   .js con caché agresiva y sin esto el jugador prueba la versión anterior
-   creyendo que prueba la nueva. */
-const sello = /\?build=([a-z0-9-]+)"/.exec(html);
-gate(!!sello && sello[1] === 'v090-20260814-playtest',
-  'cache-busting del build actual presente', sello ? sello[1] : 'ninguno');
-gate((html.match(/\?build=v090-20260814-playtest/g) || []).length >= 40,
-  'todos los scripts llevan el sello de caché');
-gate(html.includes('js/product/ladder.js') && html.includes('js/product/matchFlow.js') && html.includes('js/ui/gameShell.js'),
-  'entrypoint Three.js carga explícitamente el producto Ladder');
+// 10. Boot/cache/deployment seal.
+gate(/Promise\.all/.test(boot)&&/ual2-standard\.glb/.test(boot)&&boot.indexOf('loadAsync')<boot.indexOf('Arena.Game.boot'),'modelo + animaciones precargan antes de boot');
+gate(/Arena\.VERSION = '0\.16\.0'/.test(ns)&&/ual2-retarget-locomotion-v016/.test(ns),'runtime declara v0.16');
+const seals=html.match(/\?build=v0160-20260816-ual2-retarget-locomotion/g)||[];gate(seals.length>=40,'cache-busting v0.16 ('+seals.length+' scripts)');
+gate(/v0\.16 · UAL2 RETARGET · SMOOTH SKIN · A\/D STRAFE · Q\/E TURN/.test(html),'cabecera visible identifica build correcto');
+gate(fs.existsSync(path.join(ROOT,'assets/animations/UAL2_LICENSE.txt'))&&/CC0/i.test(read('assets/animations/UAL2_LICENSE.txt')),'licencia del paquete viaja en entrega');
 
 console.log('\n-----------------------------------------------');
-if (failures.length) {
-  console.log('ARBITER: RECHAZADO · ' + failures.length + ' gates fallaron');
-  failures.forEach(f => console.log('  - ' + f));
-  process.exit(1);
-}
+if(fail.length){console.log('ARBITER: RECHAZADO · '+fail.length+' gate(s)');fail.forEach(x=>console.log('  - '+x));process.exit(1);}
 console.log('ARBITER: APROBADO');
-console.log('Ladder Vertical Slice v0.9 protege RELEASE, mantiene autoridad de simulación y añade loop de producto competitivo local.');
+console.log('v0.16 bloquea regresiones de controles, root-motion, retarget, facetado y doble animación.');

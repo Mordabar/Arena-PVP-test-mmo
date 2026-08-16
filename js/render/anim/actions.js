@@ -66,6 +66,7 @@ Arena.define('render/anim/actions',
       if (visualAction === 'cry') return Act.FAMILY.WAR_CRY;
       if (visualAction === 'thrust') return Act.FAMILY.THRUST;
       if (visualAction === 'heavy') return Act.FAMILY.HEAVY_SWING;
+      if (visualAction.indexOf && visualAction.indexOf('archer') === 0) return Act.FAMILY.ARCHER_SHOT;
     }
     if (archetype === 'archer') return Act.FAMILY.ARCHER_SHOT;
     // El mago tiene DOS gestos distintos, no uno con variación: el ataque
@@ -92,7 +93,7 @@ Arena.define('render/anim/actions',
       /* Familia VISUAL del hechizo en curso (data/castFamilies.js). La fija la
          simulación al empezar el casteo y sobrevive hasta la recuperación: es
          lo que hace que curar y enraizar no se vean igual. */
-      castFamily: null,
+      castFamily: null, spellGesture: null,
       // Reacción al daño: aditiva y direccional.
       react: { amount: 0, front: 0, side: 0 },
       // Ruido de respiración de las manos en reposo.
@@ -106,7 +107,7 @@ Arena.define('render/anim/actions',
     };
   };
 
-  Act.trigger = function (st, family, cfg, isPower, castFamily, visualAction) {
+  Act.trigger = function (st, family, cfg, isPower, castFamily, visualAction, visualVariant, spellGesture) {
     st.family = family;
     st.duration = (cfg.actionTime[family] || 0.42);
     st.t = 0;
@@ -117,14 +118,16 @@ Arena.define('render/anim/actions',
     if (family === Act.FAMILY.LIGHT_SWING && !isPower) {
       st.variant = st.normalSequence & 1;
       st.normalSequence++;
-    } else st.variant = 0;
+    } else st.variant = Math.max(0, Math.min(3, visualVariant || 0));
     if (castFamily !== undefined && castFamily !== null) st.castFamily = castFamily;
+    if (spellGesture !== undefined && spellGesture !== null) st.spellGesture = spellGesture;
   };
 
   /** La simulación ha empezado un casteo: fija la familia visual del gesto. */
-  Act.beginCast = function (st, castFamily, visualAction) {
+  Act.beginCast = function (st, castFamily, visualAction, spellGesture) {
     st.castFamily = castFamily || null;
     st.visualAction = visualAction || null;
+    st.spellGesture = spellGesture || null;
   };
 
   /** Cancela sólo la representación de una acción aún no liberada. La simulación
@@ -265,7 +268,7 @@ Arena.define('render/anim/actions',
       Act._guard(C, cfg, archetype, loadout, st, armSwing);
       /* PRE-RELEASE por arquetipo. Antes, cualquier habilidad con castTime
          adoptaba la pose de mago, incluso un arquero tensando una flecha. */
-      if (archetype === 'archer') Act._archerCastPose(C, castProgress);
+      if (archetype === 'archer') Act._archerCastPose(C, castProgress, st.visualAction);
       else if (archetype === 'melee') Act._meleeCastPose(C, castProgress, st.visualAction);
       else Act._castPose(C, cfg, castProgress, st.castFamily, st);
       // PREPARE tiene que sentirse INMEDIATO: el jugador ha pulsado y el cuerpo
@@ -283,15 +286,15 @@ Arena.define('render/anim/actions',
       var ph = cfg.phases[st.family] || cfg.phases.light;
       switch (st.family) {
         case Act.FAMILY.LIGHT_SWING: Act._lightSwing(B, st.t, ph, st.variant); break;
-        case Act.FAMILY.HEAVY_SWING: Act._heavySwing(B, st.t, ph); break;
-        case Act.FAMILY.THRUST: Act._thrust(B, st.t, ph); break;
-        case Act.FAMILY.KICK: Act._kick(B, st.t, ph); break;
-        case Act.FAMILY.SHIELD_BASH: Act._shieldBash(B, st.t, ph); break;
-        case Act.FAMILY.CHARGE: Act._charge(B, st.t, ph); break;
-        case Act.FAMILY.WAR_CRY: Act._warCry(B, st.t, ph); break;
-        case Act.FAMILY.ARCHER_SHOT: Act._archerShot(B, st.t, ph, st.isPower); break;
+        case Act.FAMILY.HEAVY_SWING: Act._heavySwing(B, st.t, ph, st.variant); break;
+        case Act.FAMILY.THRUST: Act._thrust(B, st.t, ph, st.variant); break;
+        case Act.FAMILY.KICK: Act._kick(B, st.t, ph, st.variant); break;
+        case Act.FAMILY.SHIELD_BASH: Act._shieldBash(B, st.t, ph, st.variant); break;
+        case Act.FAMILY.CHARGE: Act._charge(B, st.t, ph, st.variant); break;
+        case Act.FAMILY.WAR_CRY: Act._warCry(B, st.t, ph, st.variant); break;
+        case Act.FAMILY.ARCHER_SHOT: Act._archerShot(B, st.t, ph, st.isPower, st.visualAction, st.variant); break;
         case Act.FAMILY.ARCANE_PULSE: Act._arcanePulse(B, st.t, ph); break;
-        case Act.FAMILY.CAST: Act._castRelease(B, st.t, ph, st.castFamily); break;
+        case Act.FAMILY.CAST: Act._castRelease(B, st.t, ph, st.castFamily, st.variant, st.spellGesture); break;
       }
       blendPose(A, B, st.weight);
     }
@@ -393,13 +396,14 @@ Arena.define('render/anim/actions',
       A.weaponRoll = 0.28 * ant - 0.46 * hit + 0.16 * rec;
     }
     A.left.elbow = 0.58 + 0.22 * ant;
-    A.kneeAbsorb = hit * (1 - rec) * 0.05;
+    A.kneeAbsorb = hit * (1 - rec) * 0.09;
+    A.chestRoll += (variant === 0 ? -0.07 : 0.09) * ant + (variant === 0 ? 0.10 : -0.12) * hit;
   };
 
   /* --- MELEE: golpe pesado --------------------------------------------------
    * La cadera participa mucho más, el arma sube, el cuerpo carga peso y al
    * caer las rodillas absorben. Recuperación más larga: eso es el peso.       */
-  Act._heavySwing = function (A, t, ph) {
+  Act._heavySwing = function (A, t, ph, variant) {
     var ant = smooth(t / ph.active);
     var hit = smooth((t - ph.active) / (ph.recovery - ph.active));
     var rec = smooth((t - ph.recovery) / (ph.end - ph.recovery));
@@ -412,11 +416,16 @@ Arena.define('render/anim/actions',
     A.weaponPitch = 0.10 - 0.30 * hit;
     A.left.pitch = -0.60 * ant - 0.35 * hit + 0.40 * rec;
     A.left.elbow = 0.85 + 0.35 * ant;
-    A.kneeAbsorb = hit * (1 - rec) * 0.22;   // lo consume la capa de piernas
+    A.kneeAbsorb = hit * (1 - rec) * 0.28;   // lo consume la capa de piernas
+    A.chestRoll = -0.10 * ant + 0.16 * hit - 0.06 * rec;
+    variant = variant || 0;
+    if (variant === 1) { A.chestYaw -= 0.18*ant; A.right.roll -= 0.22*hit; A.kneeAbsorb += 0.08*ant; }
+    else if (variant === 2) { A.chestPitch -= 0.16*ant; A.weaponPitch -= 0.22*hit; A.left.pitch -= 0.20*ant; }
+    else if (variant === 3) { A.chestRoll += 0.18*ant-0.24*hit; A.right.yaw += 0.24*ant; A.kneeAbsorb += 0.12*hit; }
   };
 
   /* --- MELEE: estocada ------------------------------------------------------ */
-  Act._thrust = function (A, t, ph) {
+  Act._thrust = function (A, t, ph, variant) {
     var ant = smooth(t / ph.active);
     var hit = smooth((t - ph.active) / (ph.recovery - ph.active));
     var rec = smooth((t - ph.recovery) / (ph.end - ph.recovery));
@@ -426,10 +435,14 @@ Arena.define('render/anim/actions',
     A.right.elbow = 1.70 * ant - 1.60 * hit + 0.50 * rec + 0.25;
     A.weaponPitch = -0.10 - 0.35 * hit;
     A.left.pitch = -0.30 * ant;
+    variant = variant || 0;
+    if (variant === 1) { A.chestPitch -= 0.12*ant; A.right.yaw += 0.16*hit; }
+    else if (variant === 2) { A.chestRoll -= 0.16*ant; A.left.pitch -= 0.26*hit; A.kneeAbsorb=0.08*ant; }
+    else if (variant === 3) { A.chestYaw += 0.18*ant; A.weaponRoll=0.18*hit; A.kneeAbsorb=0.12*hit; }
   };
 
   /* --- MELEE: puntapié / control táctico ------------------------------- */
-  Act._kick = function (A, t, ph) {
+  Act._kick = function (A, t, ph, variant) {
     var load = smooth(t / ph.active);
     var hit = smooth((t - ph.active) / Math.max(0.06, ph.impact - ph.active));
     var rec = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
@@ -441,10 +454,13 @@ Arena.define('render/anim/actions',
     A.kneeAbsorb = 0.18 * load - 0.08 * rec;
     A.kick = clamp(load * 0.35 + hit * 0.90 - rec * 0.95, 0, 1);
     A.weaponPitch = 0.16;
+    variant = variant || 0;
+    A.chestRoll += ((variant===1)?0.10:(variant===2?-0.12:(variant===3?0.17:0))) * load;
+    A.kick *= (variant===2 ? 0.92 : 1);
   };
 
   /* --- MELEE: golpe de escudo --------------------------------------------- */
-  Act._shieldBash = function (A, t, ph) {
+  Act._shieldBash = function (A, t, ph, variant) {
     var load = smooth(t / ph.active);
     var hit = smooth((t - ph.active) / Math.max(0.06, ph.impact - ph.active));
     var rec = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
@@ -456,10 +472,14 @@ Arena.define('render/anim/actions',
     A.right.pitch = -0.28 + 0.18 * load;
     A.right.elbow = 1.10;
     A.kneeAbsorb = 0.10 * hit * (1 - rec);
+    variant = variant || 0;
+    if (variant===1) { A.left.yaw += 0.22*load; A.chestRoll=0.12*hit; }
+    else if (variant===2) { A.left.pitch -= 0.22*load; A.kneeAbsorb += 0.10*load; }
+    else if (variant===3) { A.chestYaw -= 0.20*load; A.right.pitch -= 0.16*hit; }
   };
 
   /* --- MELEE: carga -------------------------------------------------------- */
-  Act._charge = function (A, t, ph) {
+  Act._charge = function (A, t, ph, variant) {
     var brace = smooth(t / ph.active);
     var drive = smooth((t - ph.active) / Math.max(0.08, ph.impact - ph.active));
     var rec = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
@@ -469,10 +489,14 @@ Arena.define('render/anim/actions',
     A.right.elbow = 1.28 + 0.12 * brace;
     A.left.pitch = -0.42 * brace;
     A.kneeAbsorb = 0.15 * brace + 0.08 * drive - 0.12 * rec;
+    variant = variant || 0;
+    if (variant===1) { A.chestYaw += 0.18*brace; A.right.roll -= 0.18*drive; }
+    else if (variant===2) { A.chestPitch -= 0.14*drive; A.kneeAbsorb += 0.09*brace; }
+    else if (variant===3) { A.chestRoll=-0.14*brace+0.18*drive; A.left.pitch -= 0.20*brace; }
   };
 
   /* --- MELEE: grito táctico ------------------------------------------------ */
-  Act._warCry = function (A, t, ph) {
+  Act._warCry = function (A, t, ph, variant) {
     var open = smooth(t / ph.active);
     var peak = smooth((t - ph.active) / Math.max(0.08, ph.impact - ph.active));
     var rec = smooth((t - ph.impact) / Math.max(0.08, ph.end - ph.impact));
@@ -484,14 +508,18 @@ Arena.define('render/anim/actions',
     A.right.elbow = 0.82 + 0.18 * open;
     A.weaponPitch = -0.18 * open + 0.16 * rec;
     A.kneeAbsorb = 0.06 * open;
+    variant = variant || 0;
+    if (variant===1) { A.left.roll=-0.30*open; A.right.roll=0.30*open; }
+    else if (variant===2) { A.chestPitch -= 0.14*peak; A.kneeAbsorb += 0.08*peak; }
+    else if (variant===3) { A.chestYaw=0.16*open-0.16*rec; A.weaponPitch -= 0.18*peak; }
   };
 
   /* --- PRE-RELEASE: arquero ----------------------------------------------
    * Un cast de arco es literalmente RAISE→NOCK→DRAW. Nunca usa la pose de mago.
    * Se queda justo antes de RELEASE; el evento autoritativo inicia el recoil. */
-  Act._archerCastPose = function (A, c) {
+  Act._archerCastPose = function (A, c, visualAction) {
     var ph = { impact: 0.62, end: 1.0 };
-    Act._archerShot(A, Math.min(0.60, c * 0.60), ph, true);
+    Act._archerShot(A, Math.min(0.60, c * 0.60), ph, true, visualAction);
     A.gemFlash = 0;
   };
 
@@ -526,37 +554,50 @@ Arena.define('render/anim/actions',
   /* --- ARQUERO: RAISE → NOCK → DRAW → AIM → RELEASE → FOLLOW_THROUGH --------
    * El brazo del arco permanece casi extendido; el codo de la cuerda retrocede
    * hasta la mejilla; el pecho rota; al soltar hay recoil y el arco vibra.    */
-  Act._archerShot = function (A, t, ph, isPower) {
-    var raise = smooth(t / 0.16);
+  Act._archerShot = function (A, t, ph, isPower, visualAction, variant) {
+    /* Cuatro lecturas corporales para poderes de arco. La lógica de combate no
+       cambia: sólo la silueta alrededor del mismo RELEASE autoritativo. */
+    var isVolley = visualAction === 'archerVolley';
+    var isControl = visualAction === 'archerControl';
+    var isQuick = visualAction === 'archerQuick';
+    var isPowerShot = visualAction === 'archerPower' || (!!isPower && !visualAction);
+    var raiseSpeed = isQuick ? 0.11 : (isVolley ? 0.20 : 0.16);
+    var raise = smooth(t / raiseSpeed);
     var nock = smooth((t - 0.10) / 0.15);
-    var drawEnd = isPower ? 0.62 : ph.impact;
+    var drawEnd = isQuick ? Math.min(0.48, ph.impact) : ((isPower || isVolley || isControl || isPowerShot) ? 0.62 : ph.impact);
     var pull = smooth((t - 0.24) / (drawEnd - 0.24));
     var aim = smooth((t - drawEnd * 0.85) / Math.max(0.05, drawEnd * 0.15));
     var rel = smooth((t - drawEnd) / 0.10);
     var follow = smooth((t - drawEnd - 0.10) / Math.max(0.05, ph.end - drawEnd - 0.10));
 
     // Brazo del arco: sube y se queda casi recto apuntando al objetivo.
-    A.left.pitch = -1.48 * raise;
-    A.left.yaw = -0.18 * raise;
+    A.left.pitch = (-1.48 + (isVolley ? -0.32 : 0) + (isControl ? 0.12 : 0)) * raise;
+    A.left.yaw = (-0.18 + (isVolley ? 0.16 : 0) + (isControl ? -0.18 : 0)) * raise;
     A.left.elbow = 0.10 + 0.06 * raise;
     A.left.wrist = -0.06 * raise;
 
     // Brazo de la cuerda: encaja la flecha, tira hasta la mejilla, suelta.
     A.right.pitch = -1.22 * raise - 0.10 * nock;
-    A.right.yaw = (0.50 + (isPower ? 0.30 : 0)) * pull;
-    A.right.elbow = 0.58 + (1.62 + (isPower ? 0.34 : 0)) * pull - 1.34 * rel;
+    A.right.yaw = (0.50 + (isPowerShot ? 0.36 : 0) + (isControl ? 0.16 : 0) - (isQuick ? 0.10 : 0)) * pull;
+    A.right.elbow = 0.58 + (1.62 + (isPowerShot ? 0.42 : 0) + (isVolley ? 0.18 : 0) - (isQuick ? 0.22 : 0)) * pull - 1.34 * rel;
     A.right.wrist = -0.10 * nock + 0.16 * pull - 0.20 * rel;
 
     // El pecho rota con el tensado: sin torsión no hay potencia legible.
-    A.chestYaw = (0.22 + (isPower ? 0.16 : 0)) * pull - 0.30 * rel;
-    A.chestPitch = -0.06 * aim;
+    A.chestYaw = (0.22 + (isPowerShot ? 0.20 : 0) + (isControl ? -0.10 : 0)) * pull - 0.30 * rel;
+    A.chestPitch = (-0.06 + (isVolley ? -0.20 : 0) + (isControl ? 0.08 : 0)) * aim;
+    A.chestRoll = (isControl ? -0.12 : (isVolley ? 0.08 : 0)) * pull;
+    A.kneeAbsorb = (isPowerShot ? 0.05 : 0) * pull + (isVolley ? 0.10 : 0) * aim;
 
     A.draw = clamp(pull - rel, 0, 1);
-    A.bowPitch = 1.40 - 0.05 * pull + 0.04 * rel;
-    A.bowYaw = -0.06 * pull + 0.03 * follow;
+    A.bowPitch = 1.40 - 0.05 * pull + 0.04 * rel + (isVolley ? -0.25 : 0) + (isControl ? 0.10 : 0);
+    A.bowYaw = -0.06 * pull + 0.03 * follow + (isControl ? -0.12 : 0);
     // Recoil del brazo de cuerda y vibración del arco tras soltar.
     A.right.pitch += 0.45 * rel - 0.20 * follow;
     A.bowShake = Math.max(0, rel - follow) * 0.06;
+    variant = variant || 0;
+    if (variant===1) { A.chestRoll += 0.10*pull; A.left.yaw -= 0.12*raise; }
+    else if (variant===2) { A.chestPitch -= 0.10*aim; A.right.yaw += 0.16*pull; A.kneeAbsorb += 0.05*pull; }
+    else if (variant===3) { A.chestYaw -= 0.12*pull; A.bowYaw += 0.14*raise; A.left.roll += 0.10*raise; }
   };
 
   /* =========================================================================
@@ -590,11 +631,11 @@ Arena.define('render/anim/actions',
 
   var CAST_MOD = {
     //            báculo↔frente  mano libre  torso  apertura  base baja  golpe suelo  arranque
-    projectile: { staffFwd: 0.30, freeHand: 0.55, chest: 0.10, open: 0.00, stanceLow: 0.00, staffDown: 0.00, startRaise: 1.00 },
-    control:    { staffFwd: 0.05, freeHand: 1.00, chest: 0.22, open: 0.10, stanceLow: 0.05, staffDown: 0.00, startRaise: 1.00 },
+    projectile: { staffFwd: 0.38, freeHand: 0.48, chest: 0.14, open: -0.08, stanceLow: 0.02, staffDown: 0.00, startRaise: 1.00 },
+    control:    { staffFwd: -0.02, freeHand: 1.18, chest: 0.30, open: 0.16, stanceLow: 0.10, staffDown: 0.00, startRaise: 1.00 },
     buff:       { staffFwd: -0.20, freeHand: 0.70, chest: -0.06, open: -0.15, stanceLow: 0.00, staffDown: 0.00, startRaise: 0.85 },
-    heal:       { staffFwd: -0.10, freeHand: 0.95, chest: -0.16, open: 0.45, stanceLow: 0.00, staffDown: 0.00, startRaise: 0.90 },
-    aoe:        { staffFwd: 0.10, freeHand: 0.40, chest: 0.18, open: 0.20, stanceLow: 0.30, staffDown: 0.60, startRaise: 1.00 },
+    heal:       { staffFwd: -0.20, freeHand: 1.12, chest: -0.22, open: 0.62, stanceLow: 0.00, staffDown: 0.00, startRaise: 0.86 },
+    aoe:        { staffFwd: 0.06, freeHand: 0.34, chest: 0.26, open: 0.28, stanceLow: 0.42, staffDown: 0.78, startRaise: 1.00 },
     channel:    { staffFwd: 0.15, freeHand: 0.85, chest: 0.06, open: 0.25, stanceLow: 0.12, staffDown: 0.00, startRaise: 1.00 },
     /* INSTANT no viene precedido de canalización: no hay pose alta desde la que
        continuar, así que arranca casi desde la guardia. Fingir el arranque alto
@@ -612,6 +653,54 @@ Arena.define('render/anim/actions',
    *          microcompensaciones, porque un mago inmóvil parece un maniquí y
    *          además hace imposible saber si el casteo sigue vivo.
    */
+  function applySpellGesture(A, gesture, k, release) {
+    if (!gesture || gesture==='cast') return;
+    k=Math.max(0,Math.min(1,k||0));
+    if (gesture==='meteor') {
+      // Invocation overhead: both hands rise and the torso opens before the
+      // downward command. Silhouette intentionally unlike a forward projectile.
+      A.right.pitch -= 0.42*k; A.right.elbow += 0.22*k;
+      A.left.pitch -= 0.78*k; A.left.elbow += 0.18*k; A.left.yaw -= 0.18*k;
+      A.chestPitch -= 0.15*k; A.kneeAbsorb += 0.025*k;
+      orientStaff(A, -0.18-0.18*k);
+      if (release) { A.right.pitch += 0.78*k; A.left.pitch += 0.42*k; A.chestPitch += 0.24*k; }
+    } else if (gesture==='hurl') {
+      A.chestYaw += 0.18*k; A.right.yaw += 0.22*k; A.right.pitch += 0.10*k;
+      A.left.pitch -= 0.42*k; A.left.elbow += 0.16*k; A.left.yaw -= 0.20*k;
+      if (release) { A.chestYaw -= 0.44*k; A.left.pitch -= 0.38*k; A.left.elbow -= 0.20*k; A.weaponYaw += 0.22*k; }
+    } else if (gesture==='freeze' || gesture==='shatter') {
+      A.left.pitch -= 0.72*k; A.left.elbow -= 0.18*k; A.left.roll += 0.42*k;
+      A.right.pitch -= 0.14*k; A.chestYaw -= 0.12*k; A.kneeAbsorb += 0.018*k;
+      if (release) { A.left.pitch -= 0.25*k; A.chestPitch += 0.12*k; A.weaponRoll -= 0.18*k; }
+    } else if (gesture==='lightning') {
+      A.right.pitch -= 0.62*k; A.right.elbow += 0.24*k; orientStaff(A,-0.28);
+      A.left.pitch -= 0.52*k; A.left.yaw -= 0.42*k; A.chestPitch -= 0.12*k;
+      if (release) { A.right.pitch += 0.72*k; A.left.pitch += 0.28*k; A.chestYaw += 0.36*k; A.weaponYaw += 0.30*k; }
+    } else if (gesture==='storm') {
+      A.right.pitch -= 0.38*k; A.left.pitch -= 0.56*k; A.left.yaw -= 0.56*k;
+      A.right.yaw += 0.24*k; A.chestPitch -= 0.10*k; A.kneeAbsorb += 0.05*k;
+      if (release) { A.left.roll += 0.48*k; A.right.roll -= 0.28*k; A.chestPitch += 0.18*k; }
+    } else if (gesture==='groundSpike' || gesture==='groundFlame') {
+      A.right.pitch += 0.34*k; A.left.pitch += 0.18*k; A.chestPitch += 0.28*k; A.kneeAbsorb += 0.07*k;
+      orientStaff(A, -0.42+0.58*k);
+      if (release) { A.right.pitch += 0.30*k; A.weaponRoll -= 0.22*k; }
+    } else if (gesture==='shadow' || gesture==='drain' || gesture==='dominate') {
+      A.chestPitch += 0.12*k; A.chestYaw -= 0.16*k; A.left.pitch -= 0.38*k;
+      A.left.elbow += 0.40*k; A.right.elbow += 0.18*k;
+      if (release) { A.left.pitch -= 0.34*k; A.chestPitch -= 0.22*k; A.weaponYaw -= 0.24*k; }
+    } else if (gesture==='ward' || gesture==='heal') {
+      A.chestPitch -= 0.12*k; A.left.pitch -= 0.62*k; A.left.yaw -= 0.58*k; A.left.elbow -= 0.10*k;
+      A.right.pitch -= 0.18*k; orientStaff(A,-0.05);
+      if (release) { A.left.roll += 0.30*k; A.chestPitch += 0.08*k; }
+    } else if (gesture==='bind') {
+      A.left.pitch -= 0.58*k; A.left.elbow += 0.10*k; A.left.roll -= 0.35*k; A.chestYaw += 0.15*k;
+      if (release) { A.left.pitch -= 0.28*k; A.right.pitch += 0.18*k; }
+    } else if (gesture==='summon') {
+      A.right.pitch -= 0.48*k; A.left.pitch -= 0.48*k; A.left.yaw -= 0.36*k; A.chestPitch -= 0.10*k;
+      if (release) { A.kneeAbsorb += 0.04*k; A.chestPitch += 0.18*k; }
+    }
+  }
+
   Act._castPose = function (A, cfg, c, family, st) {
     var m = modOf(family);
     var prep = smooth(c / CAST_PREPARE_END);
@@ -653,6 +742,7 @@ Arena.define('render/anim/actions',
     // algo pesado. Lo consume la capa de piernas, no lo decide ella.
     A.kneeAbsorb = (0.030 + m.stanceLow * 0.055) * prep;
     A.gemFlash = 0.35 * gath + 0.55 * chan;    // la gema anuncia el hechizo
+    applySpellGesture(A, st && st.spellGesture, Math.max(gath,chan), false);
   };
 
   /* --- RELEASE → RECOVERY --------------------------------------------------
@@ -665,7 +755,7 @@ Arena.define('render/anim/actions',
    * RECOVERY es corto a propósito. Esto es PvP: quedarse admirando la pose es
    * tiempo en el que el jugador no puede reaccionar.
    */
-  Act._castRelease = function (A, t, ph, family) {
+  Act._castRelease = function (A, t, ph, family, variant, spellGesture) {
     var m = modOf(family);
     var raise = m.startRaise === undefined ? 1 : m.startRaise;
     var a = ph.active;                       // instante de disparo del gesto
@@ -711,6 +801,10 @@ Arena.define('render/anim/actions',
     A.weaponYaw = 0.10 * m.open * weapon;
     A.weaponOffsetY = 0.025 * (1 - back);
     A.weaponOffsetZ = -0.045 * weapon + 0.035 * back;
+    variant = variant || 0;
+    if (variant===1) { A.chestRoll += 0.12*torso-0.10*back; A.left.yaw -= 0.18*weapon; }
+    else if (variant===2) { A.chestPitch -= 0.10*torso; A.left.pitch -= 0.20*weapon; A.weaponYaw += 0.12*weapon; }
+    else if (variant===3) { A.chestYaw -= 0.16*torso; A.right.roll -= 0.14*weapon; A.weaponRoll += 0.16*weapon; }
 
     /* La mano libre empuja o se abre según la familia: es la lectura más rápida
        de qué clase de hechizo acaba de salir. */
@@ -722,6 +816,7 @@ Arena.define('render/anim/actions',
 
     A.kneeAbsorb = (0.035 + m.stanceLow * 0.06) * weapon * (1 - back);
     A.gemFlash = Math.max(0, weapon - back * 1.4);
+    applySpellGesture(A, spellGesture, Math.max(weapon,shoulder)*(1-back*.65), true);
   };
 
   /* --- MAGO: ataque normal — PULSO ARCANO ----------------------------------

@@ -1,0 +1,24 @@
+POWER PARITY ARBITER v0.13
+PASS | Fuente 320 / válidos 290 / placeholders 30 | 320/290/30
+PASS | Asignaciones exactas 410, sin extras ni faltantes | 410 runtime
+PASS | Conteo por subclase 65/65/65/65/75/75 | {'devastador': 65, 'guardian': 65, 'centinela': 65, 'rastreador': 65, 'arcanista': 75, 'vinculador': 75}
+PASS | Nombres reconocibles: fuente + variación sistemática
+PASS | Metadatos fuente campo por campo intactos
+PASS | Todos los bullets y rank-5 permanecen auditables
+PASS | Cast / GCD / cooldown runtime fieles
+PASS | Maná runtime = coste rank-5 fuente
+PASS | Sin poderes re-balanceados/fixed-pure en catálogo fuente
+PASS | Sin placeholders undefined ni reglas opacas rule_*
+PASS | Todo poder lanzable tiene efecto ejecutable
+PASS | Todos los rangos de daño/porcentaje están ordenados
+PASS | Cada type generado tiene handler en resolver
+PASS | Anclas Brujo: Meteorito/Fuego/Hielo/Relámpago exactas
+PASS | Mecánicas especiales: drains/pets/enlaces no degradadas | [True, True, True, True]
+PASS | Bordes semánticos: Vampirismo/curas %/revivir mascota/purga exactos | [True, True, True, True, True]
+PASS | Cero fallbacks semánticos opacos source_*
+PASS | Objetivo, bando y centro de área preservados en poderes sensibles | [True, True, True, True, True, True, True, True, True]
+PASS | Resistencias físicas/mágicas conservan su canal, sin defensa genérica falsa | [True, True, True, True]
+PASS | Represalia y Espejo del karma no se degradan al reflector mágico legacy | [True, True]
+
+GATES: 20/20
+ARBITER: APROBADO

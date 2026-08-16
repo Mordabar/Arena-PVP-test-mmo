@@ -142,6 +142,17 @@ Arena.define('combat/statusSystem',
       return null;
     }
 
+    // -- Resistencias de control declaradas por poderes fuente. Con RNG
+    // desactivado sólo una resistencia absoluta (100 %) niega el control; con
+    // RNG activado se usa el generador determinista del mundo.
+    if (d.kind === 'cc' && !spec.ignoreDR) {
+      var resist = (tmods.ccResist && (tmods.ccResist[defId] || tmods.ccResist.all)) || 0;
+      if (resist >= 0.999 || (resist > 0 && world.settings.rngEnabled && world.rng.chance(resist))) {
+        world.bus.emit('EffectImmune', { targetId: target.id, effect: defId, reason: 'sourceResistance', sourceId: sourceId });
+        return null;
+      }
+    }
+
     // -- Fatiga de control global
     //
     // El DR es POR CATEGORÍA, y eso deja una puerta abierta: alternando noqueo,
@@ -165,6 +176,13 @@ Arena.define('combat/statusSystem',
 
     // -- Diminishing Returns / inmunidad de categoría
     var duration = spec.duration === undefined ? 0 : spec.duration;
+    /* Bonos source-derived a duración de poder modifican el estado que CREA
+       el lanzador, no el reloj base declarado por la habilidad. Así el dato
+       del libro conserva exactamente su duración fuente y el buff actúa como
+       modificador en resolución, que es la semántica esperada. */
+    if (duration > 0 && source && source.mods && !spec.permanent) {
+      duration *= Math.max(0.1, 1 + (source.mods().statusDurationPct || 0));
+    }
     var drMult = 1;
     if (d.drCategory && !spec.ignoreDR) {
       var dr = S.queryDR(world, target, d.drCategory);
@@ -317,6 +335,14 @@ Arena.define('combat/statusSystem',
     var i = target.statuses.indexOf(inst);
     if (i < 0) return false;
     target.statuses.splice(i, 1);
+    var sourceAbility = inst.abilityId && Arena.Data.abilities ? Arena.Data.abilities[inst.abilityId] : null;
+    var locks = sourceAbility && sourceAbility.sourceConstraints && sourceAbility.sourceConstraints.onExpireLockSourceIndices;
+    if (locks && target.sourcePowerLockouts) {
+      for (var li=0; li<locks.length; li++) {
+        var lk=locks[li];
+        target.sourcePowerLockouts[lk.sourceIndex]=Math.max(target.sourcePowerLockouts[lk.sourceIndex]||0, world.time+(lk.seconds||0));
+      }
+    }
     target.invalidateMods();
     world.bus.emit('StatusRemoved', {
       targetId: target.id, statusId: inst.id, effect: inst.defId,
@@ -330,6 +356,18 @@ Arena.define('combat/statusSystem',
     for (var i = target.statuses.length - 1; i >= 0; i--) {
       if (target.statuses[i].defId === defId) {
         S.removeInstance(world, target, target.statuses[i], reason || 'removed');
+        removed++;
+      }
+    }
+    return removed;
+  };
+
+  /** Elimina todas las instancias originadas por una habilidad concreta. */
+  S.removeByAbility = function (world, target, abilityId, reason) {
+    var removed = 0;
+    for (var i = target.statuses.length - 1; i >= 0; i--) {
+      if (target.statuses[i].abilityId === abilityId) {
+        S.removeInstance(world, target, target.statuses[i], reason || 'toggleOff');
         removed++;
       }
     }
@@ -461,16 +499,32 @@ Arena.define('combat/statusSystem',
   S._periodicTick = function (world, entity, st, d) {
     var source = st.sourceId ? world.getEntity(st.sourceId) : null;
     if (st.data.tickDamage) {
-      Arena.Combat.DamageSystem.applyDamage(world, {
+      var dr = Arena.Combat.DamageSystem.applyDamage(world, {
         source: source, target: entity, raw: st.data.tickDamage,
-        school: st.data.school || 'magical', abilityId: st.abilityId,
+        school: st.data.school || 'magical', element: st.data.element || 'generic', abilityId: st.abilityId,
         periodic: true, canCrit: false
       });
+      if (st.data.healSourceId && source && source.alive && dr && dr.applied > 0) {
+        Arena.Combat.HealingSystem.applyHeal(world, {
+          source: source, target: source, raw: dr.applied, abilityId: st.abilityId, periodic: true
+        });
+      }
     }
     if (st.data.tickHeal) {
       Arena.Combat.HealingSystem.applyHeal(world, {
         source: source, target: entity, raw: st.data.tickHeal,
         abilityId: st.abilityId, periodic: true
+      });
+    }
+    if (st.data.tickResourceDrain) {
+      var request = st.data.resourceDrainPercent ? entity.resourceMax * (st.data.tickResourceDrain / 100) : st.data.tickResourceDrain;
+      var drained = Math.min(entity.resource, Math.max(0, request));
+      entity.resource -= drained;
+      if (st.data.resourceHealSource && source && source.alive && drained > 0) {
+        Arena.Combat.HealingSystem.restoreResource(world, source, drained, 'sourceManaDrainDot');
+      }
+      world.bus.emit('ResourceDrained', {
+        targetId: entity.id, sourceId: source ? source.id : null, amount: drained, abilityId: st.abilityId, periodic: true
       });
     }
   };

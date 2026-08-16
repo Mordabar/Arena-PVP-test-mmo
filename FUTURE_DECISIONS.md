@@ -58,16 +58,14 @@ comprobaba la forma del escenario, no el comportamiento del bot.
 Cerradas las nueve filas, quedan cuatro cosas que se decidieron «por ahora» y
 que alguien tendrá que resolver de verdad. Ninguna impide jugar.
 
-### 1. El aro del báculo del Vinculador es un polígono de cajas
+### 1. RESUELTO v0.11 — aro del báculo del Vinculador
 
 `F.staff` con `crown: 'ring'` compone el aro con N cajas alineadas a los ejes,
 sin girarlas tangencialmente. A distancia de juego se lee como un círculo; de
 cerca se lee como un engranaje. Girar cada segmento pide una rotación de malla
 alrededor de Z que `render/primitives.js` no tiene (sólo hay `rotateY`).
 
-**Decisión pendiente:** añadir `P.rotateZ` / `P.rotateX` a las primitivas, o
-generar el toro directamente como una primitiva más. Lo segundo es más limpio y
-sirve además para barreras, sellos y telegraphs circulares.
+**Cerrado:** v0.11 añade `P.rotateX`, `P.rotateZ` y `P.torus`; la corona circular del báculo usa toro real y deja de ser un engranaje de cajas.
 
 ### 2. La intersección grosera se juzga a ojo, no se mide
 
@@ -95,10 +93,30 @@ mide una raza a la vez; habrá que recorrerlas.
 
 ### 4. Las dos parejas más difíciles se separan por poco
 
-`devastador ≈ vinculador` (18.5 %) y `devastador ≈ rastreador` (20.8 %) son las
-más ajustadas del elenco. Están por encima del suelo y las dos se distinguen a
+Tras la anatomía curva v0.11, la pareja más ajustada en frontal es `centinela ≈ rastreador` (19.2 %). Están por encima del suelo y las dos se distinguen a
 ojo en las capturas, pero son las primeras que se romperán si alguien engorda
 al Devastador o adelgaza al Vinculador.
 
 **Regla práctica:** cualquier cambio de proporciones pasa antes por
 `node tools/run-tests.js Identidad`, que tarda 400 ms.
+
+---
+
+## v0.10 · Fórmulas de daño y biblioteca masiva
+
+La biblioteca fuente de v0.10 traduce **290 poderes reales** a 410 asignaciones de subclase. Por decisión explícita del milestone, sus daños son `fixed/pure`: primero se valida que cada poder exista, llegue a `RELEASE`, aplique su función, tenga icono y pueda organizarse en 4×12. No mezclar esta wave con una reescritura de armadura.
+
+**Decisión pendiente:** construir la capa de fórmulas físicas/mágicas/armadura/resistencias sobre metadata de daño sin cambiar IDs, libro, barras ni timing transaccional.
+
+Los 30 encabezados `undefined` detectados en tablas Warmaster son placeholders de la fuente y se excluyen. No convertirlos en habilidades ficticias.
+
+## v0.10 · Mapa ampliado
+
+La arena 86×62 preserva el núcleo y suma anillo exterior. Antes de volver a agrandarla, el siguiente paso de mundo debe ser **navegación de bots alrededor de cobertura**, no más metros vacíos. El propio historial de v0.9 ya demostró que una heurística de “huir a la columna” sin waypoints puede empeorar el kite.
+
+
+## v0.11 · Backend skinned / assets CC0
+
+La anatomía procedural fue mejorada, pero sigue siendo una representación rígida por piezas. La investigación de esta wave prioriza Quaternius Universal Base Characters / Universal Animation Library 2 y KayKit como bases CC0. La siguiente sustitución visual debe implementar `ThreeSkinnedCharacterVisual` detrás de `AnimationIntent`, no reescribir combate ni sincronizar impactos con callbacks del clip.
+
+El smoke Chromium local sigue bloqueado por política organizacional; la validación visual final y 60 FPS se hacen en build desplegado.

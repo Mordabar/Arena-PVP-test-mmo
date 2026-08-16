@@ -1,0 +1,46 @@
+ARBITER · UAL2 Retarget Locomotion v0.16
+
+✓ suite completa en verde (383; suelo 383)
+✓ paridad de poderes DOCX 20/20
+✓ UAL2 binaria 24/24
+✓ A izquierda / D derecha = strafe
+✓ Q izquierda / E derecha = giro
+✓ main usa un único contrato de controles
+✓ HUD coincide con A/D strafe + Q/E giro
+✓ clip conectado: Idle_FoldArms_Loop
+✓ clip conectado: Walk_Carry_Loop
+✓ clip conectado: Hit_Knockback
+✓ clip conectado: NinjaJump_Start
+✓ clip conectado: NinjaJump_Idle_Loop
+✓ clip conectado: NinjaJump_Land
+✓ clip conectado: Sword_Regular_A
+✓ clip conectado: Sword_Regular_B
+✓ clip conectado: Sword_Regular_C
+✓ clip conectado: Sword_Heavy_Combo
+✓ clip conectado: Sword_Block
+✓ clip conectado: Sword_Dash
+✓ clip conectado: Shield_OneShot
+✓ bordes T-pose de acciones se recortan
+✓ strafe puro no reutiliza caminata frontal
+✓ recoil de impacto es upper-body y no congela piernas
+✓ 17 huesos objetivo mapeados
+✓ retarget usa delta de bind fuente→bind Dark Elf
+✓ rotaciones se retargetean y mezclan
+✓ retarget no escribe simulación
+✓ posición/yaw siguen llegando de simulación
+✓ normales de piel se recalculan suaves
+✓ material evita facetado exagerado
+✓ sin doble locomoción/melee
+✓ lenguaje caster/archer/melee permanece diferenciado
+✓ ruta GLB = cuerpo + arma, sin armadura procedural
+✓ Dark Elf conserva 50.000 tris + rig
+✓ skinning base sigue funcional
+✓ modelo + animaciones precargan antes de boot
+✓ runtime declara v0.16
+✓ cache-busting v0.16 (63 scripts)
+✓ cabecera visible identifica build correcto
+✓ licencia del paquete viaja en entrega
+
+-----------------------------------------------
+ARBITER: APROBADO
+v0.16 bloquea regresiones de controles, root-motion, retarget, facetado y doble animación.

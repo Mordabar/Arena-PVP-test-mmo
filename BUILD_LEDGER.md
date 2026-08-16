@@ -29,6 +29,35 @@ comprobaron en navegador durante esta sesión, con captura o sondeo.
 
 ---
 
+
+## MILESTONE v0.16 · UAL2 RETARGET LOCOMOTION — TESTED, visual Hostinger pendiente
+
+Esta wave integra el paquete de animaciones UAL2 Standard suministrado sobre el Dark Elf skinned. **No se promueve a VERIFIED visual** porque el Chromium administrado del entorno bloquea `127.0.0.1` antes de cargar JavaScript.
+
+| Gate | Estado |
+|---|---|
+| Full suite | **383/383 PASS** |
+| UAL2 binary audit | **24/24 PASS** |
+| Source power parity | **20/20 PASS** |
+| Auditores especializados | **12/12 PASS** |
+| Arbiter adversarial v0.16 | **APROBADO** |
+| Visual critic estático | **APROBADO** |
+| Browser smoke local | **BLOCKED_BY_ENVIRONMENT** |
+| Human Hostinger playtest | **TODO** |
+
+Cambios auditables de esta wave:
+
+- `A/D` son strafe izquierda/derecha; `Q/E` son giro izquierda/derecha. El mapping está centralizado en `js/core/controlMap.js` y tiene tests de signo/separación.
+- UAL2 se usa para idle corporal, marcha forward/backpedal base, salto, hit recoil y melee; caster/archer mantienen sus acciones específicas.
+- El strafe **no** reutiliza la caminata frontal rotada.
+- El root motion de UAL2 jamás mueve la entidad; posición/yaw siguen en simulación.
+- El retarget parte de bind WORLD fuente y reconstruye bind LOCAL del Dark Elf de 17 huesos.
+- La piel se suaviza mediante normales recalculadas, sin volver a decimar el asset 50k.
+
+Evidencia: `docs/BUILD_REPORT_V016.md`, `docs/ANIMATION_INTEGRATION_V016.md`, `docs/QA_TESTS_V016.txt`, `docs/QA_UAL2_V016.txt`, `docs/QA_ARBITER_V016.txt`, `docs/QA_VISUAL_STATIC_V016.txt`, `docs/QA_BROWSER_POLICY_BLOCK_V016.png`.
+
+---
+
 ## RESUMEN
 
 | | |
@@ -514,3 +543,45 @@ node tools/browser.js play tools/scripts/hud-layout-audit.json
 ```
 
 Devuelve código de salida 1 si aparece cualquier solape o cualquier 404.
+
+---
+
+## ADDENDUM v0.15 · SKINNED ANIMATION REBUILD
+
+**Estado de esta wave:** `TESTED` / auditorías automáticas verdes; **no se promueve a VERIFIED visual** hasta mirarla en navegador real desplegado.
+
+Las capturas de v0.14 mostraron que el modelo skinned estaba integrado con una arquitectura visual equivocada: matrices de pose del maniquí procedural se transferían a un skeleton con bind distinto y, además, el equipo procedural seguía montándose sobre el cuerpo GLB. Ese camino se elimina en v0.15.
+
+| Gate | Resultado |
+|---|---|
+| Suite completa | **367/367** |
+| Skinned Animation v0.15 | **12/12** |
+| Agentes/revisores relevantes | **11/11** |
+| Modelo | **50.000 tris · 76.070 vértices · 17 huesos · 1 skin** |
+| Skinning | **PASS** |
+| Árbitro adversarial | **APROBADO** |
+| Critic visual estático | **APROBADO** |
+| Browser visual real | **BLOCKED_EXTERNAL** — Chromium administrado bloquea `127.0.0.1` antes de cargar JS |
+
+### Cambio de contrato visual
+
+`CharacterVisual` deja de ser una fuente de matrices para el GLB. Su handle continúa aportando el estado de locomoción/acción/cast/CC, pero `SkinnedAnimationContract` lo convierte en offsets locales sobre el bind real del modelo. La simulación continúa siendo autoridad y RELEASE no depende de la animación.
+
+### Cuerpo limpio
+
+En la ruta skinned sólo se muestra cuerpo + arma. Se elimina la composición procedural de armadura/ropa/accesorios que en v0.14 atravesaba o flotaba sobre el modelo.
+
+### Referencias de movimiento
+
+Caster y arquero se reconstruyen a partir de los principios visibles en las secuencias suministradas por el usuario: preparación clara, cadena corporal, release legible y recuperación. La animación no replica clips propietarios. Melee usa una gramática original derivada de la cadena `pie → pelvis → torso → hombro → arma`.
+
+### Gate nuevo del arquero
+
+Una prueba FK sobre el bind real exige que en full draw:
+
+- la mano del arco quede proyectada al frente;
+- la mano de cuerda quede detrás de la mano de arco;
+- la mano de cuerda se mantenga cerca del eje del rostro;
+- su altura permanezca anatómicamente plausible.
+
+La primera implementación falló esta puerta y fue corregida antes del cierre.

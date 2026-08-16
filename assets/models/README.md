@@ -1,30 +1,23 @@
-# assets/models
+# assets/models · v0.14
 
-Aquí van los `.glb` cuando existan:
+`dark-elf-base-rigged-50k.glb` is now the **primary body** for all six subclasses in the Three.js renderer.
 
-```
-human_melee.glb
-human_archer.glb
-human_caster.glb
-```
+- 50,000 triangles.
+- 76,070 vertices.
+- Embedded PBR textures (base color, metallic/roughness, normal).
+- 17-joint humanoid skin.
+- Four normalized influences per vertex.
+- Origin at feet, Y-up, front toward +Z.
+- No root-motion clips: world position remains simulation-authoritative.
 
-Todavía **no hay ninguno**, y el juego no los necesita: los personajes son
-procedurales y se dibujan con la geometría que genera `render/characterVisual.js`.
+The procedural body remains in `render/characterVisual.js` as a technical fallback and as the source of the verified animation pivots. In the primary Three.js path those body pieces are hidden, while procedural class armor/weapons continue to render on top of the skinned dark elf.
 
-## Qué tendrá que cumplir un modelo para entrar
+## Rig names
 
-1. **Rig humanoide** con los nombres de hueso que declara
-   `js/render/anim/skeleton.js` (`PELVIS`, `SPINE_01/02`, `CHEST`, `NECK`,
-   `HEAD`, `CLAVICLE_*`, `UPPER_ARM_*`, `LOWER_ARM_*`, `HAND_*`, `THIGH_*`,
-   `CALF_*`, `FOOT_*`). Si el exportador usa otros, se escribe una tabla de
-   equivalencia en el backend — no se renombra el proyecto.
-2. **Sockets de arma**: `SOCKET_WEAPON_R`, `SOCKET_WEAPON_L`, `SOCKET_SHIELD`,
-   `SOCKET_BACK`, `SOCKET_HEAD`, `SOCKET_PROJECTILE`.
-3. **Sin root motion.** La posición la decide la simulación. Un clip que lleve
-   desplazamiento incorporado hay que desactivarlo al importarlo, o el
-   personaje visual y el lógico se separarán.
-4. **Escala en metros**, con el personaje midiendo ~1.85 unidades, que es
-   `B.ENTITY_HEIGHT`.
-5. **Origen en los pies**, mirando hacia **+Z**.
+`Hips`, `Spine`, `Chest`, `Neck`, `Head`,
+`LeftUpperArm`, `LeftLowerArm`, `LeftHand`,
+`RightUpperArm`, `RightLowerArm`, `RightHand`,
+`LeftUpperLeg`, `LeftLowerLeg`, `LeftFoot`,
+`RightUpperLeg`, `RightLowerLeg`, `RightFoot`.
 
-Ver `docs/RENDERER_MIGRATION.md`.
+The generation/optimization pipeline is in `tools/model_pipeline/rig_optimize_dark_elf.py`.

@@ -97,76 +97,73 @@ Arena.define('render/characterVisual',
    * ====================================================================== */
   CV.buildMeshes = function () {
     var body = {
-      /* --- Tronco en tres piezas: da cintura y permite torsión ----------- */
+      /* --- Anatomía v0.11 ---------------------------------------------------
+       * La silueta deja de construirse con cajas apiladas. El cuerpo base usa
+       * elipsoides faceteados, cápsulas y cuñas orgánicas; el equipo conserva
+       * planos duros donde corresponde. Así la armadura se lee como armadura
+       * ENCIMA de una persona, no como otra caja sustituyendo a la persona. */
       ribcage: P.merge([
-        P.translate(P.scale(P.sphere(0.5, 8, 12), 0.40, 0.32, 0.25), 0, 0.16, 0),
-        P.translate(P.box(0.34, 0.24, 0.21), 0, 0.14, 0)
+        P.translate(P.ellipsoid(0.222, 0.192, 0.142, 13, 20), 0, 0.145, 0),
+        P.translate(P.ellipsoid(0.188, 0.112, 0.130, 11, 18), 0, 0.285, 0.004)
       ]),
-      abdomen: P.translate(P.scale(P.sphere(0.5, 7, 10), 0.29, 0.24, 0.21), 0, 0.02, 0),
-      pelvis: P.translate(P.scale(P.sphere(0.5, 7, 10), 0.35, 0.22, 0.25), 0, -0.02, 0),
+      abdomen: P.translate(P.ellipsoid(0.158, 0.140, 0.118, 11, 18), 0, 0.025, 0),
+      pelvis: P.merge([
+        P.translate(P.ellipsoid(0.188, 0.122, 0.142, 11, 18), 0, -0.015, 0),
+        P.translate(P.ellipsoid(0.124, 0.080, 0.114, 9, 16), 0, -0.085, 0.005)
+      ]),
 
-      /* --- Cabeza -----------------------------------------------------------
-       * Los rasgos tienen que SALIR del cráneo. Enterrados dentro de la esfera
-       * no se ven —era el caso: la nariz asomaba dos centímetros y la ceja ni
-       * eso—, y una cabeza sin rasgos es una bola con pelo por muchos polígonos
-       * que tenga. Aquí todo se mide contra el semieje del cráneo (0.1225 de
-       * profundidad) para que cada pieza rompa la superficie.                */
+      /* Cara estilizada de planos suaves. A distancia MMO queremos una cabeza
+       * humana reconocible, no microdetalle. Pómulo, mandíbula y nariz rompen el
+       * contorno sin convertir la cara en un cubo. */
       skull: P.merge([
-        P.scale(P.sphere(0.5, 11, 15), 0.225, 0.255, 0.248),
-        // Pómulos altos y mentón afilado: el rasgo racial élfico más legible a
-        // distancia no son las orejas, es el triángulo de la cara.
-        P.translate(P.scale(P.box(0.165, 0.085, 0.150), 1, 1, 1), 0, -0.055, 0.048)
+        P.ellipsoid(0.132, 0.150, 0.136, 14, 22),
+        P.translate(P.ellipsoid(0.114, 0.075, 0.108, 10, 18), 0, -0.065, 0.042)
       ]),
       jaw: P.merge([
-        P.translate(P.scale(P.box(0.140, 0.085, 0.145), 1, 1, 1), 0, -0.098, 0.040),
-        P.translate(P.scale(P.sphere(0.5, 6, 8), 0.105, 0.070, 0.090), 0, -0.120, 0.075)
+        P.translate(P.ellipsoid(0.098, 0.072, 0.090, 10, 16), 0, -0.112, 0.050),
+        P.translate(P.scale(P.cone(0.070, 0.080, 8), 1, -1, 0.82), 0, -0.070, 0.040)
       ]),
       brow: P.merge([
-        P.translate(P.box(0.200, 0.036, 0.060), 0, 0.040, 0.098),
-        P.translate(P.scale(P.box(0.078, 0.030, 0.055), 1, 1, 1), -0.058, 0.052, 0.100),
-        P.translate(P.scale(P.box(0.078, 0.030, 0.055), 1, 1, 1), 0.058, 0.052, 0.100)
+        P.translate(P.rotateZ(P.capsule(0.014, 0.096, 8), Math.PI * 0.52), -0.055, 0.040, 0.115),
+        P.translate(P.rotateZ(P.capsule(0.014, 0.096, 8), -Math.PI * 0.52), 0.055, 0.040, 0.115)
       ]),
       nose: P.merge([
-        P.translate(P.scale(P.box(0.034, 0.090, 0.050), 1, 1, 1), 0, -0.010, 0.112),
-        P.translate(P.scale(P.cone(0.030, 0.055, 5), 1, -1, 1.4), 0, -0.020, 0.126)
+        P.translate(P.ellipsoid(0.022, 0.052, 0.028, 7, 9), 0, -0.018, 0.132),
+        P.translate(P.rotateX(P.cone(0.026, 0.060, 7), Math.PI * 0.44), 0, -0.045, 0.125)
       ]),
-      neck: bone(0.056, 0.064, 0.11, 8),
-      ear: P.scale(P.cone(0.042, 1.0, 7), 0.42, 1, 1),
-      eye: P.scale(P.sphere(0.5, 6, 8), 0.048, 0.030, 0.026),
+      neck: bone(0.058, 0.066, 0.115, 10),
+      ear: P.scale(P.rotateZ(P.cone(0.040, 0.13, 8), -Math.PI/2), 0.70, 1, 0.62),
+      eye: P.ellipsoid(0.024, 0.015, 0.014, 6, 9),
 
-      /* Pelo: CASCO, no esfera. La versión anterior era una esfera más ancha y
-         más profunda que el cráneo, así que se tragaba literalmente la cara. */
+      /* Pelo por masas curvas y mechones: evita el “casco de LEGO”. */
       hairCap: P.merge([
-        P.translate(P.scale(P.sphere(0.5, 10, 14), 0.244, 0.220, 0.252), 0, 0.030, -0.022),
-        // Melena hacia atrás.
-        P.translate(P.scale(P.box(0.200, 0.150, 0.170), 1, 1, 1), 0, -0.010, -0.088),
-        // Mechones laterales: enmarcan la cara sin taparla.
-        P.translate(P.scale(P.box(0.045, 0.170, 0.080), 1, 1, 1), -0.108, -0.030, 0.028),
-        P.translate(P.scale(P.box(0.045, 0.170, 0.080), 1, 1, 1), 0.108, -0.030, 0.028)
+        P.translate(P.ellipsoid(0.132, 0.122, 0.138, 11, 17), 0, 0.030, -0.020),
+        P.translate(P.rotateZ(P.capsule(0.030, 0.190, 8), 0.14), -0.103, -0.020, -0.012),
+        P.translate(P.rotateZ(P.capsule(0.030, 0.190, 8), -0.14), 0.103, -0.020, -0.012),
+        P.translate(P.rotateX(P.capsule(0.036, 0.215, 8), 0.20), 0, -0.010, -0.104)
       ]),
-      // Coleta con volumen: un cono de 7 caras a esta escala se lee como una
-      // cartulina blanca pegada a la nuca.
       hairTail: P.merge([
-        P.translate(P.scale(P.sphere(0.5, 7, 10), 0.135, 0.115, 0.135), 0, -0.020, -0.155),
-        P.translate(P.scale(P.cone(0.070, 0.30, 10), 1, -1, 0.92), 0, -0.060, -0.170)
+        P.translate(P.ellipsoid(0.070, 0.060, 0.074, 7, 11), 0, -0.018, -0.150),
+        P.translate(P.rotateX(P.cone(0.058, 0.285, 10), Math.PI), 0, -0.050, -0.165)
       ]),
 
-      /* --- Extremidades: dos segmentos + articulación -------------------- */
-      upperArm: bone(0.064, 0.050, UPPER_ARM, 9),
-      lowerArm: bone(0.050, 0.042, LOWER_ARM, 8),
-      elbow: joint(0.053),
-      shoulderBall: joint(0.075),
+      /* Extremidades con radios más anatómicos y articulaciones menos enormes. */
+      upperArm: bone(0.066, 0.052, UPPER_ARM, 13),
+      lowerArm: bone(0.055, 0.042, LOWER_ARM, 12),
+      elbow: P.ellipsoid(0.054, 0.057, 0.052, 9, 13),
+      shoulderBall: P.ellipsoid(0.078, 0.073, 0.073, 10, 14),
       hand: P.merge([
-        P.translate(P.scale(P.sphere(0.5, 6, 8), 0.068, 0.088, 0.046), 0, -0.044, 0),
-        P.translate(P.box(0.028, 0.066, 0.040), 0.046, -0.052, 0)     // pulgar
+        P.translate(P.ellipsoid(0.057, 0.076, 0.041, 10, 14), 0, -0.046, 0),
+        P.translate(P.rotateZ(P.capsule(0.012, 0.070, 7), -0.55), 0.046, -0.044, 0.002),
+        P.translate(P.rotateZ(P.capsule(0.010, 0.062, 7), 0.05), -0.028, -0.080, 0.004)
       ]),
 
-      thigh: bone(0.096, 0.074, THIGH, 9),
-      shin: bone(0.074, 0.054, SHIN, 9),
-      knee: joint(0.076),
+      thigh: bone(0.100, 0.074, THIGH, 13),
+      shin: bone(0.078, 0.055, SHIN, 12),
+      knee: P.ellipsoid(0.073, 0.076, 0.069, 10, 14),
       foot: P.merge([
-        P.translate(P.box(0.122, 0.072, 0.19), 0, -0.034, 0.042),
-        P.translate(P.scale(P.sphere(0.5, 6, 8), 0.122, 0.072, 0.10), 0, -0.034, 0.137)
+        P.translate(P.ellipsoid(0.078, 0.055, 0.125, 10, 16), 0, -0.037, 0.065),
+        P.translate(P.scale(P.ellipsoid(0.082, 0.044, 0.088, 9, 14), 1, 0.82, 1), 0, -0.043, 0.145)
       ]),
 
       /* --- Piezas comunes a varias clases -----------------------------------
@@ -408,10 +405,10 @@ Arena.define('render/characterVisual',
    * elección de familia vive en render/anim/actions.js, que es quien conoce
    * las fases.
    */
-  CV.triggerAttack = function (st, kind, isPower, castFamily, visualAction) {
+  CV.triggerAttack = function (st, kind, isPower, castFamily, visualAction, visualVariant, spellGesture) {
     if (!st.cfg) return;   // aún no ha corrido el primer update
     var family = Act.familyFor(kind || 'melee', isPower, visualAction);
-    Act.trigger(st.action, family, st.cfg, isPower, castFamily, visualAction);
+    Act.trigger(st.action, family, st.cfg, isPower, castFamily, visualAction, visualVariant, spellGesture);
     /* Los poderes llegan aquí en AbilityReleased: RELEASE ya ocurrió en la
        simulación. La presentación entra exactamente en el marker de impacto,
        no reproduce otro windup después de que el proyectil ya salió. */
@@ -427,8 +424,8 @@ Arena.define('render/characterVisual',
    * data/castFamilies.js: la presentación conoce siete categorías visuales, no
    * el catálogo de habilidades.
    */
-  CV.beginCast = function (st, castFamily, visualAction) {
-    if (st.action) Act.beginCast(st.action, castFamily, visualAction);
+  CV.beginCast = function (st, castFamily, visualAction, spellGesture) {
+    if (st.action) Act.beginCast(st.action, castFamily, visualAction, spellGesture);
   };
 
   /**
@@ -450,6 +447,10 @@ Arena.define('render/characterVisual',
    * ====================================================================== */
   CV.buildPose = function (out, st, entity, pos, yaw, palette) {
     out.length = 0;
+    /* v0.14: además de las piezas procedurales exponemos los pivotes de un
+       esqueleto humanoide. El backend GLB consume estas matrices para animar
+       la malla skinned SIN crear un segundo sistema de locomoción/combate. */
+    var rig = st.rigPose || (st.rigPose = {});
 
     var loadout = LOADOUT[entity.classId] || LOADOUT.devastador;
     var prof = loadout.profile;
@@ -615,12 +616,14 @@ Arena.define('render/characterVisual',
      * nodos HOJA para que no arrastre a brazos ni cabeza. */
     var gk = build.girth / Math.max(0.05, build.shoulders);
     var hips = node(root, hipX, hipY, 0, 0, lc.hipYaw, L.hipRoll);
+    rig.Hips = hips;
     draw(node(hips, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'pelvis', cloth);
     emit('hips', hips, 1);
     emit('hipsPair', hips, -1);
     emit('hipsPair', hips, 1);
 
     var abdomen = node(hips, 0, 0.06, 0, -lc.torsoPitch * 0.45, lc.torsoYaw * 0.3, lc.torsoRoll * 0.4);
+    rig.Spine = abdomen;
     draw(node(abdomen, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'abdomen', cloth);
 
     // El pecho asume parte del seguimiento del objetivo, la cabeza completa el
@@ -629,6 +632,7 @@ Arena.define('render/characterVisual',
       -lc.torsoPitch * 0.55 + A.chestPitch,
       lc.torsoYaw * 0.5 + lc.headYaw * cfg.chestTrackRatio + A.chestYaw,
       lc.torsoRoll * 0.6 + (A.chestRoll || 0));
+    rig.Chest = chest;
     draw(node(chest, 0, 0, 0, 0, 0, 0, gk, 1, gk), 'ribcage', cloth);
 
     /* Torso y hombros, según el perfil de la clase. */
@@ -638,13 +642,16 @@ Arena.define('render/characterVisual',
 
     /* --- Cabeza ----------------------------------------------------------- */
     var hs = build.head;
-    draw(node(chest, 0, 0.30, 0, L.lean * 0.3, 0, 0, 1, build.neck, 1), 'neck', skin);
+    var neckM = node(chest, 0, 0.30, 0, L.lean * 0.3, 0, 0, 1, build.neck, 1);
+    rig.Neck = neckM;
+    draw(neckM, 'neck', skin);
     // La cabeza contrarresta la inclinación del torso: la mirada se mantiene al
     // frente aunque el cuerpo se incline, como en cualquier ser vivo.
     var head = node(chest, 0, 0.40, 0.005,
       lc.torsoPitch * cfg.torsoCounterRate + lc.headPitch + ccHead * 0.5,
       lc.headYaw * (1 - cfg.chestTrackRatio) - lc.torsoYaw * 0.4,
       -lc.torsoRoll * 0.3 + ccHead, hs, hs, hs);
+    rig.Head = head;
     draw(head, 'skull', skin);
     draw(head, 'jaw', skin);
     draw(head, 'brow', skin);
@@ -746,6 +753,8 @@ Arena.define('render/characterVisual',
           kneeM = node(thighM, 0, -THIGH, 0, ik.bend, 0, 0);
           toe = (1 - leg.plantWeight) * 0.35;
           ankleM = node(kneeM, 0, -SHIN, 0, -ik.pitch - ik.bend + toe, 0, -ik.roll);
+          if (side < 0) { rig.LeftUpperLeg = thighM; rig.LeftLowerLeg = kneeM; rig.LeftFoot = ankleM; }
+          else { rig.RightUpperLeg = thighM; rig.RightLowerLeg = kneeM; rig.RightFoot = ankleM; }
           draw(ankleM, 'foot', palette.leather);
           emit('anklePair', ankleM, side);
           continue;
@@ -763,6 +772,8 @@ Arena.define('render/characterVisual',
         // durante el apoyo y sólo se inclina en el vuelo.
         toe = (1 - leg.plantWeight) * 0.35;
         ankleM = node(kneeM, 0, -SHIN, 0, -ik.pitch - ik.bend + toe, 0, -ik.roll);
+        if (side < 0) { rig.LeftUpperLeg = thighM; rig.LeftLowerLeg = kneeM; rig.LeftFoot = ankleM; }
+        else { rig.RightUpperLeg = thighM; rig.RightLowerLeg = kneeM; rig.RightFoot = ankleM; }
         draw(ankleM, 'foot', palette.leather);
         emit('anklePair', ankleM, side);
       }
@@ -795,6 +806,8 @@ Arena.define('render/characterVisual',
       draw(elbowM, 'lowerArm', skin);
       emit('elbowPair', elbowM, q.side);
       hands[a] = node(elbowM, 0, -LOWER_ARM, 0, q.s.wrist || 0, 0, 0);
+      if (q.side < 0) { rig.LeftUpperArm = upper; rig.LeftLowerArm = elbowM; rig.LeftHand = hands[a]; }
+      else { rig.RightUpperArm = upper; rig.RightLowerArm = elbowM; rig.RightHand = hands[a]; }
       draw(hands[a], 'hand', skin);
     }
     var handL = hands[0], handR = hands[1];

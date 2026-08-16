@@ -57,6 +57,7 @@ Arena.define('main',
     var hudRoot = document.getElementById('hud');
 
     this.world = new Arena.Sim.World({ seed: 20260810 });
+    this.world.settings.expandedPowerPassives = true;
     /* El renderer se elige por nombre a través del contrato común
        (render/rendererBackend.js). `index.html` no declara ninguno y usa el
        WebGL2 nativo; `index-three.html` declara 'three'. Así el arranque es el
@@ -218,7 +219,7 @@ Arena.define('main',
 
   Game._teamAlive = function (team) {
     for (var i=0; i<this.world.entities.length; i++) {
-      var e=this.world.entities[i]; if (e.team===team && e.alive) return true;
+      var e=this.world.entities[i]; if (!e.isCompanion && e.team===team && e.alive) return true;
     }
     return false;
   };
@@ -226,7 +227,7 @@ Arena.define('main',
   Game._teamStats = function (team) {
     var out={damage:0, healing:0, interrupts:0};
     for (var i=0;i<this.world.entities.length;i++) {
-      var e=this.world.entities[i]; if(e.team!==team) continue;
+      var e=this.world.entities[i]; if(e.team!==team || e.isCompanion) continue;
       out.damage += e.stats.damageDealt || 0; out.healing += e.stats.healingDone || 0; out.interrupts += e.stats.interrupts || 0;
     }
     return out;
@@ -239,7 +240,7 @@ Arena.define('main',
     this._matchResolved = true;
     var winner = (!alive0 && !alive1) ? -1 : (alive0 ? 0 : 1);
     var enemyName='Rival';
-    for(var i=0;i<this.world.entities.length;i++){ var e=this.world.entities[i]; if(e.team===1){ enemyName=Arena.Data.classes[e.classId]?Arena.Data.classes[e.classId].name:e.name; break; } }
+    for(var i=0;i<this.world.entities.length;i++){ var e=this.world.entities[i]; if(e.team===1 && !e.isCompanion){ enemyName=Arena.Data.classes[e.classId]?Arena.Data.classes[e.classId].name:e.name; break; } }
     this.flow.finish(winner, {
       opponentRating: this.flow.mode === '2v2' ? 1040 : 1020,
       opponent: enemyName, stats: this._teamStats(0)
@@ -481,12 +482,16 @@ Arena.define('main',
 
     var combatEnabled = !this.flow || this.flow.phase === 'ACTIVE';
 
-    // Habilidades 1–6
-    if (key >= '1' && key <= '6') {
+    // Shift+1..4 cambia de página. Sin Shift, 1..9 / 0 / - / = usan 12 slots.
+    if (e.shiftKey && key >= '1' && key <= '4') {
+      if (this.hud) this.hud.selectBar(parseInt(key,10)-1);
+      e.preventDefault(); return;
+    }
+    var slotKeys = {'1':0,'2':1,'3':2,'4':3,'5':4,'6':5,'7':6,'8':7,'9':8,'0':9,'-':10,'=':11};
+    if (slotKeys[key] !== undefined) {
       if (!combatEnabled) { e.preventDefault(); return; }
-      this._useSlot(parseInt(key, 10) - 1);
-      e.preventDefault();
-      return;
+      this._useSlot(slotKeys[key]);
+      e.preventDefault(); return;
     }
 
     switch (key) {
@@ -505,8 +510,13 @@ Arena.define('main',
         }
         break;
       case 'escape':
+        if (this.hud && this.hud.closePowerBook()) { e.preventDefault(); break; }
         if (player.pendingCast || player.cast) Ability.cancelCast(world, player, 'manual');
         else { player.targetId = null; this.renderer.selectedId = null; }
+        break;
+      case 'b':
+        if (this.hud) this.hud.togglePowerBook();
+        e.preventDefault();
         break;
       case 'r':
         if (this.flow && this.flow.mode !== 'training' && this.flow.phase !== 'LOBBY') this.rematch();
@@ -570,12 +580,9 @@ Arena.define('main',
     this._keys[key] = false;
   };
 
-  /** W/S avanzan y retroceden · A/D son STRAFE, nunca giro. */
+  /** W/S avanzan y retroceden · A/D son STRAFE · Q/E giran el cuerpo. */
   Game._readMovement = function () {
-    var k = this._keys;
-    var f = (k['w'] ? 1 : 0) - (k['s'] ? 1 : 0);
-    var s = (k['d'] ? 1 : 0) - (k['a'] ? 1 : 0);
-    return { forward: f, strafe: s };
+    return Arena.Core.ControlMap.movement(this._keys);
   };
 
   /**
@@ -603,9 +610,9 @@ Arena.define('main',
     }
     player._faceIntent = null;
 
-    // Q/E: giro por tecla, limitado por TURN_SPEED. Una tecla no tiene
-    // magnitud, así que su velocidad la pone el juego.
-    player._turnIntent = (k['e'] ? 1 : 0) - (k['q'] ? 1 : 0);
+    // Q/E: giro por tecla, limitado por TURN_SPEED. Q gira a la izquierda; E a la derecha.
+    // Una tecla no tiene magnitud, así que su velocidad la pone el juego.
+    player._turnIntent = Arena.Core.ControlMap.turn(k);
   };
 
   Game._useSlot = function (index) {
@@ -613,7 +620,7 @@ Arena.define('main',
     var world = this.world;
     var player = world.getPlayer();
     if (!player) return;
-    var abilityId = player.abilities[index];
+    var abilityId = this.hud && this.hud.getActiveAbilityId ? this.hud.getActiveAbilityId(index) : player.abilities[index];
     if (!abilityId) return;
 
     var ab = Arena.Data.abilities[abilityId];
@@ -749,7 +756,16 @@ Arena.define('main',
     }
 
     /* --- Simulación ------------------------------------------------------- */
+    // Para Q/E la cámara acompaña el DELTA REAL que finalmente aceptó la
+    // simulación. Así un stun/root que impida girar tampoco mueve la cámara.
+    // En left-drag la cámara ya giró con el ratón 1:1; en right-drag queremos
+    // free-look, por lo que ninguna de esas rutas vuelve a sumar el delta.
+    var bodyYawBeforeTick = player ? player.yaw : 0;
+    var followKeyboardTurn = !!(player && player._turnIntent && this.input.camMode !== 'steer' && this.input.camMode !== 'freelook');
     var alpha = world.advance(realDt);
+    if (followKeyboardTurn && player && this.renderer && this.renderer.camera && this.renderer.camera.followBodyYaw) {
+      this.renderer.camera.followBodyYaw(V.angleDelta(bodyYawBeforeTick, player.yaw));
+    }
     if (this._matchEndPending) { this._matchEndPending = false; this._evaluateMatchEnd(); }
 
     /* --- Presentación ----------------------------------------------------- */

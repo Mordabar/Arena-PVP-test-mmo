@@ -5,7 +5,7 @@
  * Nunca decide nada ni escribe en el mundo. Cualquier acción del jugador pasa
  * por main.js → Arena.Combat.AbilitySystem, igual que la de un bot.
  * ========================================================================== */
-Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons'], function (Arena) {
+Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'ui/actionBarState', 'ui/powerBook'], function (Arena) {
   'use strict';
 
   var V = Arena.Math.Vec3;
@@ -59,6 +59,7 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons'], f
     this.floaters = [];
     this.nameplates = Object.create(null);
     this._errorTimer = 0;
+    this.actionState = new Arena.UI.ActionBarState.State('devastador');
     this._build();
     this._subscribe();
   }
@@ -93,22 +94,54 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons'], f
     this.castLabel = el('div', 'label', pc);
     this.playerCast = pc;
 
-    /* --- Barra de acción -------------------------------------------------- */
+    /* --- Barra de acción: 4 páginas × 12 slots --------------------------- */
     var ab = el('div', '', r); ab.id = 'action-bar';
+    var tools = el('div', 'actionbar-tools', ab);
+    this.barTabs = [];
+    var selfHud = this;
+    for (var bi = 0; bi < Arena.UI.ActionBarState.BAR_COUNT; bi++) {
+      var tab = el('button', 'bar-tab', tools); tab.type = 'button'; tab.textContent = String(bi + 1);
+      tab.dataset.bar = String(bi);
+      tab.addEventListener('click', (function (idx) { return function (e) { e.stopPropagation(); selfHud.selectBar(idx); }; })(bi));
+      this.barTabs.push(tab);
+    }
+    this.bookBtn = el('button', 'power-book-button', tools); this.bookBtn.type = 'button';
+    this.bookBtn.innerHTML = '<span>✦</span> Libro de poderes <kbd>B</kbd>';
+    this.bookBtn.addEventListener('click', function (e) { e.stopPropagation(); selfHud.togglePowerBook(); });
+    var resetBtn = el('button', 'bar-reset', tools); resetBtn.type='button'; resetBtn.textContent='Restaurar barras';
+    resetBtn.addEventListener('click', function(e){e.stopPropagation();selfHud.actionState.reset();selfHud._renderActionBar();});
+
+    var row = el('div', 'actionbar-row', ab);
+    var keys = ['1','2','3','4','5','6','7','8','9','0','−','='];
     this.slots = [];
-    for (var i = 0; i < 6; i++) {
-      var s = el('div', 'slot', ab);
-      var key = el('div', 'key', s); key.textContent = String(i + 1);
+    for (var i = 0; i < Arena.UI.ActionBarState.SLOT_COUNT; i++) {
+      var s = el('div', 'slot', row); s.draggable = true;
+      var key = el('div', 'key', s); key.textContent = keys[i];
       var icon = el('div', 'icon', s);
       var sweep = el('div', 'cd-sweep', s);
       var cdText = el('div', 'cd-text', s);
       var gcd = el('div', 'gcd', s);
-      this.slots.push({ root: s, icon: icon, sweep: sweep, cdText: cdText, gcd: gcd, index: i, abilityId: null });
+      var slot = { root: s, icon: icon, sweep: sweep, cdText: cdText, gcd: gcd, index: i, abilityId: null };
+      this.slots.push(slot);
+      s.addEventListener('dragover', function(e){ e.preventDefault(); e.dataTransfer.dropEffect='copy'; this.classList.add('drag-over'); });
+      s.addEventListener('dragleave', function(){ this.classList.remove('drag-over'); });
+      s.addEventListener('drop', (function(sl){ return function(e){
+        e.preventDefault(); sl.root.classList.remove('drag-over');
+        var id=e.dataTransfer.getData('application/x-arena-ability')||e.dataTransfer.getData('text/plain');
+        if(selfHud.actionState.assign(sl.index,id)) selfHud._renderActionBar();
+      };})(slot));
+      s.addEventListener('dragstart', (function(sl){ return function(e){
+        if(!sl.abilityId){e.preventDefault();return;} e.dataTransfer.effectAllowed='copy';
+        e.dataTransfer.setData('application/x-arena-ability',sl.abilityId);e.dataTransfer.setData('text/plain',sl.abilityId);
+      };})(slot));
+      s.addEventListener('contextmenu', (function(sl){ return function(e){e.preventDefault();selfHud.actionState.clear(sl.index);selfHud._renderActionBar();};})(slot));
     }
-    var aa = el('div', '', ab); aa.id = 'autoattack-toggle';
+    var aa = el('div', '', row); aa.id = 'autoattack-toggle';
     aa.innerHTML = '<div>⚔</div><div class="lbl">T</div>';
     this.autoBtn = aa;
     this.actionBar = ab;
+    this.powerBook = new Arena.UI.PowerBook(r);
+    this.selectBar(0);
 
     /* --- Capa 3D: nameplates y texto flotante ----------------------------- */
     this.overlay = el('div', '', r); this.overlay.id = 'overlay-3d';
@@ -240,8 +273,8 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons'], f
     this.pClass.textContent = cls ? cls.role : '';
 
     setBar(this.pHp, p.hpPct(), now,
-      Math.round(p.hp) + ' / ' + p.hpMax,
-      p.totalBarrier() / p.hpMax);
+      Math.round(p.hp) + ' / ' + Math.round(p.effectiveHpMax ? p.effectiveHpMax() : p.hpMax),
+      p.totalBarrier() / (p.effectiveHpMax ? p.effectiveHpMax() : p.hpMax));
 
     var res = B.RESOURCE[p.resourceType];
     this.pRes.root.className = 'bar uf-res ' + p.resourceType;
@@ -301,8 +334,8 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons'], f
     this.tDist.classList.toggle('out-of-range', dist > 26);
 
     setBar(this.tHp, t.hpPct(), now,
-      Math.round(t.hp) + ' / ' + t.hpMax,
-      t.totalBarrier() / t.hpMax);
+      Math.round(t.hp) + ' / ' + Math.round(t.effectiveHpMax ? t.effectiveHpMax() : t.hpMax),
+      t.totalBarrier() / (t.effectiveHpMax ? t.effectiveHpMax() : t.hpMax));
 
     if (t.cast) {
       var prog = (now - t.cast.startTime) / Math.max(t.cast.duration, 1e-3);
@@ -351,15 +384,32 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons'], f
     }
   };
 
-  HUD.prototype.setAbilities = function (player) {
+  HUD.prototype._renderActionBar = function () {
     for (var i = 0; i < this.slots.length; i++) {
-      var id = player.abilities[i];
+      var id = this.actionState.abilityAt(i);
       var ab = id ? Arena.Data.abilities[id] : null;
       this.slots[i].abilityId = id || null;
       this.slots[i].icon.innerHTML = ab ? Arena.UI.AbilityIcons.svg(ab) : '';
       this.slots[i].root.classList.toggle('empty', !ab);
+      this.slots[i].root.setAttribute('aria-label', ab ? ab.name : 'Slot vacío');
     }
+    for (var b=0;b<this.barTabs.length;b++) this.barTabs[b].classList.toggle('active', b===this.actionState.activeBar);
   };
+
+  HUD.prototype.setAbilities = function (player) {
+    this.actionState.setClass(player.classId);
+    if (this.powerBook) this.powerBook.setClass(player.classId);
+    this._renderActionBar();
+  };
+
+  HUD.prototype.selectBar = function (index) {
+    this.actionState.selectBar(index);
+    if (this.slots) this._renderActionBar();
+  };
+
+  HUD.prototype.getActiveAbilityId = function (slotIndex) { return this.actionState.abilityAt(slotIndex); };
+  HUD.prototype.togglePowerBook = function () { if (this.powerBook) this.powerBook.toggle(); };
+  HUD.prototype.closePowerBook = function () { if (this.powerBook && this.powerBook.isOpen()) { this.powerBook.hide(); return true; } return false; };
 
   HUD.prototype._updateActionBar = function (p, now) {
     var world = this.world;
@@ -454,7 +504,7 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons'], f
   };
 
   HUD.prototype._ccLabel = function (e) {
-    var priority = ['stasis', 'knockdown', 'stun', 'silence', 'root', 'disarm', 'utilityLock', 'antiBuff'];
+    var priority = ['stasis', 'knockdown', 'stun', 'sourceDaze', 'silence', 'root', 'noAttack', 'disarm', 'utilityLock', 'antiBuff'];
     for (var i = 0; i < priority.length; i++) {
       if (e.hasStatus(priority[i])) return EFF[priority[i]].name;
     }

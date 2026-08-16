@@ -28,6 +28,7 @@ Arena.define('sim/world',
     this.entities = [];
     this._byId = Object.create(null);
     this.zones = [];
+    this.auras = [];
     this.projectiles = [];
     this.time = 0;
     this.tickCount = 0;
@@ -38,7 +39,8 @@ Arena.define('sim/world',
       freeResources: false,
       aiEnabled: true,
       godModePlayer: false,
-      showTelegraphs: true
+      showTelegraphs: true,
+      expandedPowerPassives: false
     };
 
     var self = this;
@@ -48,7 +50,9 @@ Arena.define('sim/world',
     });
 
     this._nextZoneId = 1;
+    this._nextAuraId = 1;
     this._nextProjId = 1;
+    this._nextCompanionId = 1;
     this._scratch = { v: V.create(), v2: V.create() };
   }
 
@@ -64,6 +68,15 @@ Arena.define('sim/world',
     this.bus.emit('EntitySpawned', {
       entityId: entity.id, name: entity.name, classId: entity.classId, team: entity.team
     });
+    if (this.settings.expandedPowerPassives && Arena.Data.powerLibrary && !entity.isCompanion) {
+      var pids = Arena.Data.powerLibrary.passiveFor(entity.classId);
+      for (var pi = 0; pi < pids.length; pi++) {
+        var pab = Arena.Data.abilities[pids[pi]];
+        if (pab && pab.selfEffects && pab.selfEffects.length) {
+          Resolver._applyEffectList(this, entity, entity, pab, pab.selfEffects, { isSelf: true });
+        }
+      }
+    }
     return entity;
   };
 
@@ -319,6 +332,112 @@ Arena.define('sim/world',
   };
 
   /* =========================================================================
+   * Auras de la biblioteca de poderes
+   * ====================================================================== */
+
+  World.prototype.spawnAura = function (cfg) {
+    var a = {
+      id: 'a' + (this._nextAuraId++), ownerId: cfg.ownerId, abilityId: cfg.abilityId,
+      radius: cfg.radius || 6, affects: cfg.affects || 'alliesAndSelf', effects: cfg.effects || [],
+      createdAt: this.time, expiresAt: this.time + (cfg.duration || 30), nextPulseAt: this.time, effectNext: Object.create(null)
+    };
+    this.auras.push(a);
+    this.bus.emit('AuraSpawned', { auraId:a.id, ownerId:a.ownerId, abilityId:a.abilityId, radius:a.radius, expiresAt:a.expiresAt });
+    return a;
+  };
+
+  World.prototype._tickAuras = function () {
+    for (var i=this.auras.length-1;i>=0;i--) {
+      var a=this.auras[i], owner=this.getEntity(a.ownerId);
+      if (!owner || !owner.alive || this.time >= a.expiresAt) {
+        this.auras.splice(i,1); this.bus.emit('AuraRemoved',{auraId:a.id, reason:owner&&owner.alive?'expired':'ownerLost'}); continue;
+      }
+      if (this.time + 1e-6 < a.nextPulseAt) continue;
+      a.nextPulseAt = this.time + 0.25;
+      var ability=Arena.Data.abilities[a.abilityId] || {id:a.abilityId};
+      for (var j=0;j<this.entities.length;j++) {
+        var e=this.entities[j]; if(!e.alive) continue;
+        var hostile=this.areHostile(owner,e);
+        if(a.affects==='alliesAndSelf' && hostile) continue;
+        if(a.affects==='allies' && (hostile || e.id===owner.id)) continue;
+        if(a.affects==='enemies' && !hostile) continue;
+        if(V.distXZ(owner.pos,e.pos)>a.radius+e.radius) continue;
+        // Aura source semantics: status/barrier effects are refreshed while
+        // inside and disappear shortly after leaving. Per-second source damage,
+        // healing or mana pulses execute exactly once per source interval —
+        // never every 0.25 s and never by stacking a full-duration DoT.
+        for (var k=0;k<a.effects.length;k++) {
+          var fx=a.effects[k], pulse=null, key=e.id+':'+k;
+          if(fx.type==='status' || fx.type==='barrier') {
+            pulse={}; for(var q in fx) if(Object.prototype.hasOwnProperty.call(fx,q)) pulse[q]=fx[q];
+            pulse.duration=Math.min(0.45, fx.duration || 0.45);
+          } else {
+            var interval=Math.max(0.05, Number(fx.interval||1));
+            var due=a.effectNext[key]; if(due===undefined) due=a.createdAt+interval;
+            if(this.time+1e-6<due) continue;
+            a.effectNext[key]=this.time+interval;
+            if(fx.type==='sourceDot') pulse={type:'sourceDamage',min:fx.min,max:fx.max,school:fx.school,element:fx.element,sourceText:fx.sourceText};
+            else if(fx.type==='sourceHot') pulse={type:'sourceHeal',min:fx.min,max:fx.max,percentOfMax:fx.percentOfMax,sourceText:fx.sourceText};
+            else if(fx.type==='sourceManaDrainDot') pulse={type:'sourceManaDrain',min:fx.min,max:fx.max,percent:fx.percent,transfer:fx.transfer,sourceText:fx.sourceText};
+            else if(fx.type==='sourceResourceRestore' || fx.type==='sourceHeal' || fx.type==='sourceDamage' || fx.type==='sourceManaDrain') pulse=fx;
+          }
+          if(pulse) Resolver._applyEffectList(this, owner, e, ability, [pulse], {isAoE:true});
+        }
+      }
+    }
+  };
+
+  /* =========================================================================
+   * Compañeros / invocaciones mínimos, autoritativos y reutilizables
+   * ====================================================================== */
+
+  World.prototype.spawnCompanion = function (owner, cfg) {
+    cfg=cfg||{};
+    var angle=owner.yaw + ((cfg.index||0)-0.5)*0.9;
+    var x=owner.pos.x-Math.sin(angle)*1.7, z=owner.pos.z-Math.cos(angle)*1.7;
+    var sourceKind=(cfg.kind&&cfg.kind!=='summon'&&cfg.kind!=='companion')?String(cfg.kind):'Invocación';
+    var c=Arena.Data.makeEntity(owner.classId, {
+      id:'comp_'+owner.id+'_'+(this._nextCompanionId++), name:sourceKind,
+      team:owner.team, x:x, z:z, yaw:owner.yaw,
+      hpMax:Math.max(420,Math.round(owner.hpMax*0.42)), power:Math.max(45,Math.round(owner.power*0.52)),
+      armor:Math.round(owner.armorBase*0.65), resist:Math.round(owner.resistBase*0.65),
+      aiProfile:'chaser', aiEnabled:true
+    });
+    c.isCompanion=true; c.ownerId=owner.id; c.summonedByAbility=cfg.abilityId||null;
+    c.sourceSummonKind=sourceKind; c.controllable=!!cfg.controllable;
+    c.summonExpiresAt=Number(cfg.duration||0)>0 ? this.time+Number(cfg.duration) : Infinity;
+    c.abilities=[]; c.passiveId=null; c.autoAttackRange=Math.min(c.autoAttackRange,2.6);
+    this.addEntity(c);
+    // Source passives from pet/summon disciplines are tagged companionPassive
+    // and are applied to the creature at creation, never to its owner.
+    if (Arena.Data.powerLibrary) {
+      var pp=Arena.Data.powerLibrary.passiveFor(owner.classId);
+      for(var pj=0;pj<pp.length;pj++){
+        var pa=Arena.Data.abilities[pp[pj]];
+        if(pa&&pa.flags&&pa.flags.companionPassive&&pa.companionEffects&&pa.companionEffects.length){
+          Resolver._applyEffectList(this,owner,c,pa,pa.companionEffects,{isSelf:true});
+        }
+      }
+    }
+    // A summoned creature starts at its EFFECTIVE source maximum after its
+    // permanent pet passives have been installed (e.g. Adiestramiento +100%).
+    c.hp = c.effectiveHpMax ? c.effectiveHpMax() : c.hp;
+    this.bus.emit('CompanionSummoned',{ownerId:owner.id,entityId:c.id,abilityId:cfg.abilityId||null,kind:sourceKind,expiresAt:c.summonExpiresAt});
+    return c;
+  };
+
+  World.prototype.companionsOf = function (owner, includeDead) {
+    var out=[]; for(var i=0;i<this.entities.length;i++){var e=this.entities[i];if(e.isCompanion&&e.ownerId===owner.id&&(includeDead||e.alive))out.push(e);} return out;
+  };
+
+  World.prototype.reviveEntity = function (e, hpPct) {
+    if(!e || e.alive || e.cremated) return false;
+    e.alive=true; e.deadAt=-1; e.hp=Math.max(1,Math.round(e.hpMax*Math.max(.1,Math.min(1,hpPct||.5))));
+    e.resource=Math.max(0,Math.round(e.resourceMax*.25)); e.statuses.length=0; e.invalidateMods();
+    this.bus.emit('EntityRevived',{entityId:e.id,hp:e.hp}); return true;
+  };
+
+  /* =========================================================================
    * Proyectiles
    *
    * Las habilidades marcadas como proyectil resuelven al IMPACTO, no al lanzar.
@@ -390,16 +509,16 @@ Arena.define('sim/world',
             casterId: caster.id, targetId: target.id, projectileId: p.id,
             damage: aa.applied, ranged: true
           });
+          if (aa.applied > 0 && Ability._advanceNormalStacks) { Ability._advanceNormalStacks(caster); if(Ability._applySourceOnHitRecovery) Ability._applySourceOnHitRecovery(this,caster,aa.applied); }
           if (Arena.Data.passives && Arena.Data.passives.onAutoAttack) {
             Arena.Data.passives.onAutoAttack(this, caster, target, aa);
           }
         } else {
           var ability = Arena.Data.abilities[p.abilityId];
           if (ability && caster) {
-            Resolver.resolveHit(this, caster, target, ability, { isAoE: false });
-            if (ability.selfEffects && ability.selfEffects.length) {
-              Resolver._applyEffectList(this, caster, caster, ability, ability.selfEffects, { isSelf: true });
-            }
+            Resolver.execute(this, caster, ability, {
+              targetId: target.id, target: target, fromProjectile: true
+            });
           }
         }
       } else {
@@ -537,7 +656,7 @@ Arena.define('sim/world',
         var mf = e.mods();
         if (mf.canMove || mf.canUseAbility) e.yaw = V.wrapAngle(e._faceIntent);
       } else if (e.alive && e._turnIntent) {
-        // Giro por tecla: sí limitado. Q/E son un acelerador, no un volante.
+        // Giro por tecla: sí limitado. A/D son un acelerador, no un volante.
         this.turnEntityBy(e, e._turnIntent, dt);
       }
     }
@@ -557,6 +676,16 @@ Arena.define('sim/world',
     // 4. Mundo
     this._tickProjectiles(dt);
     this._tickZones(dt);
+    this._tickAuras(dt);
+    // Source summons expire at their literal source duration. Iterate backwards
+    // because expiration removes entities from the authoritative array.
+    for (i=this.entities.length-1;i>=0;i--) {
+      e=this.entities[i];
+      if(e&&e.isCompanion&&e.summonExpiresAt!==undefined&&this.time>=e.summonExpiresAt) {
+        this.bus.emit('CompanionExpired',{entityId:e.id,ownerId:e.ownerId,abilityId:e.summonedByAbility});
+        this.removeEntity(e.id);
+      }
+    }
 
     // 5. Regeneración y auras pasivas
     for (i = 0; i < this.entities.length; i++) {
@@ -577,12 +706,15 @@ Arena.define('sim/world',
     var res = B.RESOURCE[e.resourceType];
     if (!res) return;
     var outOfCombat = (this.time - e.lastCombatAt) > B.OUT_OF_COMBAT_SECONDS;
-    var rate = res.regen * (outOfCombat ? B.OUT_OF_COMBAT_RESOURCE_MULT : 1);
+    var regenPct=e.mods ? (e.mods().resourceRegenPct||0) : 0;
+    var rate = res.regen * Math.max(0,1+regenPct) * (outOfCombat ? B.OUT_OF_COMBAT_RESOURCE_MULT : 1);
     if (e.resource < e.resourceMax) {
       e.resource = Math.min(e.resourceMax, e.resource + rate * dt);
     }
-    if (outOfCombat && e.hp < e.hpMax) {
-      e.hp = Math.min(e.hpMax, e.hp + e.hpMax * B.OUT_OF_COMBAT_HP_REGEN * dt);
+    var hpMax = e.effectiveHpMax ? e.effectiveHpMax() : e.hpMax;
+    if (outOfCombat && e.hp < hpMax) {
+      var regenMod = e.mods ? (1 + (e.mods().healthRegenPct || 0)) : 1;
+      e.hp = Math.min(hpMax, e.hp + hpMax * B.OUT_OF_COMBAT_HP_REGEN * Math.max(0, regenMod) * dt);
     }
   };
 
@@ -597,6 +729,7 @@ Arena.define('sim/world',
   World.prototype.reset = function () {
     for (var i = 0; i < this.entities.length; i++) this.entities[i].reset();
     this.zones.length = 0;
+    this.auras.length = 0;
     this.projectiles.length = 0;
     this.bus.emit('WorldReset', { time: this.time });
   };

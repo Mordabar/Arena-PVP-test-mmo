@@ -1,0 +1,16 @@
+PROJECT ARENA v0.15 · SKINNED ANIMATION REBUILD
+
+Automated suite: 367/367 PASS
+Skinned animation focused gate: 12/12 PASS
+Relevant specialist/reviewer agents: 11/11 PASS
+DOCX source-power arbiter: 20/20 PASS
+Adversarial arbiter: APROBADO
+Static visual critic: APROBADO
+GLB validation: PASS · 50,000 tris · 76,070 vertices · 17 bones · 1 skin
+Skinning chain audit: PASS
+Syntax: 113 JS + 5 Python PASS
+Browser visual smoke: BLOCKED_EXTERNAL
+Reason: managed Chromium blocks 127.0.0.1 before Arena JavaScript loads.
+Evidence: docs/QA_BROWSER_POLICY_BLOCK_V015.png
+
+Honesty status: animation/model wave is TESTED, not human-VERIFIED visually until deployed playtest.

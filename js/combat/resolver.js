@@ -25,7 +25,7 @@ Arena.define('combat/resolver',
 
   var R = {};
 
-  var DAMAGE_TYPES = { physicalDamage: 1, magicalDamage: 1, pureDamage: 1, dot: 1, drainResource: 1 };
+  var DAMAGE_TYPES = { physicalDamage: 1, magicalDamage: 1, pureDamage: 1, dot: 1, drainResource: 1, sourceDamage: 1, sourceWeaponDamage: 1, sourceDot: 1, sourceDrain: 1, sourceDrainDot: 1, manaBurn: 1 };
 
   /** ¿El payload de esta habilidad causa daño de HP o maná? Determina si la
    *  Intervención la deja pasar (§9). Se calcula una vez y se cachea. */
@@ -69,6 +69,22 @@ Arena.define('combat/resolver',
         break;
       }
 
+      case 'targetArea': {
+        /* AoE TARGET-CENTERED: Regnum-style ranged areas are not free ground
+         * reticles. The selected target anchors the blast and normal target
+         * range/facing/LoS validation remains authoritative. */
+        var anchor = ctx.target || world.getEntity(ctx.targetId);
+        if (!anchor) break;
+        var listA = world.entities;
+        for (i = 0; i < listA.length; i++) {
+          e = listA[i];
+          if (!R._validAoEVictim(world, caster, e, ability)) continue;
+          if (V.distXZ(anchor.pos, e.pos) > (ability.radius || 3) + e.radius) continue;
+          out.push(e);
+        }
+        break;
+      }
+
       case 'cone': {
         var list = world.entities;
         for (i = 0; i < list.length; i++) {
@@ -109,7 +125,9 @@ Arena.define('combat/resolver',
   };
 
   R._validAoEVictim = function (world, caster, e, ability) {
-    if (!e.alive || !e.isTargetable()) return false;
+    var reviveAction=!!(ability.flags&&ability.flags.revive);
+    if (reviveAction) { if (e.alive || e.cremated) return false; }
+    else if (!e.alive || !e.isTargetable()) return false;
     var hostile = world.areHostile(caster, e);
     if (ability.affects === 'allies') { if (hostile || e.id === caster.id) return false; }
     else if (ability.affects === 'alliesAndSelf') { if (hostile) return false; }
@@ -149,7 +167,7 @@ Arena.define('combat/resolver',
     }
 
     var targets = R.collectTargets(world, caster, ability, ctx);
-    var isAoE = (ability.target === 'cone' || ability.target === 'aoeSelf' || ability.target === 'ground');
+    var isAoE = (ability.target === 'cone' || ability.target === 'aoeSelf' || ability.target === 'ground' || ability.target === 'targetArea');
     var report = {
       abilityId: ability.id, casterId: caster.id, hits: [], targetCount: targets.length,
       groundPoint: ctx.groundPoint || null
@@ -195,7 +213,7 @@ Arena.define('combat/resolver',
     var hostile = world.areHostile(caster, target);
 
     /* --- Paso 5.a — Estasis / invulnerabilidad -------------------------- */
-    if (!target.alive) { hit.outcome = 'dead'; return hit; }
+    if (!target.alive && !(ability.flags && ability.flags.revive)) { hit.outcome = 'dead'; return hit; }
     if (target.mods().isolated) {
       hit.outcome = 'stasis';
       world.bus.emit('AbilityNullified', {
@@ -205,6 +223,16 @@ Arena.define('combat/resolver',
     }
 
     if (hostile) {
+      /* Resistencia absoluta/probabilística a poderes de la biblioteca fuente.
+         Con RNG apagado sólo 100 % niega el impacto; con RNG encendido se usa
+         el RNG determinista del mundo. El ataque normal no pasa por aquí. */
+      var powerImmune = target.mods().powerImmunityPct || 0;
+      if (powerImmune >= 0.999 || (powerImmune > 0 && world.settings.rngEnabled && world.rng.chance(powerImmune))) {
+        hit.outcome = 'resisted';
+        world.bus.emit('AbilityNullified', { casterId:caster.id, targetId:target.id, abilityId:ability.id, reason:'sourcePowerResistance' });
+        return hit;
+      }
+
       /* --- Paso 5.b — Intervención -------------------------------------
        * El aliado protegido ignora las habilidades hostiles cuyo payload NO
        * cause daño de HP/maná. Una habilidad dañina sí impacta, y aplica sus
@@ -237,8 +265,30 @@ Arena.define('combat/resolver',
         }
       }
 
+      /* Evasión y bloqueo porcentuales source-derived. El modo competitivo de
+         game-feel mantiene RNG apagado: sólo un 100 % es determinista. Al
+         activar RNG en el laboratorio, porcentajes intermedios se vuelven
+         plenamente funcionales usando la semilla del mundo. */
+      var tm = target.mods();
+      var ev = Math.max(0, tm.evasionPct || 0);
+      var physicalLike = ability.flags && ability.flags.weaponAttack;
+      if (physicalLike && (ev >= 0.999 || (ev > 0 && world.settings.rngEnabled && world.rng.chance(ev)))) {
+        hit.outcome = 'evaded';
+        world.bus.emit('AbilityNullified', { casterId:caster.id, targetId:target.id, abilityId:ability.id, reason:'evasion' });
+        return hit;
+      }
+      var bp = Math.max(0, tm.blockPct || 0);
+      var canSourceBlock = !(ability.sourceDerived && ability.flags && ability.flags.blockable === false);
+      if (canSourceBlock && R.isSingleTargetDirect(ability, ctx) &&
+          (bp >= 0.999 || (bp > 0 && world.settings.rngEnabled && world.rng.chance(bp)))) {
+        hit.outcome = 'blocked';
+        world.bus.emit('AbilityBlocked', { casterId:caster.id, targetId:target.id, abilityId:ability.id, reason:'sourceBlockChance' });
+        return hit;
+      }
+
       /* --- Paso 5.d — Bloqueo ------------------------------------------- */
-      if (target.mods().blocksDirectHits && R.isSingleTargetDirect(ability, ctx)) {
+      if (target.mods().blocksDirectHits && R.isSingleTargetDirect(ability, ctx) &&
+          !(ability.sourceDerived && ability.flags && ability.flags.blockable === false)) {
         hit.outcome = 'blocked';
         world.bus.emit('AbilityBlocked', {
           casterId: caster.id, targetId: target.id, abilityId: ability.id
@@ -286,14 +336,136 @@ Arena.define('combat/resolver',
     return (e.flat !== undefined ? e.flat : caster.power * (e.coefficient || 1));
   }
 
+  function sourceRoll(world, min, max) {
+    min=Number(min||0); max=Number(max===undefined?min:max);
+    if(max<min){var t=min;min=max;max=t;}
+    if(Math.abs(max-min)<1e-9) return min;
+    return world.settings.rngEnabled ? world.rng.range(min,max) : (min+max)*0.5;
+  }
+
+  function sourceRangeKind(ability) {
+    if (ability.flags && ability.flags.projectile) return 'ranged';
+    return (ability.range||0)>4 ? 'ranged' : 'melee';
+  }
+
+  function sourceBonusFlat(mods, element) {
+    var b=mods.sourceBonusDamageFlat||{}, total=Number(b.generic||0);
+    if(element) total+=Number(b[element]||0);
+    if(element==='slashing'||element==='piercing'||element==='blunt') total+=Number(b.physical||0);
+    return total;
+  }
+
   R.effectHandlers = {
+
+    sourceDamage: function (world, caster, target, ability, e, split, hit) {
+      var cm=caster.mods();
+      var raw=sourceRoll(world,e.min,e.max);
+      if(ability.flags&&ability.flags.magic) raw*=Math.max(0,1+(cm.spellDamagePct||0));
+      raw+=sourceBonusFlat(cm,e.element);
+      raw*=split;
+      var res=Dmg.applyDamage(world,{source:caster,target:target,raw:raw,school:e.school||'pure',element:e.element||'generic',abilityId:ability.id,canCrit:false,rangeKind:sourceRangeKind(ability)});
+      hit.damage+=res.applied;
+    },
+
+    sourceWeaponDamage: function (world, caster, target, ability, e, split, hit) {
+      if(e.chance!==undefined && world.settings.rngEnabled && !world.rng.chance(e.chance)) return;
+      var pct=sourceRoll(world,e.pctMin,e.pctMax);
+      var mult=e.bonus ? (1+pct) : pct;
+      var cm=caster.mods();
+      var base=caster.power * B.AUTO_ATTACK.coefficient * Math.max(0,1+(cm.weaponDamagePct||0));
+      var raw=(base*mult + sourceBonusFlat(cm,'physical'))*split;
+      var res=Dmg.applyDamage(world,{source:caster,target:target,raw:raw,school:'physical',element:'physical',abilityId:ability.id,canCrit:true,rangeKind:sourceRangeKind(ability)});
+      hit.damage+=res.applied;
+    },
+
+    sourceDot: function (world, caster, target, ability, e, split, hit) {
+      var cm=caster.mods();
+      var tick=sourceRoll(world,e.min,e.max);
+      if(ability.flags&&ability.flags.magic) tick*=Math.max(0,1+(cm.spellDamagePct||0));
+      tick+=sourceBonusFlat(cm,e.element);
+      tick*=split;
+      var interval=e.interval||1.0, duration=e.duration||interval;
+      Status.apply(world,target,{effect:'dot',duration:duration,abilityId:ability.id,data:{tickDamage:tick,interval:interval,total:tick*Math.max(1,Math.round(duration/interval)),school:e.school||'magical',element:e.element||'generic',label:'Daño fuente'}},caster);
+      hit.effects.push('sourceDot');
+    },
+
+    sourceDrain: function (world, caster, target, ability, e, split, hit) {
+      var raw=sourceRoll(world,e.min,e.max)*split;
+      var res=Dmg.applyDamage(world,{source:caster,target:target,raw:raw,school:'pure',abilityId:ability.id,canCrit:false});
+      hit.damage+=res.applied;
+      if(res.applied>0) Heal.applyHeal(world,{source:caster,target:caster,raw:res.applied,abilityId:ability.id});
+      hit.effects.push('sourceDrain');
+    },
+
+    sourceDrainDot: function (world, caster, target, ability, e, split, hit) {
+      var tick=sourceRoll(world,e.min,e.max)*split;
+      var interval=e.interval||1.0, duration=e.duration||interval;
+      Status.apply(world,target,{effect:'dot',duration:duration,abilityId:ability.id,data:{tickDamage:tick,interval:interval,total:tick*Math.max(1,Math.round(duration/interval)),school:'pure',label:'Drenaje vital',healSourceId:caster.id}},caster);
+      hit.effects.push('sourceDrainDot');
+    },
+
+    sourceHeal: function (world, caster, target, ability, e, split, hit) {
+      if(e.chance!==undefined && world.settings.rngEnabled && !world.rng.chance(e.chance)) return;
+      var rolled=sourceRoll(world,e.min,e.max);
+      var raw=(e.percentOfMax ? target.effectiveHpMax()*(rolled/100) : rolled)*split;
+      var res=Heal.applyHeal(world,{source:caster,target:target,raw:raw,abilityId:ability.id});
+      hit.healing+=res.applied;
+      hit.effects.push('sourceHeal');
+    },
+
+    sourceHot: function (world, caster, target, ability, e, split, hit) {
+      var tick=sourceRoll(world,e.min,e.max)*split;
+      var interval=e.interval||1.0, duration=e.duration||interval;
+      Status.apply(world,target,{effect:'hot',duration:duration,abilityId:ability.id,data:{tickHeal:tick,interval:interval,label:'Curación fuente'}},caster);
+      hit.effects.push('sourceHot');
+    },
+
+    sourceResourceRestore: function (world, caster, target, ability, e, split, hit) {
+      var value=sourceRoll(world,e.min,e.max);
+      var amount=e.percent ? target.resourceMax*(value/100) : value;
+      Heal.restoreResource(world,target,amount*split,'sourceAbility');
+      hit.effects.push('sourceResourceRestore');
+    },
+
+    sourceManaDrain: function (world, caster, target, ability, e, split, hit) {
+      var value=sourceRoll(world,e.min,e.max);
+      var requested=e.percent ? target.resourceMax*(value/100) : value;
+      requested*=split;
+      var amount=Math.min(target.resource,Math.max(0,requested));
+      target.resource-=amount;
+      if(e.transfer&&amount>0) Heal.restoreResource(world,caster,amount,'sourceManaDrain');
+      world.bus.emit('ResourceDrained',{targetId:target.id,sourceId:caster.id,amount:amount,abilityId:ability.id});
+      hit.effects.push('sourceManaDrain');
+    },
+
+    sourceManaDrainDot: function (world, caster, target, ability, e, split, hit) {
+      var value=sourceRoll(world,e.min,e.max)*split;
+      Status.apply(world,target,{effect:'dot',duration:e.duration||1,abilityId:ability.id,data:{
+        tickResourceDrain:value, resourceDrainPercent:!!e.percent, resourceHealSource:!!e.transfer,
+        interval:e.interval||1.0, label:'Drenaje de maná fuente'
+      }},caster);
+      hit.effects.push('sourceManaDrainDot');
+    },
+
+    manaBurn: function (world, caster, target, ability, e, split, hit) {
+      var requested=Math.max(0,Number(e.flat||0))*split;
+      var amount=Math.min(target.resource,requested);
+      target.resource-=amount;
+      if(amount>0){
+        var res=Dmg.applyDamage(world,{source:caster,target:target,raw:amount,school:'pure',abilityId:ability.id,canCrit:false});
+        hit.damage+=res.applied;
+      }
+      world.bus.emit('ResourceDrained',{targetId:target.id,sourceId:caster.id,amount:amount,abilityId:ability.id});
+      hit.effects.push('manaBurn');
+    },
 
     physicalDamage: function (world, caster, target, ability, e, split, hit) {
       var res = Dmg.applyDamage(world, {
         source: caster, target: target, raw: power(caster, e) * split,
         school: 'physical', abilityId: ability.id,
         ignoreDefensePct: e.ignoreDefensePct || 0,
-        canCrit: e.canCrit !== false
+        canCrit: e.canCrit !== false,
+        rangeKind: (ability.flags && ability.flags.projectile) ? 'ranged' : 'melee'
       });
       hit.damage += res.applied;
     },
@@ -303,7 +475,8 @@ Arena.define('combat/resolver',
         source: caster, target: target, raw: power(caster, e) * split,
         school: 'magical', abilityId: ability.id,
         ignoreDefensePct: e.ignoreDefensePct || 0,
-        canCrit: e.canCrit !== false
+        canCrit: e.canCrit !== false,
+        rangeKind: (ability.flags && ability.flags.projectile) ? 'ranged' : ((ability.range || 0) > 4 ? 'ranged' : 'melee')
       });
       hit.damage += res.applied;
     },
@@ -367,7 +540,7 @@ Arena.define('combat/resolver',
       if (e.effect === 'protectiveLink') data.binderId = caster.id;
       var inst = Status.apply(world, target, {
         effect: e.effect, duration: e.duration || 0, abilityId: ability.id,
-        data: data, ignoreDR: e.ignoreDR, ignoreAntiBuff: e.ignoreAntiBuff,
+        data: data, ignoreDR: (e.ignoreDR || !!ability.sourceDerived), ignoreAntiBuff: e.ignoreAntiBuff,
         permanent: e.permanent
       }, caster);
       if (inst) hit.effects.push(e.effect);
@@ -379,6 +552,7 @@ Arena.define('combat/resolver',
     },
 
     purge: function (world, caster, target, ability, e, split, hit) {
+      if(e.chance!==undefined && world.settings.rngEnabled && !world.rng.chance(e.chance)) return;
       var removed = Status.purge(world, target, e.count || 1, caster);
       if (removed.length) hit.effects.push('purge');
     },
@@ -400,11 +574,113 @@ Arena.define('combat/resolver',
     },
 
     drainResource: function (world, caster, target, ability, e, split, hit) {
-      var amount = Math.min(target.resource, e.flat || 0);
+      var requested = e.flat !== undefined ? e.flat : target.resourceMax * (e.pct || 0);
+      var amount = Math.min(target.resource, Math.max(0, requested));
       target.resource -= amount;
       world.bus.emit('ResourceDrained', {
         targetId: target.id, sourceId: caster.id, amount: amount, abilityId: ability.id
       });
+    },
+
+    /** Aura persistente centrada en el lanzador. World vuelve a aplicar sus
+     *  estados en pulsos cortos, de modo que salir del radio los deja expirar. */
+    aura: function (world, caster, target, ability, e, split, hit) {
+      world.spawnAura({
+        ownerId: caster.id, abilityId: ability.id,
+        radius: e.radius || 6, duration: e.duration || 30,
+        affects: e.affects || 'alliesAndSelf', effects: e.effects || []
+      });
+      hit.effects.push('aura');
+    },
+
+    summon: function (world, caster, target, ability, e, split, hit) {
+      var n = Math.max(1, Math.min(12, e.count || 1));
+      for (var i = 0; i < n; i++) world.spawnCompanion(caster, {
+        kind: e.kind || 'companion', abilityId: ability.id, index: i, controllable:!!e.controllable, duration:e.duration||0
+      });
+      hit.effects.push('summon');
+    },
+
+    companionEffect: function (world, caster, target, ability, e, split, hit) {
+      var pets = world.companionsOf(caster, true);
+      for (var i = 0; i < pets.length; i++) {
+        if (!pets[i].alive) continue;
+        R._applyEffectList(world, caster, pets[i], ability, e.effects || [], { isSelf: true }, hit);
+      }
+      hit.effects.push('companionEffect');
+    },
+
+    companionProtectOwner: function (world, caster, target, ability, e, split, hit) {
+      var pets=world.companionsOf(caster,false);
+      if(!pets.length){ hit.outcome='noCompanion'; return; }
+      var pet=pets[0];
+      var inst=Status.apply(world,caster,{effect:'damageRedirect',duration:e.duration||1,abilityId:ability.id,data:{
+        redirectPct:Math.max(0,Math.min(1,Number(e.redirectPct||0))), protectorId:pet.id
+      },ignoreDR:true},caster);
+      if(inst) hit.effects.push('companionProtectOwner');
+    },
+
+    companionAoE: function (world, caster, target, ability, e, split, hit) {
+      var pets=world.companionsOf(caster,false), radius=Number(e.radius||6);
+      for(var pi=0;pi<pets.length;pi++){
+        var pet=pets[pi];
+        for(var ti=0;ti<world.entities.length;ti++){
+          var victim=world.entities[ti];
+          if(!victim.alive || !world.areHostile(caster,victim)) continue;
+          if(Arena.Math.Vec3.distXZ(pet.pos,victim.pos)>radius+victim.radius) continue;
+          R._applyEffectList(world,pet,victim,ability,e.effects||[],{isAoE:true},hit);
+        }
+      }
+      hit.effects.push('companionAoE');
+    },
+
+    companionRevive: function (world, caster, target, ability, e, split, hit) {
+      var pets = world.companionsOf(caster, true);
+      for (var i = 0; i < pets.length; i++) if (!pets[i].alive) world.reviveEntity(pets[i], e.hpPct || 0.6);
+      hit.effects.push('companionRevive');
+    },
+
+    tameCreature: function (world, caster, target, ability, e, split, hit) {
+      if (!target || !target.alive || !world.areHostile(caster,target)) return;
+      /* Arena has no wild-creature level system yet. The closest authoritative
+         target is a hostile companion/summon; maxLevel remains part of the
+         source contract for the later creature system. */
+      if (!target.isCompanion) { hit.outcome='invalidCreature'; return; }
+      var previous=target.ownerId;
+      target.ownerId=caster.id; target.team=caster.team; target.targetId=null; target.aiEnabled=true;
+      target.tamedMaxLevel=Number(e.maxLevel||60);
+      world.bus.emit('CompanionTamed',{entityId:target.id,oldOwnerId:previous,ownerId:caster.id,abilityId:ability.id,maxLevel:target.tamedMaxLevel});
+      hit.effects.push('tameCreature');
+    },
+
+    possessCompanion: function (world, caster, target, ability, e, split, hit) {
+      if (!target || !target.alive || !target.isCompanion || !world.areHostile(caster,target)) return;
+      var previous=target.ownerId;
+      target.ownerId=caster.id; target.team=caster.team; target.targetId=null; target.aiEnabled=true;
+      world.bus.emit('CompanionPossessed',{entityId:target.id,oldOwnerId:previous,ownerId:caster.id,abilityId:ability.id});
+      hit.effects.push('possessCompanion');
+    },
+
+    revive: function (world, caster, target, ability, e, split, hit) {
+      if (target && !target.alive && !target.cremated) {
+        var pct=Number(e.hpPct||0);
+        if(pct>0) world.reviveEntity(target,pct);
+        else {
+          world.reviveEntity(target,0.01);
+          if(e.hpFlat!==undefined) target.hp=Math.min(target.effectiveHpMax?target.effectiveHpMax():target.hpMax,Math.max(1,Number(e.hpFlat||1)));
+        }
+        if(e.resurrectionDaze) Status.apply(world,target,{effect:'silence',duration:5,abilityId:ability.id,data:{resurrectionDaze:true}},caster);
+        if(Number(e.sanctuarySeconds||0)>0) Status.apply(world,target,{effect:'sanctuary',duration:Number(e.sanctuarySeconds),abilityId:ability.id,data:{}},caster);
+        hit.effects.push('revive');
+      }
+    },
+
+    cremate: function (world, caster, target, ability, e, split, hit) {
+      if (target && !target.alive) {
+        target.cremated = true;
+        world.bus.emit('CorpseCremated', { entityId: target.id, sourceId: caster.id, abilityId: ability.id });
+        hit.effects.push('cremate');
+      }
     },
 
     /** Desplazamiento del lanzador hacia el objetivo (cargas) o hacia atrás. */
@@ -450,6 +726,35 @@ Arena.define('combat/resolver',
         effect: 'revealed', duration: e.duration || 5, abilityId: ability.id, data: {}
       }, caster);
       hit.effects.push('reveal');
+    },
+
+    /** Ejecución por umbral absoluto de vida, usada por una referencia sourceDerived. */
+    execute: function (world, caster, target, ability, e, split, hit) {
+      if (!target || !target.alive) return;
+      var threshold = Number(e.hpThreshold || 0);
+      if (threshold > 0 && target.hp <= threshold) {
+        Dmg.kill(world, target, caster, ability.id);
+        hit.effects.push('execute');
+        hit.outcome = 'execute';
+      }
+    },
+
+    /** Portal táctico: la simulación reubica aliados cercanos hacia el punto de suelo. */
+    teleportAllies: function (world, caster, target, ability, e, split, hit, ctx) {
+      var gp = ctx && ctx.groundPoint;
+      if (!gp) return;
+      var radius = Number(e.radius || 10), limit = Number(e.limit || 25), moved = 0;
+      for (var i=0;i<world.entities.length && moved<limit;i++) {
+        var ally=world.entities[i];
+        if (!ally.alive || world.areHostile(caster,ally)) continue;
+        var dx=ally.pos.x-caster.pos.x, dz=ally.pos.z-caster.pos.z;
+        if (dx*dx+dz*dz > radius*radius) continue;
+        ally.prevPos.x=ally.pos.x; ally.prevPos.y=ally.pos.y; ally.prevPos.z=ally.pos.z;
+        ally.pos.x=gp.x + (moved%5)*0.45; ally.pos.z=gp.z + Math.floor(moved/5)*0.45;
+        moved++;
+      }
+      hit.effects.push('portal:'+moved);
+      world.bus.emit('PortalUsed',{casterId:caster.id,abilityId:ability.id,count:moved,groundPoint:{x:gp.x,y:gp.y||0,z:gp.z}});
     },
 
     /** Ejecuta otro bloque de efectos si se cumple una condición nombrada. */

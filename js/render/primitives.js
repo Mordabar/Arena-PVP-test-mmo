@@ -114,6 +114,37 @@ Arena.define('render/primitives', ['math/vec3'], function (Arena) {
     return m;
   };
 
+
+  /** Elipsoide centrado. Evita repetir sphere+scale y hace explícita la anatomía. */
+  P.ellipsoid = function (rx, ry, rz, rings, segments) {
+    return P.scale(P.sphere(1, rings || 10, segments || 14), rx, ry, rz);
+  };
+
+  /** Toro con eje Y. Útil para golas, brazales, aros mágicos y remates sin cajas. */
+  P.torus = function (majorR, minorR, majorSegments, minorSegments, arc) {
+    majorSegments = majorSegments || 18; minorSegments = minorSegments || 7;
+    arc = arc === undefined ? Math.PI * 2 : arc;
+    var m = mesh();
+    for (var i = 0; i <= majorSegments; i++) {
+      var u = i / majorSegments, a = u * arc;
+      var ca = Math.cos(a), sa = Math.sin(a);
+      for (var j = 0; j <= minorSegments; j++) {
+        var v = j / minorSegments, b = v * Math.PI * 2;
+        var cb = Math.cos(b), sb = Math.sin(b);
+        var rr = majorR + minorR * cb;
+        var x = rr * ca, y = minorR * sb, z = rr * sa;
+        var nx = cb * ca, ny = sb, nz = cb * sa;
+        m.positions.push(x,y,z); m.normals.push(nx,ny,nz); m.uvs.push(u,v);
+      }
+    }
+    var row = minorSegments + 1;
+    for (var ii=0; ii<majorSegments; ii++) for (var jj=0; jj<minorSegments; jj++) {
+      var q=ii*row+jj, r=q+row;
+      m.indices.push(q,r,q+1,q+1,r,r+1);
+    }
+    return m;
+  };
+
   /** Cápsula: el cuerpo de los personajes y de las cajas de colisión. */
   P.capsule = function (radius, height, segments) {
     segments = segments || 14;
@@ -244,6 +275,19 @@ Arena.define('render/primitives', ['math/vec3'], function (Arena) {
     }
     rot(m.positions); rot(m.normals);
     return m;
+  };
+
+
+  P.rotateX = function (m, angle) {
+    var c=Math.cos(angle), s=Math.sin(angle);
+    function rot(arr){ for(var i=0;i<arr.length;i+=3){ var y=arr[i+1], z=arr[i+2]; arr[i+1]=y*c-z*s; arr[i+2]=y*s+z*c; } }
+    rot(m.positions); rot(m.normals); return m;
+  };
+
+  P.rotateZ = function (m, angle) {
+    var c=Math.cos(angle), s=Math.sin(angle);
+    function rot(arr){ for(var i=0;i<arr.length;i+=3){ var x=arr[i], y=arr[i+1]; arr[i]=x*c-y*s; arr[i+1]=x*s+y*c; } }
+    rot(m.positions); rot(m.normals); return m;
   };
 
   P.merge = function (list) {

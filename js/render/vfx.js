@@ -16,10 +16,13 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
   var M = Arena.Math.Mat4;
 
   var MAX_PARTICLES = 600;
+  var MAX_SPELLS = 96;
 
   var VFX = {
     particles: [],
+    spells: [],
     _cursor: 0,
+    _spellCursor: 0,
     _mat: M.create(),
     enabled: true
   };
@@ -31,6 +34,33 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       r: 1, g: 1, b: 1, gravity: -9, drag: 0.9, mesh: 'sphere', style: 'orb', spin: 0
     });
   }
+
+
+  for (var si = 0; si < MAX_SPELLS; si++) {
+    VFX.spells.push({ alive:false, type:'arcaneBolt', element:'arcane', life:0, maxLife:.5,
+      sx:0, sy:0, sz:0, ex:0, ey:0, ez:0, radius:0, intensity:'standard', seed:si });
+  }
+
+  VFX.elementColor = function (element) {
+    var c = {
+      fire:[1.0,.28,.07], ice:[.32,.86,1.0], lightning:[1.0,.88,.22],
+      wind:[.55,1.0,.84], earth:[.72,.46,.23], shadow:[.54,.22,.95],
+      nature:[.35,.88,.38], life:[.25,1.0,.58], arcane:[.64,.38,1.0], physical:[1.0,.76,.38]
+    };
+    return c[element] || c.arcane;
+  };
+
+  VFX.spawnSpell = function (cfg) {
+    if (!VFX.enabled || !cfg) return null;
+    var sp = VFX.spells[VFX._spellCursor];
+    VFX._spellCursor = (VFX._spellCursor + 1) % MAX_SPELLS;
+    sp.alive=true; sp.type=cfg.type||'arcaneBolt'; sp.element=cfg.element||'arcane';
+    sp.life=0; sp.maxLife=cfg.life||.5; sp.radius=cfg.radius||0; sp.intensity=cfg.intensity||'standard';
+    sp.sx=cfg.start.x; sp.sy=cfg.start.y; sp.sz=cfg.start.z;
+    sp.ex=cfg.end.x; sp.ey=cfg.end.y; sp.ez=cfg.end.z;
+    sp.seed=(cfg.seed===undefined ? VFX._spellCursor : cfg.seed)|0;
+    return sp;
+  };
 
   VFX._spawn = function (cfg) {
     if (!VFX.enabled) return null;
@@ -88,6 +118,54 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       var e = world.getEntity(id);
       if (!e) return null;
       return { x: e.pos.x, y: e.pos.y + (e.jumpOffset || 0) + (high === undefined ? e.height * 0.55 : high), z: e.pos.z };
+    }
+
+    function semanticPoint(p, high) {
+      if (p && p.groundPoint) return { x:p.groundPoint.x, y:(high===undefined?.25:high), z:p.groundPoint.z };
+      var tp = p && p.targetId ? posOf(p.targetId, high===undefined?.72:high) : null;
+      return tp || (p ? posOf(p.casterId, high===undefined?.8:high) : null);
+    }
+
+    function semanticRelease(p, ab) {
+      if (!ab || !ab.presentation) return;
+      var pr=ab.presentation, type=pr.shape || 'arcaneBolt';
+      /* Los weapon skills ya comunican su RELEASE con animación corporal,
+         weapon trail e impacto físico. Dibujar además un sello arcano genérico
+         hacía que 185 poderes melee parecieran hechizos. */
+      if (type === 'physicalSkill') return;
+      // World projectiles own their flight and impact timing. Do not draw a
+      // fake second projectile or an impact burst at RELEASE.
+      if (ab.flags && ab.flags.projectile) return;
+      var start=posOf(p.casterId, 1.15), end=semanticPoint(p,.55);
+      if (!start || !end) return;
+      var life=.48;
+      if (type==='meteor') { type='meteorImpact'; start={x:end.x,y:end.y,z:end.z}; life=.55; }
+      else if (type==='lightningBolt') life=.22;
+      else if (type==='iceBurst' || type==='crystalBurst') life=.52;
+      else if (type==='freezePrison') life=.72;
+      else if (type==='iceStorm' || type==='lightningStorm' || type==='tornado' || type==='doomAura') life=1.05;
+      else if (type==='fireball' || type==='magmaOrb') life=.58;
+      else if (type==='dreadWave') life=.65;
+      VFX.spawnSpell({type:type,element:pr.element,start:start,end:end,life:life,
+        radius:pr.impactRadius||ab.radius||0,intensity:pr.intensity||'standard',seed:(ab.sourceIndex||0)});
+      var col=VFX.elementColor(pr.element);
+      // Secondary particles make the release legible even on the native renderer.
+      VFX.burst(end, type==='meteor'||type==='fireball'||type==='iceBurst'?18:10, {
+        r:col[0],g:col[1],b:col[2],speed:type==='lightningBolt'?5.5:3.2,
+        life:type==='meteor'?.65:.45,size:type==='meteor'?.16:.09,gravity:type==='meteor'?-4:-.4,
+        style:(pr.element==='ice'?'shard':(pr.element==='lightning'?'spark':'orb'))
+      });
+    }
+
+    function semanticProjectileImpact(p) {
+      var ab=Arena.Data.abilities[p.abilityId];
+      if (!ab || !ab.presentation) return;
+      var pr=ab.presentation, end={x:p.x,y:p.y,z:p.z};
+      var type=(pr.shape==='magmaOrb'?'magmaImpact':(pr.shape==='fireball'||pr.shape==='fireBolt'?'fireImpact':pr.shape));
+      VFX.spawnSpell({type:type,element:pr.element,start:end,end:end,life:type==='magmaImpact'?.82:.58,
+        radius:pr.impactRadius||ab.radius||1.8,intensity:pr.intensity||'standard',seed:ab.sourceIndex||0});
+      var col=VFX.elementColor(pr.element);
+      VFX.burst(end, pr.intensity==='major'?24:18,{r:col[0],g:col[1],b:col[2],speed:4.4,life:.55,size:.12,gravity:-1.8,style:pr.element==='ice'?'shard':'spark'});
     }
 
     bus.on('DamageApplied', function (p) {
@@ -157,17 +235,25 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       var vis = renderer && renderer.characterHandleOf(p.casterId);
       var castAb = Arena.Data.abilities[p.abilityId];
       var castVisual = castAb && castAb.combatTiming ? castAb.combatTiming.visualAction : null;
-      if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, Arena.Data.castFamilyOf(p.abilityId), castVisual);
+      var castGesture = castAb && castAb.combatTiming ? castAb.combatTiming.spellGesture : null;
+      if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, Arena.Data.castFamilyOf(p.abilityId), castVisual, castGesture);
       var startPos = posOf(p.casterId, 1.05);
+      var cc = VFX.elementColor(castAb && castAb.presentation ? castAb.presentation.element : 'arcane');
       if (startPos) VFX.burst(startPos, 10, {
-        r: 0.55, g: 0.72, b: 1.0, speed: 1.25, life: 0.72,
+        r: cc[0], g: cc[1], b: cc[2], speed: 1.25, life: 0.72,
         size: 0.065, gravity: 0.15, drag: 2.8, style: 'wisp'
       });
+      if (castAb && castAb.presentation && castAb.presentation.shape==='meteor') {
+        var impact=semanticPoint(p,.05);
+        if (impact) VFX.spawnSpell({type:'meteor',element:'fire',
+          start:{x:impact.x-2.4,y:impact.y+13.0,z:impact.z-1.7},end:impact,
+          life:Math.max(.35,p.castTime||castAb.castTime||2),radius:1.6,intensity:'major',seed:castAb.sourceIndex||0});
+      }
     });
 
     bus.on('AbilityCastInterrupted', function (p) {
       var vis = renderer && renderer.characterHandleOf(p.casterId);
-      if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, null, null);
+      if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, null, null, null);
     });
 
     bus.on('AbilityCastCompleted', function (p) {
@@ -175,6 +261,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       if (!pos) return;
       var ab = Arena.Data.abilities[p.abilityId];
       var magic = ab && ab.flags && ab.flags.magic;
+      semanticRelease(p, ab);
       VFX.burst(pos, 9, {
         r: magic ? 0.72 : 1.0, g: magic ? 0.45 : 0.82, b: magic ? 1.0 : 0.42,
         speed: 3.8, life: 0.48, size: 0.11, gravity: -0.4, style: magic ? 'spark' : 'shard'
@@ -188,11 +275,13 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
         var CB = Arena.Render.CharacterBackend.current;
         var ab = Arena.Data.abilities[p.abilityId];
         var visualAction = ab && ab.combatTiming ? ab.combatTiming.visualAction : null;
+        var visualVariant = ab && ab.combatTiming ? (ab.combatTiming.visualVariant || 0) : 0;
         /* Utility visualmente pasiva (camuflaje, guardia, interponer...) no
            debe fingir un heavy swing. La habilidad ya conserva sus VFX propios. */
         if (visualAction !== 'none') {
           CB.triggerAttack(vis, CB.archetypeOf(caster.classId), true,
-            Arena.Data.castFamilyOf(p.abilityId), visualAction);
+            Arena.Data.castFamilyOf(p.abilityId), visualAction, visualVariant,
+            ab && ab.combatTiming ? ab.combatTiming.spellGesture : null);
         }
       }
     });
@@ -265,8 +354,10 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
     });
 
     bus.on('ProjectileHit', function (p) {
+      semanticProjectileImpact(p);
+      var ab=Arena.Data.abilities[p.abilityId], c=VFX.elementColor(ab&&ab.presentation?ab.presentation.element:'physical');
       VFX.burst({ x: p.x, y: p.y, z: p.z }, 8, {
-        r: 1.0, g: 0.8, b: 0.5, speed: 3.5, life: 0.35, size: 0.09, style: 'spark'
+        r:c[0],g:c[1],b:c[2], speed:3.5, life:0.35, size:0.09, style:'spark'
       });
     });
 
@@ -302,6 +393,12 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
    * ====================================================================== */
 
   VFX.update = function (dt) {
+    for (var si = 0; si < MAX_SPELLS; si++) {
+      var sp=VFX.spells[si];
+      if (!sp.alive) continue;
+      sp.life += dt;
+      if (sp.life >= sp.maxLife) sp.alive=false;
+    }
     for (var i = 0; i < MAX_PARTICLES; i++) {
       var p = VFX.particles[i];
       if (!p.alive) continue;
@@ -332,6 +429,7 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
 
   VFX.clear = function () {
     for (var i = 0; i < MAX_PARTICLES; i++) VFX.particles[i].alive = false;
+    for (var si = 0; si < MAX_SPELLS; si++) VFX.spells[si].alive = false;
   };
 
   Arena.Render.VFX = VFX;
