@@ -5,7 +5,7 @@ const fs=require('fs'),path=require('path'),cp=require('child_process');
 const ROOT=path.join(__dirname,'..'), read=r=>fs.readFileSync(path.join(ROOT,r),'utf8');
 let fail=[];function gate(ok,n,d){console.log((ok?'✓ ':'✗ ')+n+(d?' — '+d:''));if(!ok)fail.push(n);}
 function run(cmd,args,timeout=45000){return cp.spawnSync(cmd,args,{cwd:ROOT,encoding:'utf8',timeout});}
-console.log('ARBITER · UAL2 Retarget Locomotion v0.16\n');
+console.log('ARBITER · Class Gear on Rig v0.17\n');
 
 // 1. Historical product/combat contract must survive the animation replacement.
 let r=run(process.execPath,[path.join(ROOT,'tools/run-tests.js')],60000),out=(r.stdout||'')+(r.stderr||'');let m=/TODO OK — (\d+) pruebas/.exec(out),n=m?+m[1]:0;
@@ -49,7 +49,14 @@ gate(/flatShading\s*=\s*false/.test(boot)&&/normalScale\.set\(0\.42,0\.42\)/.tes
 gate(/skipLocomotion:\s*externalLocomotion/.test(tc)&&/skipMeleeAction:\s*fullExternal/.test(tc),'sin doble locomoción/melee');
 gate(/casterCast/.test(contract)&&/archerShot/.test(contract)&&/meleeAction/.test(contract),'lenguaje caster/archer/melee permanece diferenciado');
 let branch=tc.slice(tc.indexOf('if (this.usedGlb) {',tc.indexOf('prototype.applyPose')),tc.indexOf('Backend.current.buildPose',tc.indexOf('prototype.applyPose')));
-gate(/return;/.test(branch)&&!/buildPose/.test(branch),'ruta GLB = cuerpo + arma, sin armadura procedural');
+/* v0.17 invierte este gate. Hasta v0.16 exigía que la ruta GLB fuese «cuerpo +
+   arma» y eso es exactamente lo que dejó a las seis clases en ropa interior: un
+   gate defendiendo un defecto. Ahora exige lo contrario — que el equipo de clase
+   se cuelgue de los huesos — y que el maniquí procedural siga apagado. */
+gate(/return;/.test(branch)&&!/buildPose/.test(branch),'la ruta GLB no reconstruye el maniquí procedural');
+gate(/buildGear/.test(tc)&&/GEAR_SOCKET/.test(tc)&&/GEAR_ANCHOR/.test(tc)&&/GEAR_FIT/.test(tc),
+  'el equipo de clase se cuelga de los huesos del modelo');
+gate(!/classId\s*===/.test(tc),'el renderer no ramifica por identificador de clase');
 
 // 9. Model still valid after animation integration.
 const model=path.join(ROOT,'assets/models/dark-elf-base-rigged-50k.glb');r=run('python3',[path.join(ROOT,'tools/model_pipeline/validate_dark_elf_glb.py'),model],35000);out=(r.stdout||'')+(r.stderr||'');
@@ -58,12 +65,13 @@ r=run('python3',[path.join(ROOT,'tools/model_pipeline/audit_skinning.py'),model]
 
 // 10. Boot/cache/deployment seal.
 gate(/Promise\.all/.test(boot)&&/ual2-standard\.glb/.test(boot)&&boot.indexOf('loadAsync')<boot.indexOf('Arena.Game.boot'),'modelo + animaciones precargan antes de boot');
-gate(/Arena\.VERSION = '0\.16\.0'/.test(ns)&&/ual2-retarget-locomotion-v016/.test(ns),'runtime declara v0.16');
-const seals=html.match(/\?build=v0160-20260816-ual2-retarget-locomotion/g)||[];gate(seals.length>=40,'cache-busting v0.16 ('+seals.length+' scripts)');
-gate(/v0\.16 · UAL2 RETARGET · SMOOTH SKIN · A\/D STRAFE · Q\/E TURN/.test(html),'cabecera visible identifica build correcto');
+gate(/Arena\.VERSION = '0\.17\.0'/.test(ns)&&/class-gear-on-rig-v017/.test(ns),'runtime declara v0.17');
+const seals=html.match(/\?build=v0170-20260817-class-gear-on-rig/g)||[];gate(seals.length>=40,'cache-busting v0.17 ('+seals.length+' scripts)');
+gate(/v0\.17 · CLASS GEAR ON RIG · UAL2 RETARGET · A\/D STRAFE · Q\/E TURN/.test(html),'cabecera visible identifica build correcto');
 gate(fs.existsSync(path.join(ROOT,'assets/animations/UAL2_LICENSE.txt'))&&/CC0/i.test(read('assets/animations/UAL2_LICENSE.txt')),'licencia del paquete viaja en entrega');
 
 console.log('\n-----------------------------------------------');
 if(fail.length){console.log('ARBITER: RECHAZADO · '+fail.length+' gate(s)');fail.forEach(x=>console.log('  - '+x));process.exit(1);}
 console.log('ARBITER: APROBADO');
-console.log('v0.16 bloquea regresiones de controles, root-motion, retarget, facetado y doble animación.');
+console.log('v0.17 bloquea regresiones de controles, root-motion, retarget, facetado, doble\n' +
+  'animación y la ruta GLB desnuda que dejó a las seis clases en ropa interior.');

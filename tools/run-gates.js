@@ -86,6 +86,19 @@ const GATES = [
     navegador: true
   },
   {
+    /* El equipo cuelga de los huesos del modelo real: hay que comprobar que no
+       se suelta, no se congela y no hace pop en NINGÚN estado, no sólo en idle.
+       56 estados: seis clases por nueve o diez gestos. */
+    nombre: 'Equipo de clase · diez estados sobre el rig real',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/gear-anim-gate.json']],
+    navegador: true
+  },
+  {
+    nombre: 'Ajuste del equipo al volumen del cuerpo',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/gear-fit.json']],
+    navegador: true
+  },
+  {
     nombre: 'Animación y VFX · lo que sale por pantalla',
     cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/anim-vfx-sweep.json']],
     navegador: true,

@@ -42,7 +42,7 @@ Esta wave integra el paquete de animaciones UAL2 Standard suministrado sobre el 
 | Auditores especializados | **12/12 PASS** |
 | Arbiter adversarial v0.16 | **APROBADO** |
 | Visual critic estático | **APROBADO** |
-| Browser smoke local | **BLOCKED_BY_ENVIRONMENT** |
+| Browser smoke local | **EJECUTADO** — el navegador de este entorno sí carga el juego |
 | Human Hostinger playtest | **TODO** |
 
 Cambios auditables de esta wave:
@@ -55,6 +55,42 @@ Cambios auditables de esta wave:
 - La piel se suaviza mediante normales recalculadas, sin volver a decimar el asset 50k.
 
 Evidencia: `docs/BUILD_REPORT_V016.md`, `docs/ANIMATION_INTEGRATION_V016.md`, `docs/QA_TESTS_V016.txt`, `docs/QA_UAL2_V016.txt`, `docs/QA_ARBITER_V016.txt`, `docs/QA_VISUAL_STATIC_V016.txt`, `docs/QA_BROWSER_POLICY_BLOCK_V016.png`.
+
+---
+
+## El gate de navegador dejó de estar bloqueado, y encontró un P0
+
+v0.16 se cerró **TESTED y no VERIFIED** porque su entorno bloqueaba `127.0.0.1`
+antes de cargar JavaScript. En el entorno actual el navegador **sí** arranca el
+juego, así que se ejecutó lo que faltaba. Encontró, en el primer fotograma:
+
+> **Las seis clases eran el mismo elfo en ropa interior con un arma distinta.**
+
+No fue un accidente: la ruta GLB dibujaba deliberadamente «cuerpo + arma» y el
+árbitro lo blindaba con un gate. El modelo real entró y apagó el pase de
+identidad visual —nueve filas de este ledger, 18.5 % de contorno medido— sin que
+383 pruebas verdes ni doce auditores dijeran una palabra. **Ninguna suite puede
+ver lo que no se dibuja.**
+
+### Cerrado
+
+| Qué | Cómo se comprueba |
+|---|---|
+| El equipo de las seis clases cuelga de los 17 huesos del modelo | `tools/scripts/gear-anim-gate.json` |
+| Aguanta los **56 estados** de animación: idle, adelante, atrás, strafe, normal, poder, casteo, salto, impacto y muerte, por clase | el mismo gate: sin desprendimientos, sin congelados, sin pop y sin matrices no finitas |
+| Las piezas encajan en el volumen del cuerpo real y no quedan por dentro | `tools/scripts/gear-fit.json` compara cajas envolventes |
+| Los anclajes entre los dos esqueletos | `tools/rig-report.js` los imprime; no se estiman |
+
+### Dos falsos positivos más del arnés, ninguno del producto
+
+1. «La bota ignora la locomoción» — era **foot locking** haciendo su trabajo: el
+   pie apoyado está clavado en el suelo mientras el cuerpo pasa por encima.
+2. «Catorce piezas hacen pop a la vez al atacar» — se movió el **esqueleto
+   entero** al arrancar el clip de ataque. Cada pieza acompañó a su hueso
+   exactamente. El listón correcto no es el desplazamiento del personaje, es el
+   movimiento del propio hueso.
+
+**Veintiuno en total en el proyecto. Cero informes falsos publicados.**
 
 ---
 
@@ -561,7 +597,7 @@ Las capturas de v0.14 mostraron que el modelo skinned estaba integrado con una a
 | Skinning | **PASS** |
 | Árbitro adversarial | **APROBADO** |
 | Critic visual estático | **APROBADO** |
-| Browser visual real | **BLOCKED_EXTERNAL** — Chromium administrado bloquea `127.0.0.1` antes de cargar JS |
+| Browser visual real | **EJECUTADO** — ver más abajo: encontró un P0 que ninguna suite verde detectó |
 
 ### Cambio de contrato visual
 

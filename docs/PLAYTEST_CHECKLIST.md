@@ -7,8 +7,9 @@
 > El peso de un mandoble, si un telegraph se lee a distancia de duelo, si parar
 > para atacar es una decisión táctica o una molestia — eso necesita manos.
 
-**Build:** ver `docs/HOSTINGER_DEPLOY.md` para subirla. La versión se muestra
-abajo a la izquierda en el lobby y en la consola al arrancar.
+**Build:** **v0.17 · CLASS GEAR ON RIG**. Súbela con `docs/DEPLOY_HOSTINGER.md`
+y comprueba las tres marcas de versión ANTES de jugar — este proyecto ya ha
+probado una build vieja creyendo probar la nueva.
 
 **Cómo anotar:** cada punto tiene una casilla. Marca `OK`, `RARO` o `MAL` y una
 línea de por qué. «Raro» es información valiosísima: significa que funciona pero
@@ -25,6 +26,18 @@ no se siente. No hace falta diagnosticar la causa.
 
 ---
 
+## 0.5 · El personaje es el modelo real (30 s) — **nuevo en v0.17**
+
+Antes de moverte, mira al personaje quieto.
+
+- [ ] Es un **elfo oscuro con piel azul-lila, pelo blanco y orejas largas**, no
+      un muñeco de cajas. Si ves cajas apiladas, el `.glb` no cargó: mira la
+      consola y comprueba que subiste `assets/`.
+- [ ] **Va vestido.** Si está en ropa interior con sólo un arma, el equipo de
+      clase no se ha colgado — es el P0 que esta versión arregla.
+- [ ] La piel se ve **suave**, no facetada como un diamante.
+- [ ] El arma está **en la mano**, no flotando al lado.
+
 ## 1 · Movimiento (2 min) — Combat Lab o partida, da igual
 
 Entra en cualquier modo y **no ataques todavía**. Sólo camina.
@@ -32,8 +45,14 @@ Entra en cualquier modo y **no ataques todavía**. Sólo camina.
 - [ ] `W` avanza en la dirección a la que mira el personaje.
 - [ ] `S` retrocede **sin girarse**. La animación es de andar hacia atrás, con
       pasos cortos y el torso erguido: no es la de correr reproducida al revés.
-- [ ] `A` va a la **izquierda** y `D` a la **derecha**. (Esto estuvo invertido
-      en su día; si vuelve a estarlo es un P0.)
+- [ ] `A` va a la **izquierda** y `D` a la **derecha**, en **strafe**: el cuerpo
+      NO gira. (Esto estuvo invertido en su día; si vuelve a estarlo es un P0.)
+- [ ] `Q` y `E` **giran el cuerpo** izquierda y derecha, y la cámara acompaña.
+      No desplazan lateralmente. Confundir A/D con Q/E es el otro P0 histórico.
+- [ ] La animación de **strafe** no es la de andar de frente girada de lado.
+      *(Aviso honesto: el paquete UAL2 Standard no trae un clip lateral real, así
+      que A/D usan una gramática propia. Es el punto más débil de esta build y
+      quiero tu opinión concreta.)*
 - [ ] En diagonal no se va más rápido que en recto.
 - [ ] Al arrancar y al frenar el cuerpo acusa el cambio, pero **el personaje
       responde al instante**: la inercia es del cuerpo, no del input.
@@ -118,7 +137,8 @@ Selecciona al maniquí, pulsa `T` para entrar en combate.
 
 ## 8 · Las seis clases, en gris (1 min) — **el gate de identidad**
 
-Pasa por las seis clases en el lobby y mira sólo la **silueta**:
+Pasa por las seis clases en el lobby y mira sólo la **silueta**. Ahora el cuerpo
+es el mismo modelo para todas, así que **todo lo que las distingue es el equipo**:
 
 DEVASTADOR · GUARDIÁN · CENTINELA · RASTREADOR · ARCANISTA · VINCULADOR
 
@@ -128,9 +148,13 @@ DEVASTADOR · GUARDIÁN · CENTINELA · RASTREADOR · ARCANISTA · VINCULADOR
 - [ ] ¿El Vinculador es algo más que «un Arcanista recoloreado»?
 
 > Si la respuesta a la primera es **no**, dilo aunque el número diga que sí.
-> Las nueve filas de identidad visual se cerraron con un 18.5 % de diferencia de
-> contorno medida entre la peor pareja, pero una diferencia estadística no
-> garantiza una diferencia perceptual. **Tu ojo manda sobre la métrica.**
+> Una diferencia estadística no garantiza una diferencia perceptual. **Tu ojo
+> manda sobre la métrica.**
+>
+> Y mira además si alguna pieza **atraviesa el cuerpo** o **flota**. Está
+> comprobado que ninguna se suelta ni se congela en 56 estados de animación,
+> pero que una hombrera se hunda medio centímetro en el hombro es juicio visual
+> y no lo detecta ninguna caja envolvente.
 
 ## 9 · Bots y partida completa (3 min)
 
@@ -164,6 +188,8 @@ DEVASTADOR · GUARDIÁN · CENTINELA · RASTREADOR · ARCANISTA · VINCULADOR
 
 1. **Pointer Lock** está sin verificar automáticamente: es la fila
    `MANUAL_BROWSER_REQUIRED`. Justamente el punto 2 la cierra.
+1b. **El strafe lateral** no tiene clip propio en UAL2 Standard. Se sabe, está
+   documentado y es el candidato número uno a "raro" en tu lista.
 2. **La IA no usa las rutas de cobertura** que la arena ofrece. Hubo una versión
    que las usaba y era **peor** —el bot se pegaba a la cara cercana de la columna
    y moría ahí—, así que se revirtió. Necesita navegación por tangentes.

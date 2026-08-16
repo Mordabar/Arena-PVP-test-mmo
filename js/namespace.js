@@ -8,8 +8,8 @@
 
   var Arena = global.Arena || {};
 
-  Arena.VERSION = '0.16.0';
-  Arena.BUILD = 'ual2-retarget-locomotion-v016';
+  Arena.VERSION = '0.17.0';
+  Arena.BUILD = 'class-gear-on-rig-v017';
 
   // Sub-namespaces. Se rellenan por los ficheros posteriores.
   Arena.Math = Arena.Math || {};
