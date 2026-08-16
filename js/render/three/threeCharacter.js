@@ -314,6 +314,25 @@ export function createCharacterFactory(Arena, scene, opts) {
     handR:     [0, -0.071, 0]
   };
 
+  /* AJUSTE AL VOLUMEN DEL CUERPO REAL
+   *
+   * El maniquí procedural tenía una caja torácica de 0.40 de ancho y 0.25 de
+   * fondo. El Elfo Oscuro tiene el torso en 0.45 × 0.33. Una coraza cosida a la
+   * medida del maniquí queda POR DENTRO del pecho del modelo: se ve la piel
+   * atravesándola y la pieza no aporta silueta.
+   *
+   * Medido con `tools/scripts/gear-fit.json`, que compara la caja de cada pieza
+   * contra la del cuerpo desnudo. El síntoma —«la coraza no cubre el pecho»— es
+   * de ESCALA, no de posición, y una caja lo dice y una captura no.
+   *
+   * Sólo se corrigen los sockets cuyo volumen depende del tronco. Cascos,
+   * botas, rodilleras y bolsas ya encajaban. */
+  var GEAR_FIT = {
+    chest:     [1.24, 1.00, 1.34],
+    chestPair: [1.10, 1.00, 1.14],
+    hips:      [1.14, 1.00, 1.20]
+  };
+
   var _gq = new THREE.Quaternion(), _ge = new THREE.Euler(), _gv = new THREE.Vector3();
 
   /**
@@ -520,7 +539,7 @@ export function createCharacterFactory(Arena, scene, opts) {
     };
     var self = this;
 
-    function pieza(meshName, boneName, anchor, pos, rot, scale, colorName, glow) {
+    function pieza(meshName, boneName, anchor, pos, rot, scale, colorName, glow, fit) {
       var geo = geometries[meshName];
       var bone = self.rigBones[boneName];
       if (!geo || !bone) return null;
@@ -533,8 +552,9 @@ export function createCharacterFactory(Arena, scene, opts) {
       m.name = 'gear:' + meshName;
       bone.add(m);
       var sc = scale === undefined ? 1 : scale;
-      if (typeof sc === 'number') m.scale.setScalar(sc);
-      else m.scale.set(sc[0], sc[1], sc[2]);
+      var f = fit || [1, 1, 1];
+      if (typeof sc === 'number') m.scale.set(sc * f[0], sc * f[1], sc * f[2]);
+      else m.scale.set(sc[0] * f[0], sc[1] * f[1], sc[2] * f[2]);
       self.gear.push(m);
       return m;
     }
@@ -555,7 +575,7 @@ export function createCharacterFactory(Arena, scene, opts) {
           var boneName = mapa.pair && mapa.boneL
             ? (side < 0 ? mapa.boneL : mapa.boneR) : mapa.bone;
           var m = pieza(it.mesh, boneName, anchor, it.pos || ZERO, it.rot || ZERO,
-            it.scale, it.color, it.glow);
+            it.scale, it.color, it.glow, GEAR_FIT[socket]);
           if (m) gearPlace(m, this.rigBindWorldQuat[boneName], anchor,
             it.pos || ZERO, it.rot || ZERO, side);
         }
@@ -564,8 +584,12 @@ export function createCharacterFactory(Arena, scene, opts) {
 
     /* La túnica cuelga de la cadera: es la pieza que más define a los dos
        casters y sin ella el mago va en ropa interior con un báculo. */
+    /* La túnica del Arcanista bajaba a −0.125: barría por debajo del suelo, y
+       encima medía 0.373 de ancho sobre unas caderas de 0.45, así que se leía
+       como un panel y no como una campana. Las dos cosas, medidas. */
     if (prof.robe) {
-      var r = pieza(prof.robe.mesh, 'Hips', GEAR_ANCHOR.hips, ZERO, ZERO, 1, prof.robe.color);
+      var r = pieza(prof.robe.mesh, 'Hips', GEAR_ANCHOR.hips, ZERO, ZERO, 1,
+        prof.robe.color, 0, [1.30, 0.90, 1.30]);
       if (r) gearPlace(r, this.rigBindWorldQuat.Hips, GEAR_ANCHOR.hips, [0, 0.06, 0], ZERO, 1);
       if (prof.robe.trim) {
         var rt = pieza(prof.robe.trim, 'Hips', GEAR_ANCHOR.hips, ZERO, ZERO, 1, 'trim');

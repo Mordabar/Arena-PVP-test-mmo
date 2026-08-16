@@ -385,7 +385,7 @@ Arena.define('data/classVisuals', ['data/races', 'data/animConfig'], function (A
          quedaba casi horizontal: de frente se veía el canto, y un escudo torre
          visto de canto es un palo. Medido, no supuesto: la anchura de las
          bandas centrales pasa de 0.92 a 1.4. */
-      left: { kind: 'shield', mesh: 'towerShield', pos: [0.02, 0.16, 0.19], rot: [-0.38, 0, -0.07], color: 'teamDark' },
+      left: { kind: 'shield', mesh: 'towerShield', pos: [0.06, 0.14, 0.20], rot: [0.05, 0, -0.04], color: 'teamDark' },
       attach: {
         chest: [
           { mesh: 'bulwarkGorget', pos: [0, 0.292, 0], color: 'metal' },

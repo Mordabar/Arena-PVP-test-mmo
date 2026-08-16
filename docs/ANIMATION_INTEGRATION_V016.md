@@ -159,6 +159,29 @@ su hueso `Chest`. Medido con `tools/rig-report.js`, no supuesto. La tabla
 `GEAR_ANCHOR` absorbe esa diferencia para que los números de `classVisuals.js`
 sigan valiendo.
 
+## La caja lo dijo y la captura no
+
+`tools/scripts/gear-fit.json` compara la caja envolvente de **cada pieza de
+equipo** contra la del cuerpo desnudo. Los cuatro defectos que quedaban se
+explicaron solos, y los cuatro eran de **escala, no de posición**:
+
+| Pieza | Antes | Después | Qué pasaba |
+|---|---|---|---|
+| Coraza del Devastador | 0.361 × **0.270** | 0.448 × **0.358** | el torso real tiene 0.330 de fondo: la coraza quedaba POR DENTRO y la piel la atravesaba |
+| Coraza del Guardián | 0.399 × 0.302 | 0.495 × 0.400 | lo mismo |
+| Escudo torre | 0.597 × **0.595** | 0.553 × **0.288** | 0.6 de fondo en una plancha plana = estaba presentando una ESQUINA, no la cara |
+| Túnica del Arcanista | y desde **−0.125**, 0.373 ancho | y desde **−0.010**, 0.484 | barría por debajo del suelo y era un panel, no una campana |
+
+El maniquí procedural tenía la caja torácica en 0.40 × 0.25 y el Elfo Oscuro la
+tiene en 0.45 × 0.33. Una coraza cosida a la medida del maniquí **desaparece
+dentro** del modelo real. `GEAR_FIT` corrige sólo los tres sockets cuyo volumen
+depende del tronco; cascos, botas, rodilleras y bolsas ya encajaban y no se
+tocan.
+
+Ninguno de los cuatro se habría diagnosticado mirando la captura: los dos
+primeros se ven como «no lleva coraza» y el tercero como «el escudo está
+torcido». La caja dice *por qué*.
+
 ## Estado honesto
 
 | Socket | Estado |
@@ -167,14 +190,15 @@ sigan valiendo.
 | `hips` — cinturones, faldar, bolsas, trampas, talismanes | **correcto** |
 | `thigh` / `knee` / `ankle` — quijotes, rodilleras, botas | **correcto** |
 | `handL` / `handR` — armas de clase, escudo torre, orbe | **correcto de sitio**, falta afinar el ángulo de guardia del escudo |
-| `chest` — petos y corazas | **incompleto**: la coraza no cubre el pecho |
-| `robe` — túnicas de los dos casters | **incompleto**: se lee como un panel estrecho, no como campana |
+| `chest` — petos, corazas y cuerpos de túnica | **correcto** tras el ajuste de volumen |
+| `robe` — túnicas de los dos casters | **correcto**: dobladillo sobre el suelo y campana real |
 
-El Guardián ya se lee como un caballero acorazado con escudo torre y el
-Arcanista como un mago con sombrero y báculo. El Devastador y los dos casters
-necesitan otra vuelta de medición sobre el socket de pecho.
+Las seis clases vuelven a ser seis siluetas sobre el modelo real. El Guardián se
+lee como un caballero acorazado con escudo torre y faldar; el Arcanista como un
+mago con sombrero de pico, túnica hasta el suelo y báculo; el Devastador con
+coraza, hombreras angulosas y espadón.
 
-**Siguiente paso concreto:** una sonda que compare la caja envolvente de cada
-pieza de equipo contra la del hueso que la sujeta. Los dos sockets que fallan
-fallan por escala, no por posición, y eso es exactamente lo que una caja mide y
-una captura no.
+**Lo que queda, menor y anotado:** entre el cuerpo de la túnica (termina en
+1.022) y el fajín del Arcanista asoma una franja de abdomen. Es un hueco de
+2 cm; se cierra bajando el cuerpo de la túnica o subiendo el fajín, y conviene
+hacerlo con el mismo comando en vez de a ojo.
