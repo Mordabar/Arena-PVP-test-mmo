@@ -37,28 +37,46 @@ cobertura de locomoción que no existía.
 equipo nueva (`gear-anim-gate.json`) ya lo hace y cubre 56 estados; estas otras
 tienen que converger a lo mismo.
 
-## 2 · Draw calls fuera de presupuesto — REAL, y en parte de este pase
+## 2 · Draw calls fuera de presupuesto — REAL, y **no** es el equipo
 
 | | Pico en 2v2 | Techo | Veredicto |
 |---|---|---|---|
 | Draw calls | **1078** | 900 | **FUERA** |
 | Triángulos | 248 941 | 400 000 | dentro |
 
-Cuatro personajes de 50.000 triángulos cada uno son 200.000 sólo de cuerpos: eso
-es del modelo, no del equipo. Los **draw calls** sí llevan firma de este pase: el
-equipo de clase son ~20 mallas por personaje y cada una es una llamada, porque
-cada pieza cuelga de un hueso distinto y no se pueden fusionar sin perder el
-seguimiento del skinning.
+**Corrección.** La primera versión de este documento decía que los draw calls
+«llevan firma de este pase» porque el equipo son ~20 mallas por personaje. Se
+escribió sin medir. Al contar los objetos dibujables de la escena en un 2v2:
 
-**Opciones, en orden de preferimos-la-primera:**
+| Qué | Objetos visibles |
+|---|---|
+| **escenario** (árboles, rocas, hierba, muros, ruinas) | **3 486** |
+| equipo de las seis clases | 62 |
+| armas | 34 |
+| VFX de caster | 12 |
+| cuerpos | 4 |
+| **total** | **3 598** |
 
-1. **Fusionar por hueso.** Las piezas que comparten hueso (la coraza, la gola y
-   el emblema cuelgan las tres de `Chest`) sí se pueden unir en una sola malla.
-   Bajaría de ~20 a ~8 llamadas por personaje sin cambiar nada visible.
-2. **LOD de equipo por distancia**: a más de N unidades, sólo las piezas que
-   aportan silueta. Cambia lo que se ve, así que necesita juicio humano.
-3. Subir el techo. **No** sin medir FPS reales en una GPU primero: el techo de
-   900 se puso mirando un presupuesto, no un fotograma.
+**El equipo es el 1.7 % de los objetos de la escena.** Aunque se fusionara
+entero en una sola malla por personaje, el pico bajaría de 1078 a ~1030: seguiría
+fuera de presupuesto. La palanca está en otro sitio.
+
+**El lever real es el escenario.** Tres mil cuatrocientos objetos individuales,
+la mayoría copias del mismo árbol, la misma roca y la misma mata de hierba, es
+exactamente el caso de uso de `InstancedMesh`: una llamada por *tipo* de objeto
+en vez de una por objeto. `CLAUDE.md` §14 ya lo pide por su nombre —«particle
+pools/factories preferred over uncontrolled allocations», «reuse geometries and
+materials»— y `js/render/three/threeEnvironment.js` es donde vive.
+
+**Siguiente paso concreto:** instanciar el escenario por familia (`TreeFactory`,
+`RockFactory` y la hierba ya generan por factoría, así que las copias comparten
+geometría; falta que compartan también la llamada de dibujo). Es un cambio
+acotado a un fichero de presentación, no toca simulación, y es lo único que
+puede meter el pico dentro de 900.
+
+**Y antes de tocarlo, medir FPS en una GPU real.** El techo de 900 se fijó
+mirando un presupuesto, no un fotograma; con software rasterization aquí no se
+puede saber si 1078 duele. Es el punto 10 del checklist de playtest.
 
 ## 3 · Solape en el HUD
 
