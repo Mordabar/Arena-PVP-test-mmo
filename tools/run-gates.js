@@ -86,6 +86,16 @@ const GATES = [
     navegador: true
   },
   {
+    /* La regla más protegida del proyecto: RELEASE es irreversible. El fixture
+       BUSCA un par de puntos con línea de visión real en vez de inventar
+       coordenadas — colocar a los dos a ambos lados del muro central rechaza
+       las flechas por `los` y hace parecer que el sistema de proyectiles no
+       existe. Costó cuatro intentos descubrirlo; ver docs/GATE_FINDINGS_V017.md. */
+    nombre: 'Proyectiles · RELEASE crea, viaja y es irreversible',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/projectile-gate.json']],
+    navegador: true
+  },
+  {
     /* El equipo cuelga de los huesos del modelo real: hay que comprobar que no
        se suelta, no se congela y no hace pop en NINGÚN estado, no sólo en idle.
        56 estados: seis clases por nueve o diez gestos. */

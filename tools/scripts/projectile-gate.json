@@ -1,0 +1,25 @@
+[
+ {
+  "wait": 3500
+ },
+ {
+  "eval": "Arena.Game.startMatch('1v1','centinela'),'m'"
+ },
+ {
+  "wait": 2500
+ },
+ {
+  "eval": "(function(){for(var i=0;i<80&&Arena.Game.flow.phase!=='ACTIVE';i++)Arena.Game.flow.update(0.25);return Arena.Game.flow.phase;})()"
+ },
+ {
+  "eval": "(function(){\n  var G=Arena.Game,W=G.world;G._running=false;\n  var p=W.getPlayer();\n  var e=W.entities.filter(function(x){return x.id!==p.id;})[0];\n  var M=Arena.Sim.ArenaMetrics;\n  var sitio=null;\n  for(var d=14; d>=5 && !sitio; d-=1){\n    for(var a=0; a<12 && !sitio; a++){\n      var ang=a*Math.PI/6;\n      var ax=Math.cos(ang)*2, az=Math.sin(ang)*2;\n      var bx=Math.cos(ang)*(2+d), bz=Math.sin(ang)*(2+d);\n      if(M.walkable(W.arena,ax,az,0.5) && M.walkable(W.arena,bx,bz,0.5) &&\n         M.losBetween(W.arena,{x:ax,y:1,z:az},{x:bx,y:1,z:bz}))\n        sitio={ax:ax,az:az,bx:bx,bz:bz,dist:d};\n    }\n  }\n  window.__sitio=sitio;\n  function coloca(){\n    p.pos.x=sitio.ax;p.pos.z=sitio.az;p.pos.y=0;p.resource=p.resourceMax;\n    p.alive=true;p.hp=p.hpMax;p.cooldowns=Object.create(null);p.gcdUntil=-999;\n    e.pos.x=sitio.bx;e.pos.z=sitio.bz;e.pos.y=0;e.hpMax=200000;e.hp=200000;e.alive=true;\n    p.yaw=Math.atan2(e.pos.x-p.pos.x, e.pos.z-p.pos.z);\n    p.targetId=e.id;\n  }\n  window.__coloca=coloca;\n  window.__jugador=function(){return p;};\n  window.__enemigo=function(){return e;};\n  window.__proyectiles=function(){\n    var AB=Arena.Data.abilities, out=[];\n    for(var k in AB){ var ab=AB[k];\n      if(ab&&ab.flags&&ab.flags.projectile&&ab.target==='enemy'&&ab.classId===p.classId&&ab.range>=sitio.dist) out.push(k); }\n    return out;\n  };\n  return sitio? 'listo d='+sitio.dist : 'SIN SITIO';\n})()"
+ },
+ {
+  "name": "RELEASE crea proyectil y el proyectil viaja",
+  "eval": "(function(){\n  var W=Arena.Game.world, AB=Arena.Data.abilities;\n  var p=window.__jugador(), lista=window.__proyectiles();\n  if(!window.__sitio) return {assert:false,fail:['no hay par con línea de visión en la arena']};\n  if(!lista.length) return {assert:false,fail:['la clase no tiene proyectil a enemigo dentro de alcance']};\n  var res=[], fallos=[];\n  for(var n=0;n<Math.min(6,lista.length);n++){\n    var id=lista[n], ab=AB[id];\n    window.__coloca();\n    var spawns=0, rechazo=null;\n    var o1=W.bus.on('ProjectileSpawned',function(){spawns++;});\n    var o2=W.bus.on('AbilityRejected',function(x){ if(!rechazo) rechazo=x.reason; });\n    var r=Arena.Combat.AbilitySystem.tryUse(W,p,id,{targetId:window.__enemigo().id, target:window.__enemigo()});\n    for(var t=0;t<140;t++) W.step();\n    o1();o2();\n    res.push(ab.name+' ok='+(r&&r.ok)+' spawns='+spawns);\n    if(!(r&&r.ok)) fallos.push(ab.name+' rechazada por '+rechazo);\n    else if(spawns===0) fallos.push(ab.name+': RELEASE sin proyectil');\n  }\n  return {assert:!fallos.length, fail:fallos, probadas:res.length, resultados:res};\n})()"
+ },
+ {
+  "name": "RELEASE es irreversible: matar al lanzador no borra su proyectil",
+  "eval": "(function(){\n  var W=Arena.Game.world, AB=Arena.Data.abilities;\n  var p=window.__jugador(), e=window.__enemigo(), lista=window.__proyectiles();\n  if(!lista.length) return {assert:false,fail:['sin habilidad de proyectil que probar']};\n  window.__coloca();\n  var r=Arena.Combat.AbilitySystem.tryUse(W,p,lista[0],{targetId:e.id,target:e});\n  if(!(r&&r.ok)) return {assert:false,fail:['la habilidad no se pudo usar: '+(r&&r.reason)]};\n  var t=0;\n  while(t<200 && W.projectiles.length===0){ W.step(); t++; }\n  if(!W.projectiles.length) return {assert:false,fail:['no llegó a haber proyectil en vuelo']};\n  var antes=W.projectiles.length;\n  p.hp=0; p.alive=false;\n  W.step();\n  var despues=W.projectiles.length;\n  var ok = despues>=antes;\n  return {assert:ok,\n    fail: ok?[]:['RELEASE es irreversible: el proyectil ya liberado se borró al morir el lanzador ('+antes+' -> '+despues+')'],\n    habilidad:AB[lista[0]].name, antesDeMorir:antes, despuesDeMorir:despues, ticksHastaVuelo:t};\n})()"
+ }
+]

@@ -88,42 +88,52 @@ Dos píxeles de alto. Es P3, pero la puerta de composición del HUD existe
 precisamente para que estos no se acumulen: en su día se encontraron siete de
 golpe.
 
-## 4 · Rechazos en el barrido de las seis clases
+## 4 y 5 · Rechazos y proyectiles — **eran el fixture, y está demostrado**
+
+La primera versión de este documento dejó estos dos puntos «escritos hasta que
+se compruebe», porque uno de ellos —«matar al lanzador borró un proyectil ya
+liberado»— sería una violación directa de que **RELEASE es irreversible**, la
+regla más protegida del proyecto. Se comprobó. **No lo era.**
+
+### El camino hasta la respuesta, porque el camino es el hallazgo
+
+Cuatro intentos, cuatro suposiciones mías desmentidas por la medición:
+
+| Intento | Qué decía | Qué pasaba de verdad |
+|---|---|---|
+| 1 | «ninguna habilidad del arcanista declara proyectil» | el flag vive en `ab.flags.projectile`, no en `ab.projectile` |
+| 2 | «5 de 6 flechas del Centinela: RELEASE sin proyectil» | `tryUse` devolvía `noTarget`: **la habilidad nunca se usó**. No basta con `p.targetId`, hace falta el contexto `{targetId, target}` |
+| 3 | con contexto, «rechazo=los» ×5 | había colocado a los dos **a ambos lados del muro central** de la arena |
+| 4 | — | buscando un par de puntos con línea de visión **medida**: 6 de 6 crean proyectil |
+
+### El resultado
 
 ```
-Rastreador · Confundir del Acecho       RECHAZADA por lockout
-Rastreador · Emboscada del Viento       RECHAZADA por weaponInterval
-Guardián  · Barrera deflectora          RECHAZADA por utilityLocked
-Centinela · Penetra escudos             RECHAZADA por untargetable
-Arcanista · Tormenta helada del Vacío   RECHAZADA por untargetable
-Vinculador · Curar aliado: cobró 64.8, menos de la mitad de 145
+Disparo tensado            ok=true  spawns=1
+Flecha perforante          ok=true  spawns=1
+Ráfaga disruptiva          ok=true  spawns=1
+Pulso invernal             ok=true  spawns=1
+Disparo dual del Viento    ok=true  spawns=1
+Flecha paralizadora        ok=true  spawns=1
+
+RELEASE es irreversible: 1 proyectil antes de matar al lanzador, 1 después.
 ```
 
-**Probablemente el arnés, no el producto.** El barrido se escribió cuando cada
-clase tenía seis habilidades; v0.13 metió el catálogo completo de poderes con
-reglas nuevas —escuelas, bloqueos de utilidad, objetivos válidos— y la sonda
-sigue lanzándolas todas contra el mismo maniquí, en el mismo orden y sin
-respetar los estados que ella misma provoca.
+**El sistema de proyectiles funciona y RELEASE aguanta.** Los seis rechazos del
+barrido de clases son, con toda probabilidad, exactamente el mismo defecto de
+fixture: una sonda que coloca a los combatientes sin comprobar línea de visión
+y que llama a `tryUse` sin contexto de objetivo.
 
-`untargetable` sobre un maniquí de laboratorio es la firma clásica de un fixture
-inválido, no de una habilidad rota. **Pero no se da por bueno sin comprobarlo**:
-hasta que alguien lo verifique una por una, estas seis quedan aquí escritas.
+### Lo que queda hecho de esto
 
-## 5 · Proyectil y weaving
+`tools/scripts/projectile-gate.json` es ahora una puerta permanente, y su
+fixture **busca** un par de puntos con línea de visión usando
+`ArenaMetrics.losBetween` en vez de escribir coordenadas a mano. Es la misma
+lección que ya costó un rediseño de arena: *un fixture atado a coordenadas
+mágicas deja de probar lo que dice en cuanto alguien mueve un muro.*
 
-```
-RELEASE no creó proyectil
-matar al lanzador borró un proyectil ya liberado
-no se encontró la habilidad de weave
-```
-
-La tercera delata a las otras dos: la sonda busca una habilidad por un nombre
-que ya no existe. Mismo diagnóstico que el punto 4 y misma regla: **escrito
-aquí hasta que se compruebe**, porque «matar al lanzador borra un proyectil ya
-liberado» sería una violación directa de que RELEASE es irreversible, y eso no
-se archiva por corazonada.
-
----
+**Pendiente, y menor:** arreglar el barrido de clases con el mismo patrón. Los
+seis rechazos concretos siguen sin verificarse uno a uno.
 
 ## Qué NO falló
 
