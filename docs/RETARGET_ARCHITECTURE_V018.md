@@ -267,3 +267,44 @@ nuevas lo comprueban una por una.
 | `tools/lib/three-from-glb.mjs` | grafo de Three sin `GLTFLoader`, para poder medir en Node |
 | `tools/retarget-forensics.js` | la auditoría de la fase 0, reproducible |
 | `tools/bench-retarget.js` | horneado contra runtime, con Three real |
+
+---
+
+## 10 · Estado real al cierre de esta sesión
+
+**Hecho y verificado en navegador real** (puerta `retarget-v018-gate.json`):
+
+| | |
+|---|---|
+| clips horneados | **18/18**, en **111 ms** en Chromium |
+| mapa por lado físico | `LeftUpperArm←upperarm_r`, `RightUpperArm←upperarm_l`, `LeftFoot←foot_r` ✓ |
+| NaN / cuaterniones sin normalizar | ninguno |
+| **T-pose** | **no aparece**: verticalidad del brazo en idle **0.96 / 0.97** (1.0 = colgando recto) |
+| el esqueleto se mueve en idle | sí (0.0255 de cambio acumulado) |
+| las piernas trabajan al andar | sí (0.5623) |
+| pruebas | 402 |
+| árbitro | APROBADO |
+| auditores | 12/12 |
+
+**NO hecho — y no se va a presentar como hecho:**
+
+1. **El Animation Lab no existe.** Los botones por estado, la cámara lenta, el
+   paso a paso, el overlay de esqueleto, el modo desnudo y la comparación
+   fuente/destino están especificados y sin construir.
+2. **De las 12 puertas nuevas del brief, hay 1.** La nueva cubre mapeo, NaN,
+   T-pose y movimiento del rig. Faltan: restricción de rodilla, patinaje durante
+   el apoyo, continuidad de bucle, continuidad de crossfade, A/D sin yaw, Q/E sin
+   strafe, y que RELEASE no lo cause una animación.
+3. **El IK de pie no está implementado.** Las dos causas de patinaje están
+   medidas (3 % de pierna más corta, y los clips de espada avanzando hasta
+   1.9 m/s sin root motion) pero no corregidas.
+4. **Nadie ha mirado esto con ojos humanos.** Ni capturas revisadas, ni revisor
+   fresco, ni playtest. La verticalidad de brazo 0.96 dice que no hay T-pose;
+   no dice que la locomoción se vea natural.
+5. **El endurecimiento de pesos no se ha tocado.** La autoridad media de los
+   huesos sobre su propia piel es 0.646 y el pie 0.544 (§6 de la forense). Es un
+   defecto del modelo que sigue ahí.
+
+**El siguiente paso es el Animation Lab**, porque sin él las cinco cosas de
+arriba no se pueden cerrar con criterio: hacen falta ojos sobre estados
+concretos, a cámara lenta, con el esqueleto dibujado.
