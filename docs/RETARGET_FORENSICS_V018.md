@@ -375,7 +375,7 @@ sólo entonces se decide si el desenrollado del pie sigue haciendo falta. Añadi
 huesos a un `.glb` obliga a repesar la malla, y eso es un riesgo que no se paga
 antes de saber si hace falta.
 
-### Skinning: verificado, sin defectos
+### Skinning: sí hay un defecto estructural, y no es el que parecía
 
 Máximo 4 influencias por vértice, ningún vértice sin peso, ningún hueso huérfano.
 
@@ -384,6 +384,77 @@ primera vista parece un error grave de pesado. **No lo es**: de los 8 712
 vértices dominados por `Head` que están por debajo del cuello, **8 712 están
 detrás del cuerpo** (`z ∈ [−0.167, −0.075]`) y ninguno delante. Es **pelo largo
 cayendo por la espalda**, pesado correctamente a la cabeza.
+
+**El defecto real es el contrario: los pesos están demasiado difuminados.**
+
+Peso máximo que cada hueso alcanza sobre cualquier vértice de la malla:
+
+| hueso | peso máx | vértices con w > 0.9 |
+|---|---|---|
+| `Head` | 1.000 | 23 201 |
+| `RightUpperArm` / `LeftUpperArm` | 0.989 / 0.967 | 200 / 185 |
+| `LeftUpperLeg` | 0.894 | **0** |
+| `Hips` | 0.887 | **0** |
+| `Chest` | 0.872 | **0** |
+| `LeftLowerArm` | 0.866 | **0** |
+| `Spine` / `Neck` | 0.855 | **0** |
+| `LeftHand` | 0.846 | **0** |
+| `LeftLowerLeg` | **0.775** | **0** |
+| **`LeftFoot`** | **0.684** | **0** |
+
+**Sólo tres huesos de diecisiete llegan a controlar del todo un solo vértice.**
+En la zona del pie izquierdo (`y < 0.10`), el reparto medio es:
+
+```
+LeftFoot      0.532
+LeftLowerLeg  0.418      ← la tibia se lleva el 42 % de la piel del pie
+```
+
+Y la «autoridad» de cada hueso —el peso medio que tiene sobre los vértices que
+sí domina— es:
+
+| hueso | autoridad | con `w^γ` normalizado, γ=2 | γ=3 |
+|---|---|---|---|
+| Hips | 0.772 | 0.935 | 0.973 |
+| Chest | 0.523 | 0.697 | 0.784 |
+| LowerArm | 0.60 | 0.71 | 0.76 |
+| **LowerLeg** | **0.525** | 0.602 | 0.636 |
+| **Foot** | **0.544** | 0.632 | 0.689 |
+| **media de los 17** | **0.646** | 0.766 | 0.817 |
+
+**Consecuencia predicha:** cuando el tobillo gira 30°, la piel del pie gira unos
+16°, porque la mitad de esa piel sigue a la tibia. El pie se dobla como goma en
+vez de pivotar, y no se ve apoyado. Lo mismo, más suave, en codo y muñeca.
+
+**Esto no lo arregla el retargeting.** Es del modelo. Tres caminos:
+
+1. **Repesar la malla en Blender**, con caída más dura en tobillo, rodilla,
+   muñeca y codo. Es la solución correcta y es trabajo fuera de este repo.
+2. **Endurecer los pesos al cargar**, con `w' = wᵞ / Σwᵞ`. Es una línea, es
+   medible y es reversible. Sube la autoridad media de 0.646 a 0.82 con γ=3 —
+   **mejora clara pero no completa**, y endurecer pesos puede reintroducir el
+   pellizco de caramelo en las articulaciones. Habría que mirarlo.
+3. **No tocarlo** hasta ver si a distancia de cámara MMO se nota.
+
+**No se decide aquí.** Se anota, con número, y se mira en el Animation Lab una
+vez arreglado el retargeting — porque hoy el defecto de base es tan grande que
+tapa cualquier juicio sobre éste.
+
+### Y el tobillo está mal colocado
+
+A la altura del tobillo (`y ∈ [0.09, 0.12]`) la sección de la pierna ocupa
+`z ∈ [−0.115, +0.050]`. El hueso `LeftFoot` está en **`z = +0.065`**: **fuera de
+la pierna, por delante**. La articulación del pie del Elfo Oscuro no está en el
+tobillo, está hacia el medio del pie.
+
+Efecto: del talón a la punta hay 0.275 m, y la articulación está a 0.105 m de la
+punta y 0.170 m del talón — al revés que un tobillo real. Al levantar el talón,
+el pie pivota alrededor del punto equivocado.
+
+Es la segunda mitad del mismo argumento sobre los huesos de dedos: si algún día
+se toca el rig, **mover `Foot` hacia atrás al tobillo real y añadir `Toe`** son
+la misma operación y valen la pena juntas. Sigue sin ser requisito para arreglar
+lo que se rompe hoy.
 
 ---
 

@@ -448,6 +448,45 @@ function seccionSkinning() {
     if (w > 0.5 && Pv[i][1] < 1.45) bajos.push(Pv[i]);
   }
   const z = bajos.map(v => v[2]);
+  /* Peso máximo por hueso y AUTORIDAD (peso medio sobre lo que domina). Un
+     hueso que nunca pasa de 0.7 no manda de verdad sobre su propia piel. */
+  const maxW = new Array(names.length).fill(0), n09 = new Array(names.length).fill(0);
+  function autoridad(gamma) {
+    const s = new Array(names.length).fill(0), c = new Array(names.length).fill(0);
+    for (let i = 0; i < J.length; i++) {
+      const acc = {};
+      for (let k = 0; k < 4; k++) acc[J[i][k]] = (acc[J[i][k]] || 0) + Math.pow(W[i][k], gamma);
+      let t = 0; for (const b in acc) t += acc[b];
+      let mejor = -1, mw = 0;
+      for (const b in acc) { const w = acc[b] / t; if (w > mw) { mw = w; mejor = +b; } }
+      if (mejor >= 0 && mw > 0.34) { s[mejor] += mw; c[mejor]++; }
+    }
+    return names.map((n, i) => c[i] ? s[i] / c[i] : 0);
+  }
+  for (let i = 0; i < J.length; i++) {
+    const acc = {};
+    for (let k = 0; k < 4; k++) acc[J[i][k]] = (acc[J[i][k]] || 0) + W[i][k];
+    for (const b in acc) { if (acc[b] > maxW[b]) maxW[b] = acc[b]; if (acc[b] > 0.9) n09[b]++; }
+  }
+  const a1 = autoridad(1), a2 = autoridad(2), a3 = autoridad(3);
+  console.log('\n  hueso            peso máx  w>0.9   autoridad   γ=2    γ=3');
+  names.forEach((n, i) => console.log('  ' + n.padEnd(16) + maxW[i].toFixed(3).padStart(8) +
+    String(n09[i]).padStart(8) + a1[i].toFixed(3).padStart(11) +
+    a2[i].toFixed(3).padStart(7) + a3[i].toFixed(3).padStart(7)));
+  const med = a => a.reduce((s, v) => s + v, 0) / a.length;
+  console.log('  ' + 'MEDIA'.padEnd(16) + ''.padStart(16) + med(a1).toFixed(3).padStart(11) +
+    med(a2).toFixed(3).padStart(7) + med(a3).toFixed(3).padStart(7));
+  console.log('  ⇒ sólo ' + names.filter((n, i) => maxW[i] > 0.9).length + ' de ' + names.length +
+    ' huesos llegan a controlar del todo un vértice. Pesos muy difuminados.');
+
+  /* ¿Está la articulación del pie donde está el tobillo de la malla? */
+  const tob = [];
+  for (let i = 0; i < Pv.length; i++) if (Pv[i][1] > 0.09 && Pv[i][1] < 0.12 && Pv[i][0] < 0) tob.push(Pv[i][2]);
+  const fz = wpos(elfo, 'LeftFoot')[2];
+  console.log('\n  a la altura del tobillo la pierna ocupa z [' + Math.min(...tob).toFixed(3) + ', ' +
+    Math.max(...tob).toFixed(3) + ']; el hueso LeftFoot está en z = ' + fz.toFixed(3) +
+    (fz > Math.max(...tob) ? '  ⇒ FUERA, por delante: la articulación no está en el tobillo' : '  ⇒ dentro'));
+
   console.log('\n  vértices dominados por Head por debajo del cuello: ' + bajos.length);
   console.log('    Z [' + Math.min(...z).toFixed(3) + ', ' + Math.max(...z).toFixed(3) + ']  ' +
     'detrás ' + z.filter(v => v < 0).length + ' / delante ' + z.filter(v => v > 0).length);
