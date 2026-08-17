@@ -8,8 +8,8 @@
 
   var Arena = global.Arena || {};
 
-  Arena.VERSION = '0.17.0';
-  Arena.BUILD = 'class-gear-on-rig-v017';
+  Arena.VERSION = '0.18.0';
+  Arena.BUILD = 'humanoid-retarget-rebuild-v018';
 
   // Sub-namespaces. Se rellenan por los ficheros posteriores.
   Arena.Math = Arena.Math || {};

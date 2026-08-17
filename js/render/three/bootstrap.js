@@ -25,7 +25,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { createThreeRenderer } from './threeRenderer.js?build=v0160-20260816-ual2-retarget';
+import { createThreeRenderer } from './threeRenderer.js?build=v0180-20260817-humanoid-retarget';
 
 var Arena = window.Arena;
 
@@ -41,8 +41,8 @@ try {
   /* Cuerpo + biblioteca CC0 se precargan antes del boot: el jugador nunca ve
      una transición de maniquí a modelo ni una animación que aparece tarde. */
   var loaded = await Promise.all([
-    glbLoader.loadAsync('./assets/models/dark-elf-base-rigged-50k.glb?build=v0160'),
-    glbLoader.loadAsync('./assets/animations/ual2-standard.glb?build=v0160')
+    glbLoader.loadAsync('./assets/models/dark-elf-base-rigged-50k.glb?build=v0180'),
+    glbLoader.loadAsync('./assets/animations/ual2-standard.glb?build=v0180')
   ]);
   var baseCharacterGltf = loaded[0], animationLibraryGltf = loaded[1];
   var skinnedCount = 0;

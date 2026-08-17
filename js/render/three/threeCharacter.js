@@ -25,7 +25,7 @@
  * nada de simulación. Ver docs/RENDERER_MIGRATION.md.
  * ========================================================================== */
 import * as THREE from 'three';
-import { createRetargetLibrary } from './threeRetarget.js?build=v0160-ual2-retarget';
+import { createBakedLibrary } from './threeAnimBake.js?build=v0180-humanoid-retarget';
 
 
 /* -------------------------------------------------------------------------
@@ -152,7 +152,32 @@ export function createCharacterFactory(Arena, scene, opts) {
   var Backend = Arena.Render.CharacterBackend;
   var baseCharacterGltf = opts.baseCharacterGltf || null;
   var animationLibraryGltf = opts.animationLibraryGltf || null;
-  var retargetLibrary = animationLibraryGltf ? createRetargetLibrary(animationLibraryGltf) : null;
+  /* La biblioteca de clips horneados es COMPARTIDA: los AnimationClip resultantes
+     son inmutables, así que se calculan una vez y todos los personajes los usan.
+     Necesita un esqueleto destino de muestra para medir su reposo, y ése sólo
+     existe cuando ya hay un personaje, así que se construye perezosamente. */
+  var bakedLibrary = null, bakedIntentado = false;
+  function libreriaHorneada(sampleRoot) {
+    if (bakedIntentado) return bakedLibrary;
+    if (!animationLibraryGltf || !sampleRoot) return null;
+    bakedIntentado = true;
+    try {
+      bakedLibrary = createBakedLibrary(animationLibraryGltf, sampleRoot);
+      if (bakedLibrary && bakedLibrary.report) {
+        Arena.Render.animBakeReport = bakedLibrary.report;
+        if (bakedLibrary.report.faltan.length) {
+          console.warn('[v0.18] clips pedidos que no existen en UAL2: ' +
+            bakedLibrary.report.faltan.join(', '));
+        }
+      }
+    } catch (e) {
+      /* Que falle el horneado no puede tumbar el juego: se cae a la gramática
+         propia, que es completa aunque sea procedural. Pero se dice en voz alta. */
+      console.error('[v0.18] el horneado de animaciones falló: ' + e.message);
+      bakedLibrary = null;
+    }
+    return bakedLibrary;
+  }
 
   /* --- Geometrías compartidas -------------------------------------------
    * Se suben UNA vez. Cuarenta personajes comparten las mismas cuarenta y
@@ -367,7 +392,8 @@ export function createCharacterFactory(Arena, scene, opts) {
     this.rigBindPos = null;
     this.rigBindQuat = null;
     this.rigBindWorldQuat = null;
-    this.retarget = null;
+    this.animLib = null;
+    this.player = null;
     this.skinnedAnim = Arena.Render.SkinnedAnimationContract ? Arena.Render.SkinnedAnimationContract.createState() : null;
     this.weapons = null;
     this.lastDt = 1/60;
@@ -389,7 +415,9 @@ export function createCharacterFactory(Arena, scene, opts) {
         this.rigBindQuat[bn] = bone.quaternion.clone();
         this.rigBindWorldQuat[bn] = bone.getWorldQuaternion(new THREE.Quaternion());
       }
-      this.retarget = retargetLibrary ? retargetLibrary.create() : null;
+      var lib = libreriaHorneada(this.skinnedRoot);
+      this.animLib = lib;
+      this.player = lib ? lib.createPlayer(this.skinnedRoot) : null;
       this.weapons = { staff:makeStaff(), bow:makeBow(), sword:makeSword() };
       this.rigBones.RightHand.add(this.weapons.staff);
       this.rigBones.LeftHand.add(this.weapons.bow);
@@ -445,14 +473,25 @@ export function createCharacterFactory(Arena, scene, opts) {
   Character.prototype.applySkinnedPose = function (entity, pos, yaw) {
     if (!this.usedGlb || !this.rigBones || !this.skinnedAnim || !Arena.Render.SkinnedAnimationContract) return;
     var arche = Arena.Data.archetypeOf(entity.classId);
-    var clipSpec = (this.retarget && Arena.Data.AnimationLibraryMap)
-      ? Arena.Data.AnimationLibraryMap.select(this.handle, arche) : null;
-    var fullExternal = !!(clipSpec && clipSpec.fullAction);
-    var externalLocomotion = !!(clipSpec && clipSpec.locomotion);
+    var SM = Arena.Render.AnimationStateMachine;
+
+    /* 0) Qué estado toca. La simulación ya decidió TODO lo que importa; aquí
+       sólo se elige el clip que lo representa. */
+    var sel = (this.player && SM)
+      ? SM.select(this.handle, arche, Arena.Data.RigCalibration) : null;
+    var conClip = !!(sel && sel.clip && this.animLib && this.animLib.has(sel.clip));
+
+    /* La gramática propia del proyecto sigue viva y es la que cubre lo que UAL2
+       no trae: retroceso, strafe, giro, casteo y arco. Se apaga sólo lo que el
+       clip horneado ya está haciendo, para que no haya doble animación. */
+    var mandaPiernas = conClip && (sel.mask === 'lower' || sel.mask === 'full');
+    var mandaTodo = conClip && sel.mask === 'full';
     var a = Arena.Render.SkinnedAnimationContract.update(this.skinnedAnim, this.handle, arche, entity.classId, this.lastDt, {
-      skipLocomotion: externalLocomotion,
-      skipGuard: false,
-      skipMeleeAction: fullExternal
+      skipLocomotion: mandaPiernas,
+      skipGuard: mandaTodo,
+      skipMeleeAction: mandaTodo,
+      skipCasterAction: mandaTodo,
+      skipArcherAction: mandaTodo
     });
 
     /* World transform remains simulation-authoritative. External clips are
@@ -471,14 +510,17 @@ export function createCharacterFactory(Arena, scene, opts) {
       bb0.scale.set(1,1,1);
     }
 
-    // 2) Retarget supplied CC0 animation clip, when the data contract selects one.
-    var retargetResult = null;
-    if (clipSpec && this.retarget) {
-      retargetResult = this.retarget.retarget(clipSpec, this.rigBones, this.rigBindWorldQuat, this.rigBindQuat);
-      if (retargetResult && retargetResult.applied) {
-        var qs=retargetResult.localQuats || {};
-        for (var rq in qs) if (this.rigBones[rq]) this.rigBones[rq].quaternion.copy(qs[rq]);
-        this.rigBones.Hips.position.y += (retargetResult.hipsLift || 0) / modelScale;
+    /* 2) El clip horneado. El mixer escribe cuaterniones ABSOLUTOS sobre los
+       huesos de su máscara; los que no toca se quedan en el bind que acabamos
+       de restaurar, que es justo lo que impide el flash de T-pose. */
+    if (this.player) {
+      this.player.play(sel, this.lastDt);
+      this.player.update(this.lastDt);
+      /* La pista de cadera viene en metros de mundo pero el modelo va escalado,
+         así que se reexpresa en unidades del modelo. */
+      if (conClip && sel.mask !== 'upper' && modelScale !== 1) {
+        var bind = this.rigBindPos.Hips;
+        this.rigBones.Hips.position.y = bind.y + (this.rigBones.Hips.position.y - bind.y) / modelScale;
       }
     }
 
@@ -802,9 +844,9 @@ export function createCharacterFactory(Arena, scene, opts) {
     scene.remove(this.root);
     if (this.magicLight) scene.remove(this.magicLight);
     if (this.castFx) scene.remove(this.castFx.root);
-    if (this.retarget) this.retarget.dispose();
+    if (this.player) this.player.dispose();
     this.disposeGear();
-    this.skinnedRoot = null; this.rigBones = null; this.rigBindPos = null; this.rigBindQuat=null; this.rigBindWorldQuat=null; this.retarget=null; this.weapons=null; this.skinnedAnim=null;
+    this.skinnedRoot = null; this.rigBones = null; this.rigBindPos = null; this.rigBindQuat=null; this.rigBindWorldQuat=null; this.player=null; this.animLib=null; this.weapons=null; this.skinnedAnim=null;
     for (var i = 0; i < this.parts.length; i++) {
       // Las geometrías son COMPARTIDAS: destruirlas aquí dejaría sin malla a
       // todos los demás personajes. Sólo se sueltan las referencias.

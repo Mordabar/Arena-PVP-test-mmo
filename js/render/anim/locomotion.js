@@ -166,6 +166,11 @@ Arena.define('render/anim/locomotion',
     var rate = norm > st.moveSpeed ? cfg.accelRate : cfg.decelRate;
     var prevSpeed = st.moveSpeed;
     st.moveSpeed = damp(st.moveSpeed, norm, rate, dt);
+    /* Velocidad REAL en m/s. `moveSpeed` está normalizada contra la velocidad
+       base de la entidad y no sirve para sincronizar la zancada de un clip:
+       para eso hace falta el metro por segundo de verdad. Es dato derivado de
+       presentación; no toca nada de simulación. */
+    st.metersPerSecond = st.moveSpeed * (entity.moveSpeedBase || 0);
     var dSpeed = (st.moveSpeed - prevSpeed) / Math.max(dt, 1e-4);
     st.acceleration = clamp(dSpeed / 8, 0, 1);
     st.deceleration = clamp(-dSpeed / 8, 0, 1);

@@ -17,9 +17,9 @@
  * su propia sensación y ésa es justo la que no queremos cambiar.
  * ========================================================================== */
 import * as THREE from 'three';
-import { createEnvironment } from './threeEnvironment.js?build=v0160-20260816-ual2-retarget';
-import { createCharacterFactory } from './threeCharacter.js?build=v0160-20260816-ual2-retarget';
-import { createVfxRenderer, createSelectionRings, createProjectileRenderer } from './threeVfx.js?build=v0160-20260816-ual2-retarget';
+import { createEnvironment } from './threeEnvironment.js?build=v0180-20260817-humanoid-retarget';
+import { createCharacterFactory } from './threeCharacter.js?build=v0180-20260817-humanoid-retarget';
+import { createVfxRenderer, createSelectionRings, createProjectileRenderer } from './threeVfx.js?build=v0180-20260817-humanoid-retarget';
 
 export function createThreeRenderer(Arena, canvas, world, opts) {
   opts = opts || {};

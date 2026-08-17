@@ -86,6 +86,15 @@ const GATES = [
     navegador: true
   },
   {
+    /* v0.18. La puerta que cierra el defecto raíz: el mapa fuente→destino se
+       deriva del LADO FÍSICO, no del nombre. Además comprueba en vivo que el
+       horneado corrió, que no hay NaN, que el esqueleto se mueve y —lo más
+       importante del método absoluto— que NO aparece T-pose. */
+    nombre: 'Retargeting v0.18 · sin espejo, sin NaN, sin T-pose',
+    cmd: ['node', ['tools/browser.js', 'play', 'tools/scripts/retarget-v018-gate.json']],
+    navegador: true
+  },
+  {
     /* La regla más protegida del proyecto: RELEASE es irreversible. El fixture
        BUSCA un par de puntos con línea de visión real en vez de inventar
        coordenadas — colocar a los dos a ambos lados del muro central rechaza
