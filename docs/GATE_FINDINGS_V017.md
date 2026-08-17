@@ -68,11 +68,19 @@ en vez de una por objeto. `CLAUDE.md` §14 ya lo pide por su nombre —«particl
 pools/factories preferred over uncontrolled allocations», «reuse geometries and
 materials»— y `js/render/three/threeEnvironment.js` es donde vive.
 
-**Siguiente paso concreto:** instanciar el escenario por familia (`TreeFactory`,
-`RockFactory` y la hierba ya generan por factoría, así que las copias comparten
-geometría; falta que compartan también la llamada de dibujo). Es un cambio
-acotado a un fichero de presentación, no toca simulación, y es lo único que
-puede meter el pico dentro de 900.
+**Siguiente paso concreto:** `docs/INSTANCING_PLAN_V018.md`, con el censo
+completo de familias ya medido — 3 612 objetos, 148 familias repetidas que
+absorben 2 744, y 1 016 objetos tras instanciar (−72 %).
+
+**Con una advertencia que el plan explica:** falta atribuir cuántos de los 1078
+draw calls pone cada grupo. El experimento correcto —apagar cada hijo de la
+escena por turnos y volver a renderizar— necesita ~40 renders completos y no
+cabe en un rasterizador por software con personajes de 50 000 triángulos. Y el
+conteo de objetos **sobreestima**: un hijo visible dentro de un grupo oculto no
+se dibuja, y los pools de VFX usan exactamente ese patrón.
+
+Instanciar sin esa tabla sería optimizar por corazonada. Por eso está planificado
+y no ejecutado.
 
 **Y antes de tocarlo, medir FPS en una GPU real.** El techo de 900 se fijó
 mirando un presupuesto, no un fotograma; con software rasterization aquí no se
