@@ -2,3 +2,4 @@ node_modules/
 *.log
 .DS_Store
 qa/
+THREE_R160_API.md
