@@ -123,8 +123,7 @@ try {
       glbLoader: glbLoader,
       baseCharacterGltf: ual1Gltf,
       animationLibraryGltf: animationLibraryGltf,
-      meleeBaseCharacterGltf: ual1Gltf,
-      nativeUalAllClasses: true
+      meleeBaseCharacterGltf: ual1Gltf
     }).init();
   });
 

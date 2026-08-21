@@ -6,7 +6,7 @@
  * Si algo se puede hacer aquí y no desde la IA, es un privilegio indebido.
  * ========================================================================== */
 Arena.define('main',
-  ['sim/world', 'render/webglRenderer', 'render/vfx', 'render/picking',
+  ['sim/world', 'render/vfx', 'render/picking',
    'ui/hud', 'ui/combatLog', 'ui/labPanel', 'ui/tooltips', 'ui/gameShell',
    'product/matchFlow', 'product/ladder', 'ai/dummyAI', 'audio/audio',
    'data/scenarios'],

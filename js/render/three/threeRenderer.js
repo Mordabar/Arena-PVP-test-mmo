@@ -54,7 +54,6 @@ export function createThreeRenderer(Arena, canvas, world, opts) {
     baseCharacterGltf: opts.baseCharacterGltf || null,
     animationLibraryGltf: opts.animationLibraryGltf || null,
     meleeBaseCharacterGltf: opts.meleeBaseCharacterGltf || null,
-    nativeUalAllClasses: opts.nativeUalAllClasses === true,
     /* Small caster PointLights are attractive but multiply fragment-light work.
        Keep them disabled in the default GPU-safe profile; caster runes/motes and
        emissive materials still communicate the cast without extra dynamic lights. */

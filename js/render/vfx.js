@@ -9,7 +9,7 @@
  * objetos por impacto provocaría microtirones de recolección de basura justo
  * en el peor momento posible, el burst.
  * ========================================================================== */
-Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], function (Arena) {
+Arena.define('render/vfx', ['data/castFamilies'], function (Arena) {
   'use strict';
 
   var V = Arena.Math.Vec3;

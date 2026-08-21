@@ -5,7 +5,7 @@
  * no es decorativa: si dos clases resuelven el mismo problema de la misma forma,
  * una de las dos sobra.
  * ========================================================================== */
-Arena.define('data/classes', ['data/balance', 'data/races'], function (Arena) {
+Arena.define('data/classes', ['data/balance'], function (Arena) {
   'use strict';
 
   var B = Arena.Data.balance;
@@ -205,8 +205,6 @@ Arena.define('data/classes', ['data/balance', 'data/races'], function (Arena) {
       id: cfg.id,
       name: cfg.name || c.name,
       classId: classId,
-      raceId: cfg.raceId || Arena.Data.defaultRace,
-      skinTone: cfg.skinTone, hairColor: cfg.hairColor,
       team: cfg.team === undefined ? 0 : cfg.team,
       isPlayer: !!cfg.isPlayer,
       x: cfg.x || 0, y: 0, z: cfg.z || 0,
