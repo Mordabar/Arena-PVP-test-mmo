@@ -168,6 +168,25 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       VFX.burst(end, pr.intensity==='major'?24:18,{r:col[0],g:col[1],b:col[2],speed:4.4,life:.55,size:.12,gravity:-1.8,style:pr.element==='ice'?'shard':'spark'});
     }
 
+    function damageReactionKind(p) {
+      /* Latest animation contract:
+         - normal attack damage -> Hit_Chest
+         - damaging power without hard control -> Hit_Head
+         - hard-control powers rely on their CC animation (Slide for knockdown)
+           and do not flash a competing hit reaction first. */
+      if (!p || p.periodic || p.abilityId === 'auto_attack_upkeep') return null;
+      if (!p.abilityId || p.abilityId === 'auto_attack') return 'chest';
+      var ab = Arena.Data.abilities && Arena.Data.abilities[p.abilityId];
+      if (!ab) return 'head';
+      var hard = {knockdown:1, stun:1, sourceDaze:1, stasis:1};
+      var effects = (ab.effects || []).concat(ab.selfEffects || []);
+      for (var i=0;i<effects.length;i++) {
+        var e=effects[i];
+        if (e && e.type === 'status' && hard[e.effect]) return null;
+      }
+      return 'head';
+    }
+
     bus.on('DamageApplied', function (p) {
       if (p.applied <= 0 && p.absorbed <= 0) return;
       var pos = posOf(p.targetId);
@@ -203,8 +222,11 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
         var victim = world.getEntity(p.targetId);
         var attacker = p.sourceId ? world.getEntity(p.sourceId) : null;
         if (vis && victim) {
-          Arena.Render.CharacterBackend.current.triggerHurt(
-            vis, victim, attacker ? attacker.pos : null);
+          var reactionKind = damageReactionKind(p);
+          if (reactionKind) {
+            Arena.Render.CharacterBackend.current.triggerHurt(
+              vis, victim, attacker ? attacker.pos : null, reactionKind);
+          }
         }
       }
     });
@@ -276,10 +298,12 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
         var ab = Arena.Data.abilities[p.abilityId];
         var visualAction = ab && ab.combatTiming ? ab.combatTiming.visualAction : null;
         var visualVariant = ab && ab.combatTiming ? (ab.combatTiming.visualVariant || 0) : 0;
-        /* Utility visualmente pasiva (camuflaje, guardia, interponer...) no
-           debe fingir un heavy swing. La habilidad ya conserva sus VFX propios. */
-        if (visualAction !== 'none') {
-          CB.triggerAttack(vis, CB.archetypeOf(caster.classId), true,
+        /* `none` no significa siempre «cuerpo inmóvil». Arquero y caster
+           poseen familias neutrales propias (utility/cast); sólo melee evita
+           aquí fingir un heavy swing cuando los datos no piden gesto. */
+        var archetype = CB.archetypeOf(caster.classId);
+        if (Arena.Render.Actions.shouldTriggerPower(archetype, visualAction)) {
+          CB.triggerAttack(vis, archetype, true,
             Arena.Data.castFamilyOf(p.abilityId), visualAction, visualVariant,
             ab && ab.combatTiming ? ab.combatTiming.spellGesture : null);
         }
@@ -294,14 +318,21 @@ Arena.define('render/vfx', ['render/webglRenderer', 'data/castFamilies'], functi
       var vis = renderer && renderer.characterHandleOf(p.casterId);
       if (vis && caster) {
         var CBa = Arena.Render.CharacterBackend.current;
-        CBa.triggerAttack(vis, CBa.archetypeOf(caster.classId), false);
+        CBa.triggerAttack(vis, CBa.archetypeOf(caster.classId), false, null, null, 0, null, p.windup);
       }
+    });
+
+    bus.on('WeaponWindupCancelled', function (p) {
+      var vis = renderer && renderer.characterHandleOf(p.casterId);
+      if (vis) Arena.Render.CharacterBackend.current.cancelNormalWindup(vis);
     });
 
     bus.on('AutoAttackReleased', function (p) {
       var pos = posOf(p.casterId, 1.05);
       if (!pos) return;
       var caster = world.getEntity(p.casterId);
+      var vis = renderer && renderer.characterHandleOf(p.casterId);
+      if (vis) Arena.Render.CharacterBackend.current.confirmNormalRelease(vis);
       var magic = caster && caster.autoAttackSchool === 'magical';
       VFX.burst(pos, magic ? 10 : 5, {
         r: magic ? 0.66 : 1.0, g: magic ? 0.48 : 0.86, b: magic ? 1.0 : 0.52,

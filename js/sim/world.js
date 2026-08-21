@@ -262,8 +262,9 @@ Arena.define('sim/world',
     return V.angleDelta(entity.yaw, targetYaw);
   };
 
-  World.prototype.moveEntityBy = function (entity, dirX, dirZ, dt) {
-    var speed = entity.moveSpeed();
+  World.prototype.moveEntityBy = function (entity, dirX, dirZ, dt, speedScale) {
+    var scale = (speedScale === undefined || speedScale === null) ? 1 : Math.max(0.05, Math.min(1, speedScale));
+    var speed = entity.moveSpeed() * scale;
     if (speed <= 0) return false;
     var len = Math.sqrt(dirX * dirX + dirZ * dirZ);
     if (len < 1e-4) return false;
@@ -663,7 +664,7 @@ Arena.define('sim/world',
     for (i = 0; i < this.entities.length; i++) {
       e = this.entities[i];
       if (e.alive && e._moveIntent) {
-        this.moveEntityBy(e, e._moveIntent.x, e._moveIntent.z, dt);
+        this.moveEntityBy(e, e._moveIntent.x, e._moveIntent.z, dt, e._moveIntent.speedScale);
       }
     }
 

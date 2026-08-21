@@ -327,7 +327,7 @@ Arena.define('data/classVisuals', ['data/races', 'data/animConfig'], function (A
       build: { height: 1.00, shoulders: 1.17, girth: 0.98, limbs: 0.99, neck: 0.90 },
       legs: 'bare',
       hair: true,
-      right: { kind: 'sword', mesh: 'greatsword', scale: 1.06, color: 'steel' },
+      right: { kind: 'sword', mesh: 'greatsword', scale: 0.91, color: 'steel' },
       left: null,
       attach: {
         chest: [
@@ -385,7 +385,7 @@ Arena.define('data/classVisuals', ['data/races', 'data/animConfig'], function (A
          quedaba casi horizontal: de frente se veía el canto, y un escudo torre
          visto de canto es un palo. Medido, no supuesto: la anchura de las
          bandas centrales pasa de 0.92 a 1.4. */
-      left: { kind: 'shield', mesh: 'towerShield', pos: [0.06, 0.14, 0.20], rot: [0.05, 0, -0.04], color: 'teamDark' },
+      left: { kind: 'shield', mesh: 'towerShield', scale: 0.56, pos: [0.00, -0.08, 0.04], rot: [0.02, 0, 0.015], color: 'teamDark' },
       attach: {
         chest: [
           { mesh: 'bulwarkGorget', pos: [0, 0.292, 0], color: 'metal' },

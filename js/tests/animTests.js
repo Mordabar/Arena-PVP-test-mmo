@@ -335,7 +335,8 @@ Arena.define('tests/animTests',
       T.assertEqual(Act.familyFor('melee', false), Act.FAMILY.LIGHT_SWING, 'melee normal');
       T.assertEqual(Act.familyFor('melee', true), Act.FAMILY.HEAVY_SWING, 'melee poder');
       T.assertEqual(Act.familyFor('archer', false), Act.FAMILY.ARCHER_SHOT, 'arquero normal');
-      T.assertEqual(Act.familyFor('archer', true), Act.FAMILY.ARCHER_SHOT, 'arquero poder');
+      T.assertEqual(Act.familyFor('archer', true), Act.FAMILY.ARCHER_UTILITY, 'arquero power sin visualAction no finge un disparo');
+      T.assertEqual(Act.familyFor('archer', true, 'archerPower'), Act.FAMILY.ARCHER_SHOT, 'arquero power de tiro');
       // El mago tiene DOS gestos, no uno con variación: el ataque normal
       // canaliza por el báculo, el poder libera un hechizo.
       T.assertEqual(Act.familyFor('caster', false), Act.FAMILY.ARCANE_PULSE, 'mago normal');

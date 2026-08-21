@@ -1,3 +1,0 @@
-✓ Sintaxis JS completa
-✓ Suite completa en verde — 355 pruebas
-✓ Identidad visual sigue medible

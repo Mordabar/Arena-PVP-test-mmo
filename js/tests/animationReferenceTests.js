@@ -137,8 +137,8 @@ Arena.define('tests/animationReferenceTests',
   });
 
   T.suite('Animation Reference Pass · metadata visual', function () {
-    T.test('habilidades utility pasivas no fingen un heavy swing', function () {
-      T.assertEqual(Arena.Data.abilities.guardian_guardia_absoluta.combatTiming.visualAction,'none');
+    T.test('habilidades utility/buff no fingen un heavy swing', function () {
+      T.assertEqual(Arena.Data.abilities.guardian_guardia_absoluta.combatTiming.visualAction,'guardBuff');
       T.assertEqual(Arena.Data.abilities.rastreador_camuflaje.combatTiming.visualAction,'none');
     });
 

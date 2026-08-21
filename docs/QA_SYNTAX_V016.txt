@@ -1,2 +1,0 @@
-JS files checked: 126
-SYNTAX: OK

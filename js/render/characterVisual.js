@@ -307,7 +307,7 @@ Arena.define('render/characterVisual',
       // Capa UPPER BODY: acciones de combate, reacción aditiva y CC.
       action: Act.createState(n),
       cast: 0, casting: false, castMovable: false,
-      hurt: 0, downed: 0, deadTime: 0,
+      hurt: 0, hurtReaction: 'chest', downed: 0, deadTime: 0,
       // Mezcla de la pose de control: 0 = normal, 1 = pose de CC completa.
       ccBlend: 0, cc: null,
       // Compatibilidad de lectura para VFX, HUD y depuración.
@@ -405,18 +405,51 @@ Arena.define('render/characterVisual',
    * elección de familia vive en render/anim/actions.js, que es quien conoce
    * las fases.
    */
-  CV.triggerAttack = function (st, kind, isPower, castFamily, visualAction, visualVariant, spellGesture) {
+  CV.triggerAttack = function (st, kind, isPower, castFamily, visualAction, visualVariant, spellGesture, releaseDelay) {
     if (!st.cfg) return;   // aún no ha corrido el primer update
     var family = Act.familyFor(kind || 'melee', isPower, visualAction);
     Act.trigger(st.action, family, st.cfg, isPower, castFamily, visualAction, visualVariant, spellGesture);
+    var ph = st.cfg.phases[family] || st.cfg.phases.cast || st.cfg.phases.heavy;
+    /* NORMAL: WeaponWindupStarted trae el tiempo autoritativo que falta para
+       RELEASE. La animación ajusta SU reloj para que `ph.impact` caiga justo
+       allí. Antes v0.18/v0.19 usaban actionTime fijo: melee quedaba cerca por
+       casualidad, pero arco podía liberar visualmente ~68 ms tarde. El combate
+       no cambia: sólo retimeamos presentación. */
+    if (!isPower && isFinite(releaseDelay) && releaseDelay > 0 && ph && ph.impact > 0.001) {
+      st.action.duration = Math.max(0.05, releaseDelay / ph.impact);
+      st.action.authoritativeReleaseDelay = releaseDelay;
+      st.action.authoritativeReleasePending = true;
+      st.action.normalReleaseImpact = ph.impact;
+    } else {
+      st.action.authoritativeReleaseDelay = 0;
+      st.action.authoritativeReleasePending = false;
+      st.action.normalReleaseImpact = 0;
+    }
     /* Los poderes llegan aquí en AbilityReleased: RELEASE ya ocurrió en la
        simulación. La presentación entra exactamente en el marker de impacto,
        no reproduce otro windup después de que el proyectil ya salió. */
     if (isPower) {
-      var ph = st.cfg.phases[family] || st.cfg.phases.cast || st.cfg.phases.heavy;
       st.action.t = ph.impact;
       st.action.weight = 1;
     }
+  };
+
+  /** RELEASE del ataque normal confirmado por simulación. La presentación
+   * se lleva exactamente al marker de impacto y desde ahí continúa recovery. */
+  CV.confirmNormalRelease = function (st) {
+    if (!st || !st.action || !st.action.family || !st.action.authoritativeReleasePending) return;
+    st.action.t = st.action.normalReleaseImpact || st.action.t;
+    st.action.authoritativeReleasePending = false;
+    st.action.weight = 1;
+  };
+
+  /** Cancelación autoritativa pre-RELEASE: disuelve el windup sin producir
+   * impacto/follow-through fantasma. */
+  CV.cancelNormalWindup = function (st) {
+    if (!st || !st.action || !st.action.authoritativeReleasePending) return;
+    st.action.authoritativeReleasePending = false;
+    st.action.normalReleaseImpact = 0;
+    Act.cancelVisual(st.action);
   };
 
   /**
@@ -432,8 +465,9 @@ Arena.define('render/characterVisual',
    * Reacción al daño. ADITIVA: sacude el torso sin congelar las piernas.
    * `fromPos` es opcional; con él la sacudida es direccional.
    */
-  CV.triggerHurt = function (st, entity, fromPos) {
+  CV.triggerHurt = function (st, entity, fromPos, reactionKind) {
     st.hurt = 1;
+    st.hurtReaction = reactionKind === 'head' ? 'head' : 'chest';
     if (!st.loco || !entity) return;
     Loco.applyHit(st.loco, entity, fromPos);
     Act.react(st.action, -st.loco.hitDir.z, -st.loco.hitDir.x);

@@ -132,7 +132,7 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
        no segundos. La duración la fija actionTime. */
     actionTime: {
       light: 0.44, heavy: 0.70, thrust: 0.48, ranged: 0.60,
-      kick: 0.48, shield: 0.46, charge: 0.52, cry: 0.54,
+      kick: 0.48, shield: 0.46, charge: 0.52, cry: 0.54, archerUtility: 0.40,
       pulse: 0.42,   // ataque normal del mago
       cast: 0.46     // liberación del hechizo: recuperación corta, esto es PvP
     },
@@ -145,6 +145,7 @@ Arena.define('data/animConfig', ['data/balance'], function (Arena) {
       shield: { anticipation: 0.00, active: 0.22, impact: 0.44, recovery: 0.60, end: 1.0 },
       charge: { anticipation: 0.00, active: 0.18, impact: 0.52, recovery: 0.68, end: 1.0 },
       cry:    { anticipation: 0.00, active: 0.30, impact: 0.52, recovery: 0.68, end: 1.0 },
+      archerUtility:{ anticipation:0.00, active:0.22, impact:0.46, recovery:0.62, end:1.0 },
       pulse:  { anticipation: 0.00, active: 0.28, impact: 0.48, recovery: 0.66, end: 1.0 },
       // `active` bajo a propósito: la cadena cinética arranca casi al instante
       // y se escalona sola con los retardos por eslabón.

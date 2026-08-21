@@ -79,10 +79,11 @@ Arena.define('anim/animationIntent',
       moveForward: 0, moveRight: 0, speedNormalized: 0,
       turnRate: 0, accelerating: false, decelerating: false,
       gait: 0,                  // 0 = andar · 1 = correr, con fase de vuelo
+      speedBoosted: false,      // buff/poder que aumenta velocidad real de movimiento
       airborne: false, jumpProgress: 0,
 
       /* Orientación */
-      facingYaw: 0, targetYaw: 0, hasTarget: false,
+      facingYaw: 0, targetYaw: 0, hasTarget: false, combatMode: false,
 
       /* Acción de combate */
       actionFamily: null,       // 'light' | 'heavy' | 'ranged' | 'pulse' | 'cast' | …
@@ -155,6 +156,8 @@ Arena.define('anim/animationIntent',
     intent.weaponType = Arena.Data.weaponOf(entity.classId);
     intent.alive = !!entity.alive;
     intent.facingYaw = entity.yaw;
+    var moveMods = entity.mods ? entity.mods() : null;
+    intent.speedBoosted = !!(moveMods && (moveMods.moveSpeedPct || 0) > 0.01);
 
     /* --- Locomoción -------------------------------------------------------- */
     if (loco) {
@@ -175,6 +178,10 @@ Arena.define('anim/animationIntent',
     var tgt = (entity.targetId && world && world.getEntity)
       ? world.getEntity(entity.targetId) : null;
     intent.hasTarget = !!(tgt && tgt.alive);
+    /* Modo de combate es una decisión del jugador/simulación, distinta de
+       simplemente tener un objetivo seleccionado. Seleccionar a alguien NO
+       debe levantar arma/arco/báculo ni convertir Idle en guardia de ataque. */
+    intent.combatMode = !!entity.combatMode;
 
     /* --- Acción ------------------------------------------------------------ */
     if (action && action.family) {
@@ -260,6 +267,7 @@ Arena.define('anim/animationIntent',
     var lines = [
       'INTENT     ' + intent.archetype + '/' + intent.weaponType +
         (intent.alive ? '' : '  MUERTO'),
+      '  modo     ' + (intent.combatMode ? 'COMBAT' : 'NORMAL') + (intent.hasTarget ? '  target' : '') ,
       '  loco     ' + intent.locomotion + '  v' + n(intent.speedNormalized) +
         '  fwd' + n(intent.moveForward) + '  right' + n(intent.moveRight) +
         (intent.airborne ? '  JUMP ' + Math.round(intent.jumpProgress * 100) + '%' : '')

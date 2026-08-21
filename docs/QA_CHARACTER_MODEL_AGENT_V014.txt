@@ -1,7 +1,0 @@
-✓ GLB base rigged existe
-✓ GLB se precarga antes del boot
-✓ cuerpo procedural se suprime al usar GLB
-✓ cada entidad tiene skeleton independiente y consume rigPose
-✓ CharacterVisual expone pivotes humanoides
-✓ modelo adversarial en verde
-✓ skinning adversarial en verde

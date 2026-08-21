@@ -38,6 +38,7 @@ Arena.define('render/anim/actions',
     CHARGE: 'charge',
     WAR_CRY: 'cry',
     ARCHER_SHOT: 'ranged',
+    ARCHER_UTILITY: 'archerUtility',
     ARCANE_PULSE: 'pulse',   // ataque normal del mago: NO es una estocada
     CAST: 'cast'             // liberación de hechizo
   };
@@ -56,6 +57,14 @@ Arena.define('render/anim/actions',
   };
 
   /** Qué familia usa cada arquetipo según sea ataque normal o poder. */
+  /* ¿Un RELEASE de poder necesita gesto corporal aunque `visualAction` sea
+     `none`? Caster y arquero sí tienen familias neutrales (cast/utility); en
+     melee un `none` sigue significando que el VFX puede bastar y evita fingir
+     un heavy swing. Esta política vive aquí, junto a `familyFor`, no en vfx.js. */
+  Act.shouldTriggerPower = function (archetype, visualAction) {
+    return visualAction !== 'none' || archetype === 'archer' || archetype === 'caster';
+  };
+
   Act.familyFor = function (archetype, isPower, visualAction) {
     /* Las acciones especiales vienen de DATA (`combatTiming.visualAction`).
        El renderer conoce categorías de movimiento, nunca ids de habilidades. */
@@ -63,12 +72,16 @@ Arena.define('render/anim/actions',
       if (visualAction === 'kick') return Act.FAMILY.KICK;
       if (visualAction === 'shield') return Act.FAMILY.SHIELD_BASH;
       if (visualAction === 'charge') return Act.FAMILY.CHARGE;
-      if (visualAction === 'cry') return Act.FAMILY.WAR_CRY;
+      if (visualAction === 'cry' || visualAction === 'guardBuff') return Act.FAMILY.WAR_CRY;
       if (visualAction === 'thrust') return Act.FAMILY.THRUST;
       if (visualAction === 'heavy') return Act.FAMILY.HEAVY_SWING;
       if (visualAction.indexOf && visualAction.indexOf('archer') === 0) return Act.FAMILY.ARCHER_SHOT;
     }
-    if (archetype === 'archer') return Act.FAMILY.ARCHER_SHOT;
+    if (archetype === 'archer') {
+      /* Un buff/utility sin gesto de tiro no debe fingir que dispara una flecha. */
+      if (isPower && (!visualAction || visualAction === 'none')) return Act.FAMILY.ARCHER_UTILITY;
+      return Act.FAMILY.ARCHER_SHOT;
+    }
     // El mago tiene DOS gestos distintos, no uno con variación: el ataque
     // normal canaliza energía por el báculo, el poder libera un hechizo.
     if (archetype === 'caster') return isPower ? Act.FAMILY.CAST : Act.FAMILY.ARCANE_PULSE;
@@ -90,6 +103,7 @@ Arena.define('render/anim/actions',
       family: null, t: 0, duration: 0, isPower: false,
       weight: 0,             // 0..1 — cuánto pesa la acción sobre la guardia
       variant: 0, normalSequence: 0, visualAction: null,
+      authoritativeReleasePending: false, normalReleaseImpact: 0, authoritativeReleaseDelay: 0,
       /* Familia VISUAL del hechizo en curso (data/castFamilies.js). La fija la
          simulación al empezar el casteo y sobrevive hasta la recuperación: es
          lo que hace que curar y enraizar no se vean igual. */
@@ -113,6 +127,7 @@ Arena.define('render/anim/actions',
     st.t = 0;
     st.isPower = !!isPower;
     st.visualAction = visualAction || null;
+    st.authoritativeReleasePending = false; st.normalReleaseImpact = 0; st.authoritativeReleaseDelay = 0;
     /* Dos normales melee alternan de forma DETERMINISTA: horizontal y diagonal.
        No cambia daño/timing de simulación; sólo evita el metronómico mismo tajo. */
     if (family === Act.FAMILY.LIGHT_SWING && !isPower) {
@@ -142,6 +157,12 @@ Arena.define('render/anim/actions',
     if (st.family) {
       if (st.t < 1) {
         st.t = Math.min(1, st.t + dt / Math.max(0.05, st.duration));
+        /* Un normal jamás cruza su marker visual de RELEASE por un reloj de
+           presentación. Si el fixed tick aún no emitió AutoAttackReleased, se
+           queda a una distancia epsilon del impacto. El evento autoritativo lo
+           libera mediante CharacterVisual.confirmNormalRelease(). */
+        if (st.authoritativeReleasePending && st.normalReleaseImpact > 0 && st.t >= st.normalReleaseImpact)
+          st.t = Math.max(0, st.normalReleaseImpact - 1e-4);
         // Entrada rápida (el golpe debe sentirse inmediato) y salida algo más
         // larga: el cuerpo REGRESA a la guardia, no se teletransporta a ella.
         st.weight = Math.min(1, Math.min(smooth(st.t / BLEND_IN), 1));

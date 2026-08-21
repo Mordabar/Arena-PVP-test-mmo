@@ -36,11 +36,11 @@ Arena.define('data/abilities', ['data/classes', 'data/effects'], function (Arena
     devastador_profanador:         { actionType:'weaponSkill', normalInteraction:'replacesNormal', weaponIntervalPolicy:'respectReady',stationary:true,  visualAction:'heavy' },
 
     guardian_avasallamiento:       { actionType:'utility',     normalInteraction:'weaveAfterNormal',weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'shield' },
-    guardian_guardia_absoluta:     { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
-    guardian_interponer:           { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
-    guardian_egida:                { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
-    guardian_proteccion_aliada:    { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'none' },
-    guardian_postura:              { actionType:'utility',     normalInteraction:'blocksNormal',   weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'none' },
+    guardian_guardia_absoluta:     { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'guardBuff' },
+    guardian_interponer:           { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'guardBuff' },
+    guardian_egida:                { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'guardBuff' },
+    guardian_proteccion_aliada:    { actionType:'utility',     normalInteraction:'independent',    weaponIntervalPolicy:'ignore',       stationary:false, visualAction:'guardBuff' },
+    guardian_postura:              { actionType:'utility',     normalInteraction:'blocksNormal',   weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'guardBuff' },
 
     centinela_disparo_tensado:     { actionType:'weaponSkill', normalInteraction:'replacesNormal', weaponIntervalPolicy:'respectReady',stationary:true,  visualAction:'archer' },
     centinela_flecha_perforante:   { actionType:'weaponSkill', normalInteraction:'weaveAfterNormal',weaponIntervalPolicy:'ignore',       stationary:true,  visualAction:'archer' },

@@ -140,7 +140,10 @@ function addCanopy(root, y, scale, phase, mats, geos, animated) {
     var crown = new THREE.Mesh(i === 3 ? geos.crownSmall : geos.crown, (i % 3 === 0) ? mats.leaf2 : (i % 3 === 1 ? mats.leaf : mats.leaf3));
     crown.position.set(c[0], c[1], c[2]);
     crown.scale.setScalar(c[3]);
-    shadowify(crown);
+    /* Far foliage receives sunlight but does not render its own shadow map
+       pass. Hundreds of canopy meshes were one of the least valuable GPU
+       shadow casters in the arena. */
+    crown.castShadow = false; crown.receiveShadow = true;
     canopy.add(crown);
   }
   canopy.scale.setScalar(scale);
@@ -148,7 +151,7 @@ function addCanopy(root, y, scale, phase, mats, geos, animated) {
   animated.push({ canopy: canopy, phase: phase, baseY: canopy.position.y });
 }
 
-function addTree(group, x, z, scale, phase, mats, geos, animated, baseY) {
+function addTree(group, x, z, scale, phase, mats, geos, animated, baseY, castsShadow) {
   var root = new THREE.Group();
   root.position.set(x, baseY || 0, z);
   root.rotation.y = phase * 1.63;
@@ -157,13 +160,13 @@ function addTree(group, x, z, scale, phase, mats, geos, animated, baseY) {
   var trunk = new THREE.Mesh(geos.trunk, mats.bark);
   trunk.position.y = 1.35;
   trunk.rotation.z = Math.sin(phase * 2.1) * 0.035;
-  shadowify(trunk);
+  trunk.castShadow = castsShadow !== false; trunk.receiveShadow = true;
   root.add(trunk);
 
   var collar = new THREE.Mesh(geos.rootCollar, mats.barkDark);
   collar.position.y = 0.18;
   collar.rotation.y = phase;
-  shadowify(collar);
+  collar.castShadow = castsShadow !== false; collar.receiveShadow = true;
   root.add(collar);
 
   addCanopy(root, 3.05, 1.0, phase, mats, geos, animated);
@@ -171,10 +174,62 @@ function addTree(group, x, z, scale, phase, mats, geos, animated, baseY) {
   return root;
 }
 
+/* v0.24 performance wave — the exterior forest is pure backdrop and used to
+ * cost ~7 draw calls PER tree (trunk + collar + five crown chunks).  It has no
+ * collision or gameplay meaning, so render identical component slots with
+ * InstancedMesh.  Thirty+ trees collapse from ~210 draws to seven while the
+ * authored silhouette/material variation remains unchanged.  The tactical
+ * collider trees still use addTree() and keep their individual wind motion. */
+function addInstancedForest(group, forest, mats, geos) {
+  if (!forest || !forest.length) return [];
+  var crownData = [
+    [0, 0.10, 0, 1.00], [-0.54, -0.08, 0.10, 0.74], [0.49, -0.04, -0.12, 0.80],
+    [0.02, 0.58, -0.05, 0.72], [0.12, 0.16, 0.50, 0.62]
+  ];
+  var slots = [
+    { geo:geos.trunk, mat:mats.bark, kind:'trunk' },
+    { geo:geos.rootCollar, mat:mats.barkDark, kind:'collar' }
+  ];
+  for (var ci=0; ci<crownData.length; ci++) slots.push({
+    geo:ci===3?geos.crownSmall:geos.crown,
+    mat:(ci%3===0)?mats.leaf2:((ci%3===1)?mats.leaf:mats.leaf3),
+    kind:'crown', crownIndex:ci
+  });
+  var rootM=new THREE.Matrix4(), childM=new THREE.Matrix4(), worldM=new THREE.Matrix4();
+  var rootPos=new THREE.Vector3(), rootScale=new THREE.Vector3(), childPos=new THREE.Vector3(), childScale=new THREE.Vector3();
+  var rootQ=new THREE.Quaternion(), childQ=new THREE.Quaternion();
+  var rootE=new THREE.Euler(), childE=new THREE.Euler();
+  var out=[];
+  for (var si=0; si<slots.length; si++) {
+    var slot=slots[si], inst=new THREE.InstancedMesh(slot.geo,slot.mat,forest.length);
+    inst.name='forest-instanced-'+slot.kind+(slot.crownIndex===undefined?'':'-'+slot.crownIndex);
+    inst.castShadow=false; inst.receiveShadow=true;
+    inst.frustumCulled=true;
+    for (var fi=0; fi<forest.length; fi++) {
+      var f=forest[fi], phase=f[3], scale=f[2];
+      rootPos.set(f[0],0,f[1]); rootScale.setScalar(scale);
+      rootE.set(0,phase*1.63,0); rootQ.setFromEuler(rootE); rootM.compose(rootPos,rootQ,rootScale);
+      childQ.identity(); childScale.set(1,1,1);
+      if(slot.kind==='trunk') {
+        childPos.set(0,1.35,0); childE.set(0,0,Math.sin(phase*2.1)*0.035); childQ.setFromEuler(childE);
+      } else if(slot.kind==='collar') {
+        childPos.set(0,0.18,0); childE.set(0,phase,0); childQ.setFromEuler(childE);
+      } else {
+        var c=crownData[slot.crownIndex]; childPos.set(c[0],3.05+c[1],c[2]); childE.set(0,0,0); childQ.identity(); childScale.setScalar(c[3]);
+      }
+      childM.compose(childPos,childQ,childScale); worldM.multiplyMatrices(rootM,childM);
+      inst.setMatrixAt(fi,worldM);
+    }
+    inst.instanceMatrix.needsUpdate=true;
+    group.add(inst); out.push(inst);
+  }
+  return out;
+}
+
 /** Convierte uno de los colliders de columna en un árbol antiguo jugable. */
 function addColliderTree(group, o, index, mats, geos, animated, stoneMat) {
   var scale = 1.20 + (index % 3) * 0.07;
-  var root = addTree(group, o.center.x, o.center.z, scale, index * 0.77, mats, geos, animated, 0);
+  var root = addTree(group, o.center.x, o.center.z, scale, index * 0.77, mats, geos, animated, 0, true);
   // El tronco visual queda aproximadamente dentro de la caja 1.5x1.5.
   root.children[0].scale.set(2.25, 1.28, 2.25);
   root.children[1].scale.set(1.35, 0.90, 1.35);
@@ -306,7 +361,7 @@ export function createEnvironment(scene, arena) {
   scene.add(hemi);
   var sun = new THREE.DirectionalLight(PALETTE.sun, 3.55);
   sun.position.set(-21, 33, 18); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.mapSize.set(1024, 1024);
   var span = Math.sqrt(arena.width * arena.width + arena.depth * arena.depth) * 0.60;
   var sc = sun.shadow.camera; sc.left=-span; sc.right=span; sc.top=span; sc.bottom=-span; sc.near=5; sc.far=90;
   sun.shadow.bias = -0.00055; sun.shadow.normalBias = 0.030;
@@ -395,7 +450,7 @@ export function createEnvironment(scene, arena) {
     else {x=t*(hw+5); z=hd+2.0+hash2(i,4,7)*4.4;}
     forest.push([x,z,1.25+hash2(i,5,8)*0.75,i*0.71]);
   }
-  for(i=0;i<forest.length;i++) addTree(group,forest[i][0],forest[i][1],forest[i][2],forest[i][3],mats,geos,animatedFoliage,0);
+  addInstancedForest(group, forest, mats, geos);
 
   // Arbustos bajos dentro de esquinas seguras: atravesables y claramente bajos.
   var bushes=[[-14,-10],[-11,10],[13,-9],[14,9],[-6,-10.4],[6,10.2],[-15,4],[15,-4]];
@@ -450,8 +505,11 @@ export function createEnvironment(scene, arena) {
     var stem=new THREE.Mesh(stemGeo,brazierMat); stem.position.set(bx,0.50,bz); stem.castShadow=true; group.add(stem);
     var bowl=new THREE.Mesh(bowlGeo,brazierMat); bowl.position.set(bx,1.05,bz); bowl.castShadow=true; group.add(bowl);
     var flame=new THREE.Mesh(flameGeo,flameMat); flame.position.set(bx,1.32,bz); flame.scale.set(1,1.35,1); group.add(flame);
-    var glow=new THREE.PointLight(PALETTE.accent,5.2,6.2,2.0); glow.position.set(bx,1.38,bz); scene.add(glow);
-    flames.push({mesh:flame,light:glow,phase:i*1.37});
+    /* Emissive flame only. Four always-on PointLights multiplied the cost of
+       every StandardMaterial in view and added almost no tactical information.
+       Keeping the emissive geometry preserves the authored brazier cue while
+       lowering fragment-light work on the GPU. */
+    flames.push({mesh:flame,light:null,phase:i*1.37});
   }
 
   /* --- Luciérnagas ambientales -----------------------------------------
@@ -483,7 +541,7 @@ export function createEnvironment(scene, arena) {
       }
       for(var k=0;k<flames.length;k++){
         var fl=flames[k], pulse=0.90+Math.sin(time*8.0+fl.phase)*0.085+Math.sin(time*13.4+fl.phase)*0.030;
-        fl.mesh.scale.y=1.28*pulse; fl.mesh.rotation.y+=0.016; fl.light.intensity=4.6+pulse*1.15;
+        fl.mesh.scale.y=1.28*pulse; fl.mesh.rotation.y+=0.016; if(fl.light) fl.light.intensity=4.6+pulse*1.15;
       }
       for(var c=0;c<clouds.length;c++) clouds[c].position.x += (dt||0)*0.08*(c+1);
       flyMat.opacity = 0.54 + Math.sin(time * 1.7) * 0.10 + Math.sin(time * 2.9) * 0.04;

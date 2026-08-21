@@ -1,6 +1,0 @@
-✓ Build visible inequívoco v0.14
-✓ Variación de nombre conserva trazabilidad fuente
-✓ No aparecen placeholders/reglas opacas como poderes
-✓ Vampirismo no quedó degradado a curación propia
-✓ A/D corregidos
-✓ La base de balance es el rango 5 fuente

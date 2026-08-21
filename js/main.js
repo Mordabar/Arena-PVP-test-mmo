@@ -746,7 +746,7 @@ Arena.define('main',
         var dx = sy * mv.forward - cy * mv.strafe;
         var dz = cy * mv.forward + sy * mv.strafe;
         // Se aplica dentro del paso fijo para no depender de los fps.
-        player._moveIntent = { x: dx, z: dz };
+        player._moveIntent = { x: dx, z: dz, speedScale: mv.walk ? Arena.Core.ControlMap.WALK_SPEED_SCALE : 1, walk: !!mv.walk };
       } else {
         player._moveIntent = null;
       }

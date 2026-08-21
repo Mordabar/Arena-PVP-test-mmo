@@ -69,12 +69,14 @@ Arena.define('render/characterBackend', ['render/characterVisual'], function (Ar
     archetypeOf: function (classId) { return CV.archetypeOf(classId); },
     materialOf: function (mesh) { return CV.materialOf(mesh); },
 
-    triggerAttack: function (handle, archetype, isPower, castFamily, visualAction, visualVariant, spellGesture) {
-      CV.triggerAttack(handle, archetype, isPower, castFamily, visualAction, visualVariant, spellGesture);
+    triggerAttack: function (handle, archetype, isPower, castFamily, visualAction, visualVariant, spellGesture, releaseDelay) {
+      CV.triggerAttack(handle, archetype, isPower, castFamily, visualAction, visualVariant, spellGesture, releaseDelay);
     },
+    confirmNormalRelease: function (handle) { CV.confirmNormalRelease(handle); },
+    cancelNormalWindup: function (handle) { CV.cancelNormalWindup(handle); },
     beginCast: function (handle, castFamily, visualAction, spellGesture) { CV.beginCast(handle, castFamily, visualAction, spellGesture); },
-    triggerHurt: function (handle, entity, fromPos) {
-      CV.triggerHurt(handle, entity, fromPos);
+    triggerHurt: function (handle, entity, fromPos, reactionKind) {
+      CV.triggerHurt(handle, entity, fromPos, reactionKind);
     },
 
     /** Datos de depuración. Un backend sin locomoción propia devolvería null. */

@@ -218,7 +218,7 @@ const cmd = process.argv[2] || 'smoke';
     const page = process.env.ARENA_PAGE || 'index.html';
     let url;
     // index.html es ahora la presentación de Three.js y usa módulos ES, que el
-    // navegador bloquea sobre file://. Sólo index-webgl2.html puede ir por file.
+    // navegador bloquea sobre file://; v0.25 mantiene un único entrypoint Three.js servido por HTTP.
     if (page.indexOf('webgl2') < 0 || process.env.ARENA_HTTP) {
       const port = await startServer();
       url = 'http://' + (process.env.ARENA_HOST || '127.0.0.1') + ':' + port + '/' + page;
@@ -226,7 +226,7 @@ const cmd = process.argv[2] || 'smoke';
       url = 'file://' + path.join(ROOT, page);
     }
     await session.send('Page.navigate', { url });
-    await sleep(2500);
+    await sleep(6000);
 
     const boot = await session.evaluate(`(function(){
       if (typeof Arena === 'undefined') return { ok:false, why:'Arena no está definido' };
