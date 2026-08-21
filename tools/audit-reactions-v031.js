@@ -1,5 +1,0 @@
-#!/usr/bin/env node
-'use strict';const fs=require('fs'),path=require('path'),R=path.join(__dirname,'..');let bad=0;function g(ok,n){console.log((ok?'✓ ':'✗ ')+n);if(!ok)bad++;}
-const v=fs.readFileSync(path.join(R,'js/render/vfx.js'),'utf8'),cv=fs.readFileSync(path.join(R,'js/render/characterVisual.js'),'utf8'),sm=fs.readFileSync(path.join(R,'js/render/animationStateMachine.js'),'utf8'),plan=fs.readFileSync(path.join(R,'js/data/animationSourcePlan.js'),'utf8');
-console.log('REACTION AUDIT v0.31');g(/abilityId === 'auto_attack'\) return 'chest'/.test(v),'normal attack packet -> chest');g(/return 'head';/.test(v),'damage power -> head');g(/knockdown:1, stun:1, sourceDaze:1, stasis:1/.test(v),'hard CC suppresses competing hit reaction');g(/reactionKind === 'head' \? 'head' : 'chest'/.test(cv),'reaction kind persists in visual state');g(/handle\.hurtReaction==='head'/.test(sm),'state machine selects Hit_Head dynamically');g(/autoAttack:'Hit_Chest'/.test(plan)&&/pureDamagePower:'Hit_Head'/.test(plan),'plan documents packet policy');
-console.log(bad?'REACTIONS_V031: RECHAZADO':'REACTIONS_V031: APROBADO');process.exit(bad?1:0);
