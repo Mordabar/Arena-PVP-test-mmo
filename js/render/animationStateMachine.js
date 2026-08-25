@@ -169,6 +169,24 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
       return state('CAST_CHARGE',slotSel(as,{mask:'upper',directLowerBase:'Arena_Archer_VideoReady',directLowerBaseProgress:0.50,loop:false,syncAuthoritative:true,syncProgress:cprog,fallbackSyncProgress:cprog,bowDraw:attackLike?cprog:0,semanticSlot:attackLike?'archerAttackCharge':'archerBuffCharge'}));
     }
 
+    /* v0.36 · Poderes melee con tiempo de casteo real (p. ej. Golpe Quebrador,
+       0.4s) no tenían NADA que mostrar durante esa ventana: esta rama sólo
+       cubría arquero/mago. El golpe entonces saltaba en seco a su marker de
+       impacto en AbilityCastCompleted, saltándose todo el tramo de carga del
+       clip — justo "el poder no se ve completo" que reportó el usuario.
+       Puntapié (castTime 0) nunca entra aquí: no hay ventana real que llenar,
+       y se deja tal cual a propósito. */
+    if(handle&&handle.casting&&archetype==='melee'){
+      var mva=(intent.visualAction)||(A&&A.visualAction)||null;
+      var mslot=mva==='shield'?SP.slots.shieldBash:(mva==='cry'?SP.slots.shieldGuard:SP.slots.meleeWeaponPower);
+      if(mslot&&mslot.clip){
+        var mcprog=clamp(Number(intent.castProgress)||Number(handle.cast)||0,0,1);
+        var mmeta=AP.actionClipFor(mslot.clip);
+        var mu=clamp(mmeta.start+mcprog*(mmeta.contact-mmeta.start),0,1);
+        return state('CAST_CHARGE',slotSel(mslot,{mask:'full',loop:false,syncAuthoritative:true,syncProgress:mu,semanticSlot:'meleeCastCharge'}));
+      }
+    }
+
     if(A.family){
       if(archetype==='archer'){
         var arslot=A.family==='ranged'?(A.isPower?SP.slots.archerPowerRelease:SP.slots.archerNormalAttack):SP.slots.archerBuffCharge;

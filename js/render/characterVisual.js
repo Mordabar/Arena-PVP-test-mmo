@@ -190,9 +190,20 @@ Arena.define('render/characterVisual',
     }
     /* Los poderes llegan aquí en AbilityReleased: RELEASE ya ocurrió en la
        simulación. La presentación entra exactamente en el marker de impacto,
-       no reproduce otro windup después de que el proyectil ya salió. */
+       no reproduce otro windup después de que el proyectil ya salió.
+
+       v0.36: eso es correcto para arco/mago —ahí sí hay un proyectil que ya
+       viajó, y mostrar recorrido después se vería al revés— pero un poder
+       melee es contacto físico, no un disparo: arrancar en seco justo en
+       ph.impact hacía que espada/pierna "aparecieran" ya en la pose de golpe
+       sin ningún tránsito. Se reportó exactamente así: "el poder no se ve
+       completo" y "el puntapié se ve pobre". Un tránsito corto (~8% de la
+       duración de la acción, unos 40-60 ms) hacia ph.impact deja ver el arma
+       LLEGANDO al golpe sin retrasar ni el daño ni el VFX, que siguen
+       disparando en el instante autoritativo real: sólo se suaviza la pose. */
     if (isPower) {
-      st.action.t = ph.impact;
+      var meleeContact = kind === 'melee';
+      st.action.t = meleeContact ? Math.max(0, ph.impact - 0.08) : ph.impact;
       st.action.weight = 1;
     }
   };
