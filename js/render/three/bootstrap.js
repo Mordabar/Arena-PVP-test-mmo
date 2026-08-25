@@ -116,7 +116,14 @@ try {
     available: required.filter(function(n){return available.has(n);}),
     userLockedWarrior: ['Hit_Chest','Hit_Head','Idle_Loop','Walk_Loop','Jog_Fwd_Loop','Sprint_Loop','Jump_Start','Jump_Loop','Jump_Land','Sword_Idle','Idle_Shield_Loop','Sword_Regular_A','Sword_Regular_A_Rec','Sword_Regular_B','Sword_Regular_B_Rec','Sword_Regular_C','Shield_Dash_RM','Shield_OneShot','Slide_Start','Slide_Loop','Slide_Exit'],
     archerVideoContract: {requested:['Bow_Aim_Neutral','Bow_Notch','Bow_Shoot','Bow_RapidShoot'],fallbacks:['Arena_Archer_VideoReady','Arena_Archer_VideoNotch','Arena_Archer_VideoShoot','Arena_Archer_VideoBuff']},
-    cmuImplemented: ['walkBackward','strafeLeft','strafeRight','diagonalForwardLeft','diagonalForwardRight','walkBackLeft','walkBackRight','turnLeft','turnRight','kick']
+    /* v0.36: sólo 'kick' sigue cableado a su clip CMU. Los otros nueve nombres
+       siguen en arena-cmu-v031.json (cargados, disponibles) pero
+       animationSourcePlan.js ya no los referencia — su ventana de origen
+       nunca se verificó visualmente y el usuario confirmó que se ven mal en
+       partida. Quedan listados aquí como 'unwired' para que quede constancia
+       de qué hay cargado en memoria sin usarse, no como algo implementado. */
+    cmuImplemented: ['kick'],
+    cmuLoadedButUnwired: ['walkBackward','strafeLeft','strafeRight','diagonalForwardLeft','diagonalForwardRight','walkBackLeft','walkBackRight','turnLeft','turnRight']
   };
   Arena.Render.RendererBackend.register('three', function (canvas, world) {
     return createThreeRenderer(Arena, canvas, world, {

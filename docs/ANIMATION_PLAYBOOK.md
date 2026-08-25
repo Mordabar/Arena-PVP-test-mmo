@@ -99,6 +99,26 @@ assets/animations/arena-cmu-v031.json       10 clips  (CMU: retroceso, strafe, g
 escribas en un contrato de datos tiene que salir de esta lista, comprobada,
 no de memoria ni de lo que dice un comentario.
 
+**Cuidado con `arena-cmu-v031.json`: existir no es lo mismo que estar bien.**
+De esos 10 clips, sólo `Arena_CMU_Kick` está cableado en
+`animationSourcePlan.js`. Los otros 9 (retroceso, strafe, diagonales y giro)
+se retiraron el 25-08-2026: `tools/scripts/cmu/generate-cmu-clips-v031.py`
+cortaba cada uno de un FBX de mocap crudo por una VENTANA DE TIEMPO
+adivinada a partir de una nota de texto, nunca de un render comprobado — de
+hecho `Strafe_Left`/`Strafe_Right` salen del mismo archivo en dos ventanas
+distintas, y `Turn_Left`/`Turn_Right` de dos tomas sin relación. El usuario
+confirmó en partida que se veían mal (brazo rígido en strafe, giro que no
+concuerda con la rotación real del cuerpo) y no hay forma de re-verificar sin
+el paquete `Anims_Only_FBX_V1.zip`, que no está disponible en este entorno.
+Los 9 nombres siguen cargados en el JSON (ver
+`Arena.Render.requestedSourceClips.cmuLoadedButUnwired` en `bootstrap.js`),
+así que `audit-clips.mjs` los ve como "reales" — pero **existir en el binario
+no certifica que el contenido sea correcto**, sólo que el nombre no está
+inventado. `locomotion.walkBackward/strafeLeft/strafeRight/diagonalForward*
+/walkBack*` apuntan ahora a `Walk_Loop` (placeholder honesto) y
+`locomotion.turnLeft/turnRight` quedan en blanco, hasta que llegue el paquete
+fuente o un vídeo de referencia para re-verificar de verdad.
+
 (`tools/audit-clips.mjs --list` mostrará 45: los 41 de aquí más los 4 que
 `threeDirectAnim.js` sintetiza en runtime a partir de clips reales — ver §6.)
 

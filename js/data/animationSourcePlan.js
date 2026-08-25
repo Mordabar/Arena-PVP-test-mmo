@@ -116,17 +116,36 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
       runForward: slot('Jog_Fwd_Loop', STATUS.FINAL, 'correr/jog al frente'),
       sprintForward: slot('Sprint_Loop', STATUS.FINAL, 'correr al frente con buff de velocidad'),
 
-      /* Directional locomotion remains from the already integrated CMU pass;
-         this warrior wave does not reinterpret those clips. */
-      walkBackward: slot('Arena_CMU_Walk_Backward', STATUS.SOURCE_DERIVED, 'caminar atrás', {sourceFile:'113_01.fbx'}),
-      walkBackLeft: slot('Arena_CMU_Diagonal_BL', STATUS.SOURCE_DERIVED, 'atrás + izquierda', {sourceFile:'41_02.fbx'}),
-      walkBackRight:slot('Arena_CMU_Diagonal_BR', STATUS.SOURCE_DERIVED, 'atrás + derecha', {sourceFile:'41_02.fbx'}),
-      strafeLeft:  slot('Arena_CMU_Strafe_Left', STATUS.SOURCE_DERIVED, 'lateral izquierda', {sourceFile:'143_40.fbx'}),
-      strafeRight: slot('Arena_CMU_Strafe_Right', STATUS.SOURCE_DERIVED, 'lateral derecha', {sourceFile:'143_40.fbx'}),
-      diagonalForwardLeft: slot('Arena_CMU_Diagonal_FL', STATUS.SOURCE_DERIVED, 'frente + izquierda', {sourceFile:'41_02.fbx'}),
-      diagonalForwardRight:slot('Arena_CMU_Diagonal_FR', STATUS.SOURCE_DERIVED, 'frente + derecha', {sourceFile:'40_02.fbx'}),
-      turnLeft:  slot('Arena_CMU_Turn_Left', STATUS.SOURCE_DERIVED, 'giro Q / izquierda', {sourceFile:'16_27.fbx'}),
-      turnRight: slot('Arena_CMU_Turn_Right', STATUS.SOURCE_DERIVED, 'giro E / derecha', {sourceFile:'16_29.fbx'})
+      /* v0.36 · Retirados los 9 clips CMU direccionales (25-08-2026).
+         generate-cmu-clips-v031.py cortaba cada uno de un archivo FBX crudo por
+         VENTANA DE TIEMPO ADIVINADA a partir de una nota de texto ("walk
+         sideways: left cycle") — nadie renderizó esa ventana para confirmar
+         que el contenido correspondía de verdad a esa dirección antes de
+         aceptarla. El propio script lo delata: Strafe_Left y Strafe_Right
+         salen del MISMO archivo (143_40.fbx) en dos ventanas distintas, y
+         Turn_Left/Turn_Right salen de dos tomas de mocap DISTINTAS (16_27 vs
+         16_29) en vez de ser una mismo par espejado. El usuario confirmó en
+         partida que girar, retroceder, lateral y diagonal se ven mal — y sin
+         el paquete Anims_Only_FBX_V1.zip (no disponible en este entorno) no
+         hay forma honesta de re-verificar esas ventanas.
+         missingPolicy manda no fingir un clip fuente que no se puede probar:
+         estos siete slots vuelven a Walk_Loop (ya verificado, USER_LOCKED en
+         todos los estados que sí se auditaron esta sesión) en vez de a un
+         contenido sin verificar; girar en el sitio no tiene sustituto
+         direccional honesto, así que queda en blanco (Idle_Loop, sin fingir
+         un pivote). Los clips Arena_CMU_* siguen en el runtime — sólo se
+         desconectó su cableado — para poder re-mapearlos en cuanto llegue el
+         paquete fuente o un vídeo de referencia. Arena_CMU_Kick no se toca:
+         viene de una sola captura sin par izquierda/derecha que verificar. */
+      walkBackward: slot('Walk_Loop', STATUS.PLACEHOLDER, 'caminar atrás (temporal: sin clip direccional verificado)'),
+      walkBackLeft: slot('Walk_Loop', STATUS.PLACEHOLDER, 'atrás + izquierda (temporal: sin clip direccional verificado)'),
+      walkBackRight:slot('Walk_Loop', STATUS.PLACEHOLDER, 'atrás + derecha (temporal: sin clip direccional verificado)'),
+      strafeLeft:  slot('Walk_Loop', STATUS.PLACEHOLDER, 'lateral izquierda (temporal: sin clip direccional verificado)'),
+      strafeRight: slot('Walk_Loop', STATUS.PLACEHOLDER, 'lateral derecha (temporal: sin clip direccional verificado)'),
+      diagonalForwardLeft: slot('Walk_Loop', STATUS.PLACEHOLDER, 'frente + izquierda (temporal: sin clip direccional verificado)'),
+      diagonalForwardRight:slot('Walk_Loop', STATUS.PLACEHOLDER, 'frente + derecha (temporal: sin clip direccional verificado)'),
+      turnLeft:  slot(null, STATUS.MISSING, 'giro Q / izquierda (sin sustituto honesto: en blanco hasta re-verificar)'),
+      turnRight: slot(null, STATUS.MISSING, 'giro E / derecha (sin sustituto honesto: en blanco hasta re-verificar)')
     },
 
     jump: {
@@ -194,7 +213,20 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
       classification:'CMU_MOCAP_FBX_ROTATION_RETARGET',
       runtimePolicy:'SELECT_ONLY_RETARGETED_CLIPS_NO_RAW_FBX_IN_DEPLOY',
       selectedSources:['113_01.fbx','143_40.fbx','40_02.fbx','41_02.fbx','16_27.fbx','16_29.fbx','135_04.fbx'],
-      reviewPolicy:'directional locomotion + kick only; v0.34 locks warrior UAL mapping and corrects archer fallback facing without changing gameplay yaw'
+      /* v0.36 (25-08-2026): user confirmed in-game that the 7 directional-
+         locomotion clips + the 2 turn clips read wrong (rigid arm during
+         strafe; turning visually disagreeing with the body's real rotation).
+         generate-cmu-clips-v031.py picked their source time-windows from a
+         hand-typed note, never a rendered check — e.g. Strafe_Left/Right both
+         slice the SAME 143_40.fbx at different windows, and Turn_Left/Right
+         come from two UNRELATED takes (16_27 vs 16_29) instead of one
+         mirrored pair. Without Anims_Only_FBX_V1.zip in this environment
+         there is no way to re-verify those windows honestly, so
+         `locomotion.*` no longer references them (see that block). The 9
+         clips remain loaded in arena-cmu-v031.json for whenever the source
+         pack or a reference video makes a real re-verification possible.
+         Arena_CMU_Kick is unaffected: single capture, no L/R pair at risk. */
+      reviewPolicy:'kick only; directional locomotion (walkBack*/strafe*/diagonal*/turn*) retired pending re-verification against raw source — see locomotion.* comment'
     }
   };
 
