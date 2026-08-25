@@ -34,7 +34,8 @@ const argv = process.argv.slice(2);
 const arg = (n, d = null) => { const i = argv.indexOf('--' + n); return i >= 0 ? argv[i + 1] : d; };
 
 const CLASE = arg('class', 'devastador');
-const OUT = path.resolve(RAIZ, arg('out', 'qa/anim-' + CLASE));
+const SET = arg('set', 'base'); // base | direccional
+const OUT = path.resolve(RAIZ, arg('out', 'qa/anim-' + CLASE + (SET === 'direccional' ? '-dir' : '')));
 fs.mkdirSync(OUT, { recursive: true });
 
 /* --- inicialización de partida, una sola vez -------------------------------
@@ -70,7 +71,10 @@ const SONDA = `(function(){
     syncProgress: sel.syncProgress, rate: sel.rate,
     directUpperBase: sel.directUpperBase||null, directLowerBase: sel.directLowerBase||null,
     locomotion: lc.state, moveSpeed: +((lc.moveSpeed||0).toFixed(2)),
-    combatMode: !!c.p.combatMode, pos: {x:+c.p.pos.x.toFixed(2), z:+c.p.pos.z.toFixed(2)}
+    moveForward: +((lc.moveForward||0).toFixed(2)), moveRight: +((lc.moveRight||0).toFixed(2)),
+    turnRate: +((lc.turnRate||0).toFixed(2)),
+    combatMode: !!c.p.combatMode, yaw: +((c.p.yaw||0).toFixed(3)),
+    pos: {x:+c.p.pos.x.toFixed(2), z:+c.p.pos.z.toFixed(2)}
   };
 })()`;
 
@@ -118,6 +122,39 @@ const TOMAS_GUARDIAN_EXTRA = [
   { name: '22-shield-oneshot-follow', wait: 500, setup: `` }
 ];
 
+/* v0.36 · locomoción direccional (girar, retroceder, lateral, diagonal). Sale
+ * de la biblioteca CMU retargeteada offline, la única familia de clips de este
+ * proyecto que NO es un clip UAL nativo aplicado directo — por eso es donde
+ * más plausible es que se haya colado un signo de rotación o un eje invertido.
+ * `--set direccional` la sustituye por completo en vez de añadirla: girar/
+ * retroceder no dependen de combatMode ni de clase, así que basta una pasada. */
+/* `resetPos` recentra al jugador ANTES de esta toma. Encadenar backpedal → dos
+ * strafes → cuatro diagonales sin resetear arrastra al personaje varios metros
+ * por un pasillo estrecho con muros a los lados: la primera versión de esta
+ * lista llegó a girar con el personaje pegado a un muro, y la cámara —que
+ * colisiona contra obstáculos de verdad— se metió dentro de la textura. Eso no
+ * prueba nada sobre el clip de giro, sólo que el corredor es angosto. Cada
+ * toma parte del mismo punto abierto para que lo único que cambie sea la
+ * tecla. */
+const SPAWN = { x: -11, z: 0, yaw: Math.PI / 2 };
+const TOMAS_DIRECCIONAL = [
+  { name: '01-idle-baseline', wait: 900, resetPos: SPAWN, setup: `var c=window.__ctx(); c.p.combatMode=false;` },
+  { name: '02-backpedal-s', wait: 1800, resetPos: SPAWN, holdKeys: ['s'] },
+  { name: '03-strafe-left-a', wait: 1800, resetPos: SPAWN, holdKeys: ['a'] },
+  { name: '04-strafe-right-d', wait: 1800, resetPos: SPAWN, holdKeys: ['d'] },
+  { name: '05-diagonal-fwd-left-wa', wait: 1800, resetPos: SPAWN, holdKeys: ['w', 'a'] },
+  { name: '06-diagonal-fwd-right-wd', wait: 1800, resetPos: SPAWN, holdKeys: ['w', 'd'] },
+  { name: '07-diagonal-back-left-sa', wait: 1800, resetPos: SPAWN, holdKeys: ['s', 'a'] },
+  { name: '08-diagonal-back-right-sd', wait: 1800, resetPos: SPAWN, holdKeys: ['s', 'd'] },
+  { name: '09-turn-left-q', wait: 1400, resetPos: SPAWN, holdKeys: ['q'] },
+  { name: '10-turn-right-e', wait: 1400, resetPos: SPAWN, holdKeys: ['e'] },
+  /* Segunda muestra de cada strafe/diagonal a mitad de espera, para no
+     diagnosticar un clip entero a partir de un único fotograma. */
+  { name: '11-strafe-left-a-early', wait: 700, resetPos: SPAWN, holdKeys: ['a'] },
+  { name: '12-strafe-right-d-early', wait: 700, resetPos: SPAWN, holdKeys: ['d'] },
+  { name: '13-strafe-right-d-late', wait: 2600, resetPos: SPAWN, holdKeys: ['d'] }
+];
+
 async function main() {
   const servidor = await servir(RAIZ);
   const url = `http://127.0.0.1:${servidor.port}/index.html`;
@@ -129,7 +166,8 @@ async function main() {
     const boot = await session.evaluate(INIT);
     console.log('arranque: ' + JSON.stringify(boot));
 
-    const lista = CLASE === 'guardian' ? TOMAS.concat(TOMAS_GUARDIAN_EXTRA) : TOMAS;
+    const lista = SET === 'direccional' ? TOMAS_DIRECCIONAL
+      : (CLASE === 'guardian' ? TOMAS.concat(TOMAS_GUARDIAN_EXTRA) : TOMAS);
     let heldKeys = [];
     for (const toma of lista) {
       // Soltar teclas de la toma anterior si esta no las repite.
@@ -138,6 +176,13 @@ async function main() {
       for (const k of nextHeld) if (!heldKeys.includes(k)) await session.evaluate(key(k, true));
       heldKeys = nextHeld;
 
+      if (toma.resetPos) {
+        await session.evaluate(`(function(){
+          var c=window.__ctx(); c.p.pos.x=${toma.resetPos.x}; c.p.pos.z=${toma.resetPos.z};
+          c.p.prevPos.x=${toma.resetPos.x}; c.p.prevPos.z=${toma.resetPos.z};
+          c.p.yaw=${toma.resetPos.yaw}; c.p.prevYaw=${toma.resetPos.yaw};
+        })()`);
+      }
       if (toma.setup !== undefined) await session.evaluate(toma.setup || '0');
       await sleep(toma.wait);
 
