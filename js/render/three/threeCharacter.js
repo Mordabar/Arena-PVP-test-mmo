@@ -457,7 +457,17 @@ export function createCharacterFactory(Arena, scene, opts) {
   Character.prototype.applyGuardianShieldConstraint = function (entity, sel) {
     var gs = this.guardianShield;
     if (!gs || !gs.node || !gs.node.parent || entity.classId !== 'guardian') return;
-    var explicit = !!(sel && sel.state === 'ACTION' && (sel.family === 'shield' || sel.family === 'block'));
+    var st = sel && sel.state || '';
+    var explicit = !!(sel && st === 'ACTION' && (sel.family === 'shield' || sel.family === 'block'));
+    /* v0.35 · Slide_Start/Loop/Exit force the arm through a get-up motion the
+       standing "readable defensive orientation" was never authored for: the
+       shield's POSITION follows the forearm near the chest while this
+       constraint kept snapping its ROTATION to a standing-forward facing,
+       which put the panel flat across the torso instead of at the character's
+       side. Ground poses are not a stance the tower shield needs to read
+       from, so the constraint steps out of the way there too — same
+       principle already applied to explicit shield/block actions. */
+    if (/^KNOCKDOWN/.test(st)) return;
     var hold = explicit ? 0.70 : 0.90;
 
     // Desired broad face: vertical, character-forward, with a subtle inward

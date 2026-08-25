@@ -92,16 +92,21 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
       casterNormalAttack:slot('Spell_Simple_Shoot', STATUS.FINAL, 'ataque normal mago'),
       casterPowerRelease:slot('Spell_Simple_Shoot', STATUS.FINAL, 'release de poder mago'),
 
-      /* Archer v0.33: the user supplied a video of Quaternius' UAL2 Source
-         viewer showing the intended Bow_* family. Those exact Source clips are
-         NOT in the Standard binaries we can execute, so the contract requests
-         their real names and resolves to explicit Arena-authored VIDEO-DERIVED
-         fallbacks on the same 65-joint rig. Normal mode remains Idle_Loop and
-         never uses these combat poses. */
-      combatIdleArcher:  slot('Bow_Aim_Neutral', STATUS.PLAYABLE_FALLBACK, 'modo combate arquero / aim neutral', {fallback:'Arena_Archer_VideoReady', reference:'user videos 19.08.2026_20.18.59_REC.mp4 + 19.08.2026_20.55.49_REC.mp4'}),
-      archerAttackCharge:slot('Bow_Notch', STATUS.PLAYABLE_FALLBACK, 'notch/draw previo al disparo', {fallback:'Arena_Archer_VideoNotch', reference:'user video'}),
-      archerNormalAttack:slot('Bow_Shoot', STATUS.PLAYABLE_FALLBACK, 'ataque normal de arco', {fallback:'Arena_Archer_VideoShoot', reference:'user video'}),
-      archerPowerRelease:slot('Bow_RapidShoot', STATUS.PLAYABLE_FALLBACK, 'release rápido/poder de arco', {fallback:'Arena_Archer_VideoShoot', reference:'user video'}),
+      /* Archer v0.35: instrucción explícita del usuario (25-08-2026) — "elimina
+         las que tenemos, crea unas por defecto en cada estado y ya luego las
+         reemplazamos con un video". Las UAL Standard/RM que sí tenemos NO
+         contienen una familia Bow_*; fingir un nombre "Bow_Aim_Neutral" que
+         nunca va a existir en los binarios sólo generaba una referencia
+         colgante (ver tools/audit-clips.mjs). El default por estado es ahora
+         directamente el clip sintetizado en runtime por buildVideoArcherClips()
+         en threeDirectAnim.js (Pistol_Aim_Neutral + Pistol_Reload + Idle_Loop),
+         sin capa intermedia de nombres aspiracionales. Cuando llegue el vídeo
+         de referencia del arquero, esta familia se reemplaza por clips Source
+         reales y estos slots vuelven a apuntar a nombres exactos. */
+      combatIdleArcher:  slot('Arena_Archer_VideoReady', STATUS.SOURCE_DERIVED, 'modo combate arquero / aim neutral (default hasta vídeo de referencia)'),
+      archerAttackCharge:slot('Arena_Archer_VideoNotch', STATUS.SOURCE_DERIVED, 'notch/draw previo al disparo (default hasta vídeo de referencia)'),
+      archerNormalAttack:slot('Arena_Archer_VideoShoot', STATUS.SOURCE_DERIVED, 'ataque normal de arco (default hasta vídeo de referencia)'),
+      archerPowerRelease:slot('Arena_Archer_VideoShoot', STATUS.SOURCE_DERIVED, 'release rápido/poder de arco (default hasta vídeo de referencia)'),
       archerBuffCharge:  slot('Arena_Archer_VideoBuff', STATUS.PLACEHOLDER, 'buff arquero sin gesto de disparo')
     },
 
