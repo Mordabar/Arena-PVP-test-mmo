@@ -99,7 +99,10 @@ Arena.define('combat/damageSystem',
         components[normalized]=(components[normalized]||0)+Number(input[el]||0)*amplification;
         var em=target.mods().elementDamageTakenPct||{},modifier=em[el];
         if(modifier===undefined)modifier=em[normalized==='cold'?'ice':normalized==='crushing'?'blunt':normalized];
-        resistances[normalized]=1-(1-target.elementResistance(normalized))*(1+(modifier||0));});
+        /* resistReductionPct (resistBreak) rebaja la resistencia elemental efectiva. Antes
+           sólo modificaba entity.resist(), que nadie llamaba: el debuff no hacía nada. */
+        var rr=target.mods().resistReductionPct||0;
+        resistances[normalized]=1-(1-target.elementResistance(normalized)*(1-rr))*(1+(modifier||0));});
       result.formula=F.mitigate({components:components,resistances:resistances,armor:target.armor(),ignoreDefensePct:p.ignoreDefensePct,critical:result.crit,criticalBonusPct:source?source.mods().critDamagePct:0});
       dmg=result.formula.damage;
     }else if(result.crit)dmg*=F.CRITICAL_MULTIPLIER*Math.max(0,1+(source?source.mods().critDamagePct:0));

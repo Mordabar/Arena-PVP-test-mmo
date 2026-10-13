@@ -1,0 +1,37 @@
+id;clase;nombre;coste;cast_s;gcd;recarga_s;rango;tipos_efecto;icono_local;en_kit_inicial;manejador_efectos;prueba_automatica;visual_navegador
+power_devastador_031;devastador;Patada del derribo;200;0;standard;35;2.4;sourceDamage|status;SI;SI;sourceDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_devastador_013;devastador;Quebrantacostillas;130;0;standard;40;2.4;sourceDamage|status;SI;SI;sourceDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_devastador_005;devastador;Cruz del horizonte;200;0;standard;10;2.4;sourceWeaponDamage;SI;SI;sourceWeaponDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_devastador_046;devastador;Bramido del estruendo;220;0.5;standard;40;0;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_devastador_042;devastador;Frenesí de batalla;125;0;short;90;0;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_devastador_050;devastador;Furia incontenible;340;0;reactive;40;0;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_guardian_031;guardian;Patada del derribo;200;0;standard;35;2.4;sourceDamage|status;SI;SI;sourceDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_guardian_052;guardian;Impacto del bastión;190;0;standard;45;2;sourceDamage|status;SI;SI;sourceDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_guardian_054;guardian;Parada perfecta;160;0;reactive;30;0;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_guardian_032;guardian;Guardia cautelosa;180;0;short;80;0;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_guardian_001;guardian;Carga del filo;130;0;standard;6;2.4;sourceWeaponDamage|sourceDamage;SI;SI;sourceWeaponDamage:SI|sourceDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_guardian_060;guardian;Barrera de reflexión;450;1;short;180;0;;SI;SI;;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_centinela_001;centinela;Disparo gemelo;110;0.5;short;7;24;sourceDamage|sourceWeaponDamage;SI;SI;sourceDamage:SI|sourceWeaponDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_centinela_003;centinela;Flecha del cepo;195;0.5;short;40;20;sourceWeaponDamage|status;SI;SI;sourceWeaponDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_centinela_042;centinela;Oleada de invierno;200;0.5;short;40;30;sourceDamage|status;SI;SI;sourceDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_centinela_011;centinela;Saeta rompeescudos;130;0.5;short;10;24;sourceWeaponDamage;SI;SI;sourceWeaponDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_centinela_048;centinela;Proyectil astral;340;0.5;short;25;24;sourceDamage;SI;SI;sourceDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_centinela_010;centinela;Salva de repetición;500;1.5;standard;180;10;sourceWeaponDamage|sourceDamage;SI;SI;sourceWeaponDamage:SI|sourceDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_rastreador_001;rastreador;Disparo gemelo;110;0.5;short;7;20;sourceDamage|sourceWeaponDamage;SI;SI;sourceDamage:SI|sourceWeaponDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_rastreador_021;rastreador;Emboscada del acechador;130;0.5;standard;30;12;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_rastreador_049;rastreador;Desconcierto;200;1;short;70;25;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_rastreador_045;rastreador;Manto de camuflaje;400;4.5;short;120;20;sourceDamage;SI;SI;sourceDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_rastreador_007;rastreador;Herida abierta;250;1;short;30;20;sourceDamage;SI;SI;sourceDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_rastreador_050;rastreador;Territorio del acechador;600;5;short;360;0;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_arcanista_045;arcanista;Meteorito del caos;220;2;standard;15;30;sourceDamage|status;SI;SI;sourceDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_arcanista_061;arcanista;Orbe de la hoguera;185;1.5;short;15;25;sourceDamage;SI;SI;sourceDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_arcanista_063;arcanista;Rayo de tormenta;185;2;reactive;20;25;sourceDot;SI;SI;sourceDot:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_arcanista_005;arcanista;Hiedra del tormento;250;1;short;30;25;sourceDamage|status;SI;SI;sourceDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_arcanista_015;arcanista;Préstamo del éter;0;1;short;60;25;sourceManaDrain;SI;SI;sourceManaDrain:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_arcanista_065;arcanista;Prisión de escarcha;220;1.5;short;30;25;status;SI;SI;status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_vinculador_001;vinculador;Misil de la mente;130;1;reactive;5;25;sourceDamage;SI;SI;sourceDamage:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_vinculador_005;vinculador;Hiedra del tormento;250;1;short;30;25;sourceDamage|status;SI;SI;sourceDamage:SI|status:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_vinculador_042;vinculador;Aliento vital;150;1;short;15;0;sourceHeal;SI;SI;sourceHeal:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_vinculador_011;vinculador;Barrera del éter;260;1;reactive;40;0;barrier;SI;SI;barrier:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_vinculador_016;vinculador;Sacrificio del ambicioso;0;1;reactive;25;0;sourceResourceRestore|selfHealthCost;SI;SI;sourceResourceRestore:SI|selfHealthCost:SI;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
+power_vinculador_053;vinculador;Heraldo demoníaco;200;3;standard;50;0;;SI;SI;;"duel-regression (inicio/recurso/cooldown) ; armor-comparison (mitigación)";NO_EVIDENCIA
