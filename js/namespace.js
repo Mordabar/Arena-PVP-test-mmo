@@ -8,8 +8,8 @@
 
   var Arena = global.Arena || {};
 
-  Arena.VERSION = '0.34.0';
-  Arena.BUILD = 'warrior-ual-literal-speed-facing-v034';
+  Arena.VERSION = '0.39.0';
+  Arena.BUILD = 'trainer-regnum-v039';
 
   // Sub-namespaces. Se rellenan por los ficheros posteriores.
   Arena.Math = Arena.Math || {};

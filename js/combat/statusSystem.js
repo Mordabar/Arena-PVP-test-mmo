@@ -145,7 +145,7 @@ Arena.define('combat/statusSystem',
     // -- Resistencias de control declaradas por poderes fuente. Con RNG
     // desactivado sólo una resistencia absoluta (100 %) niega el control; con
     // RNG activado se usa el generador determinista del mundo.
-    if (d.kind === 'cc' && !spec.ignoreDR) {
+    if (d.kind === 'cc') {
       var resist = (tmods.ccResist && (tmods.ccResist[defId] || tmods.ccResist.all)) || 0;
       if (resist >= 0.999 || (resist > 0 && world.settings.rngEnabled && world.rng.chance(resist))) {
         world.bus.emit('EffectImmune', { targetId: target.id, effect: defId, reason: 'sourceResistance', sourceId: sourceId });
@@ -517,7 +517,7 @@ Arena.define('combat/statusSystem',
       });
     }
     if (st.data.tickResourceDrain) {
-      var request = st.data.resourceDrainPercent ? entity.resourceMax * (st.data.tickResourceDrain / 100) : st.data.tickResourceDrain;
+      var request = st.data.resourceDrainPercent ? entity.effectiveResourceMax() * (st.data.tickResourceDrain / 100) : st.data.tickResourceDrain;
       var drained = Math.min(entity.resource, Math.max(0, request));
       entity.resource -= drained;
       if (st.data.resourceHealSource && source && source.alive && drained > 0) {

@@ -5,12 +5,13 @@
  * combate: eso pertenece a combat/*. Sólo aquí se escriben hp, recurso,
  * cooldowns y estados — el renderer los lee y nunca los toca.
  * ========================================================================== */
-Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], function (Arena) {
+Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects', 'combat/regnumFormulas'], function (Arena) {
   'use strict';
 
   var V = Arena.Math.Vec3;
   var B = Arena.Data.balance;
   var EFF = Arena.Data.effects;
+  var F = Arena.Combat.RegnumFormulas;
 
   var nextId = 1;
 
@@ -66,6 +67,15 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
     this.autoAttackCycle = cfg.autoAttackCycle ||
       (cfg.autoAttackRange > 5 ? B.AUTO_ATTACK.rangedCycle : B.AUTO_ATTACK.meleeCycle);
     this.autoAttackSchool = cfg.autoAttackSchool || 'physical';
+    // Arena starter gear is calibrated, not an invented Regnum item set.
+    this.level = cfg.level || 60;
+    this.attributes = Object.assign({strength:20,dexterity:20,intelligence:20,constitution:20,concentration:60}, cfg.attributes || {});
+    var primary=this.classId==='centinela'||this.classId==='rastreador'?'dexterity':(F.family(this.classId)==='mage'?'intelligence':'strength');
+    if(!cfg.attributes||cfg.attributes[primary]===undefined)this.attributes[primary]=80;
+    this.equipment = cfg.equipment || null;
+    this.weaponElement = cfg.weaponElement || (this.autoAttackSchool === 'magical' ? 'neutral' : (this.autoAttackRange > 5 ? 'piercing' : 'slashing'));
+    this.weaponFlat = cfg.weaponFlat === undefined ? this.power * B.AUTO_ATTACK.coefficient : cfg.weaponFlat;
+    this.weaponSpeed = cfg.weaponSpeed || 'medium';
 
     /* --- Acción --------------------------------------------------------- */
     this.abilities = (cfg.abilities || []).slice();
@@ -161,6 +171,9 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
       resourceCostPct: 0,
       attackRangePct: 0,
       critChancePct: 0,
+      criticalBonusPct: 0,
+      evasionBonusPct: 0,
+      castSpeedBonusPct: 0,
       critDamagePct: 0,
       evasionPct: 0,
       blockPct: 0,
@@ -173,6 +186,8 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
       sourceDamageTakenPct: 0,
       maxHealthFlat: 0,
       maxHealthPct: 0,
+      maxResourceFlat: 0,
+      maxResourcePct: 0,
       lifestealPct: 0,
       bonusDamageFlat: 0,
       statusDurationPct: 0,
@@ -185,6 +200,7 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
       threatFlat: 0,
       spellDamagePerIntOver: 0,
       sourceBonusDamageFlat: Object.create(null),
+      sourceBonusDamagePct: Object.create(null),
       elementDamageTakenPct: Object.create(null),
       preventAoEAbilities: false,
       powerImmunityPct: 0,
@@ -243,6 +259,9 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
       if (data.resourceCostPct !== undefined) m.resourceCostPct += data.resourceCostPct;
       if (data.attackRangePct !== undefined) m.attackRangePct += data.attackRangePct;
       if (data.critChancePct !== undefined) m.critChancePct += data.critChancePct;
+      if (data.criticalBonusPct !== undefined) m.criticalBonusPct += data.criticalBonusPct;
+      if (data.evasionBonusPct !== undefined) m.evasionBonusPct += data.evasionBonusPct;
+      if (data.castSpeedBonusPct !== undefined) m.castSpeedBonusPct += data.castSpeedBonusPct;
       if (data.critDamagePct !== undefined) m.critDamagePct += data.critDamagePct;
       if (data.evasionPct !== undefined) m.evasionPct += data.evasionPct;
       if (data.blockPct !== undefined) m.blockPct = Math.max(m.blockPct, data.blockPct);
@@ -256,6 +275,8 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
       if (data.sourceDamageTakenPct !== undefined) m.sourceDamageTakenPct += data.sourceDamageTakenPct;
       if (data.maxHealthFlat !== undefined) m.maxHealthFlat += data.maxHealthFlat;
       if (data.maxHealthPct !== undefined) m.maxHealthPct += data.maxHealthPct;
+      if (data.maxResourceFlat !== undefined) m.maxResourceFlat += data.maxResourceFlat;
+      if (data.maxResourcePct !== undefined) m.maxResourcePct += data.maxResourcePct;
       if (data.lifestealPct !== undefined) m.lifestealPct += data.lifestealPct;
       if (data.bonusDamageFlat !== undefined) m.bonusDamageFlat += data.bonusDamageFlat;
       if (data.statusDurationPct !== undefined) m.statusDurationPct += data.statusDurationPct;
@@ -268,6 +289,7 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
       if (data.threatFlat !== undefined) m.threatFlat += data.threatFlat;
       if (data.spellDamagePerIntOver !== undefined) m.spellDamagePerIntOver = Math.max(m.spellDamagePerIntOver, data.spellDamagePerIntOver);
       if (data.sourceBonusDamageFlat) for (var eb in data.sourceBonusDamageFlat) if (Object.prototype.hasOwnProperty.call(data.sourceBonusDamageFlat,eb)) m.sourceBonusDamageFlat[eb]=(m.sourceBonusDamageFlat[eb]||0)+Number(data.sourceBonusDamageFlat[eb]||0);
+      if (data.sourceBonusDamagePct) for (var ep in data.sourceBonusDamagePct) if (Object.prototype.hasOwnProperty.call(data.sourceBonusDamagePct,ep)) m.sourceBonusDamagePct[ep]=(m.sourceBonusDamagePct[ep]||0)+Number(data.sourceBonusDamagePct[ep]||0);
       if (data.elementDamageTakenPct) for (var et in data.elementDamageTakenPct) if (Object.prototype.hasOwnProperty.call(data.elementDamageTakenPct,et)) m.elementDamageTakenPct[et]=(m.elementDamageTakenPct[et]||0)+Number(data.elementDamageTakenPct[et]||0);
       if (data.preventAoEAbilities) m.preventAoEAbilities = true;
       if (data.powerImmunityPct !== undefined) m.powerImmunityPct = Math.max(m.powerImmunityPct, data.powerImmunityPct);
@@ -289,8 +311,9 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
     if (m.immunities.slow) m.slowPct = 0;
 
     m.slowPct = B.clamp(m.slowPct, 0, B.CAP.slow);
-    m.armorReductionPct = B.clamp(m.armorReductionPct, 0, B.CAP.defenseReduction);
-    m.resistReductionPct = B.clamp(m.resistReductionPct, 0, B.CAP.defenseReduction);
+    // Negative reduction is a protection BUFF (e.g. Caution +80%), not zero.
+    m.armorReductionPct = B.clamp(m.armorReductionPct, -10, 1);
+    m.resistReductionPct = B.clamp(m.resistReductionPct, -10, 1);
     m.antiHealPct = B.clamp(m.antiHealPct, 0, B.CAP.antiHeal);
     m.damageTakenPct = B.clamp(m.damageTakenPct, -B.CAP.damageReduction, B.CAP.damageAmp - 1);
     m.attackRangePct = B.clamp(m.attackRangePct, -0.90, 2.00);
@@ -328,7 +351,44 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
   /* --- Consultas derivadas ------------------------------------------------ */
 
   Entity.prototype.armor = function () {
-    return Math.max(0, this.armorBase * (1 - this.mods().armorReductionPct));
+    return F.protection(this.classId, this.armorPieces(), -this.mods().armorReductionPct);
+  };
+
+  Entity.prototype.attribute = function (key) {
+    var m=this.mods(),s=m.sourceStats[key]||{flat:0,pct:0};
+    var primary=this.classId==='centinela'||this.classId==='rastreador'?'dexterity':(F.family(this.classId)==='mage'?'intelligence':'strength');
+    var c=key===primary?(m.sourceStats.classAttribute||{flat:0,pct:0}):{flat:0,pct:0};
+    return Math.max(0,((this.attributes[key]||0)+s.flat+c.flat)*(1+s.pct+c.pct));
+  };
+  Entity.prototype.armorPieces = function () {
+    if(this.equipment)return this.equipment;
+    var ks=F.armorCoefficients(this.classId),sum=0,pieces={};
+    Object.keys(ks).forEach(function(k){sum+=ks[k];});
+    var base=this.armorBase/Math.max(.001,sum);
+    Object.keys(ks).forEach(function(k){pieces[k]={base:base,resistances:{}};});
+    return pieces;
+  };
+  Entity.prototype.elementResistance = function (element) {
+    element=element==='blunt'?'crushing':element==='ice'?'cold':element;
+    return F.resistance(this.classId,this.armorPieces(),element,0);
+  };
+  Entity.prototype.weaponComponents = function (bonusPct) {
+    var m=this.mods(),key=this.classId==='centinela'||this.classId==='rastreador'?'dexterity':(F.family(this.classId)==='mage'?'intelligence':'strength');
+    var out={},el=this.weaponElement,bs=m.sourceBonusDamageFlat||{},bp=m.sourceBonusDamagePct||{};
+    var weaponBonus=(m.weaponDamagePct||0)+(bonusPct||0);
+    var raw=F.weaponDamage({classId:this.classId,weaponFlat:this.weaponFlat,buffFlat:(m.bonusDamageFlat||0)+(bs.generic||0)+(bs.physical||0)+(bs[el]||0),attribute:this.attribute(key),bonusPct:weaponBonus+(bp[el]||0)+(bp.physical||0)});
+    out[el]=raw;
+    Object.keys(bs).forEach(function(k){if(k==='physical'||k==='generic'||k===el)return;out[k]=(out[k]||0)+Math.max(0,Number(bs[k]||0)*(1+weaponBonus+(bp[k]||0)));});
+    return out;
+  };
+  Entity.prototype.criticalChance = function () {
+    var m=this.mods();return Math.max(0,Math.min(1,F.criticalChance(this.attribute('concentration'),m.criticalBonusPct)+(m.critChancePct||0)));
+  };
+  Entity.prototype.evasionChance = function () {
+    var m=this.mods();return Math.max(0,Math.min(1,F.evasionChance(this.attribute('dexterity'),this.level,m.evasionBonusPct)+(m.evasionPct||0)));
+  };
+  Entity.prototype.powerResistanceChance = function () {
+    return F.powerResistanceChance(this.attribute('constitution'),this.attribute('intelligence'),this.level,0,0);
   };
 
   Entity.prototype.resist = function () {
@@ -345,8 +405,9 @@ Arena.define('core/entity', ['math/vec3', 'data/balance', 'data/effects'], funct
   Entity.prototype.effectiveHpMax = function () { var m=this.mods(); return Math.max(1, this.hpMaxBase * (1 + (m.maxHealthPct||0)) + (m.maxHealthFlat||0)); };
   Entity.prototype.hpPct = function () { var max=this.effectiveHpMax(); return max > 0 ? this.hp / max : 0; };
   Entity.prototype.resourcePct = function () {
-    return this.resourceMax > 0 ? this.resource / this.resourceMax : 0;
+    var max=this.effectiveResourceMax();return max > 0 ? this.resource / max : 0;
   };
+  Entity.prototype.effectiveResourceMax = function () {var m=this.mods();return Math.max(1,this.resourceMax*(1+m.maxResourcePct)+m.maxResourceFlat);};
 
   /** ¿Puede ser objetivo de habilidades? Estasis y muerte lo impiden. */
   Entity.prototype.isTargetable = function () {

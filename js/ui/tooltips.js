@@ -35,6 +35,7 @@ Arena.define('ui/tooltips', ['ui/hud'], function (Arena) {
     this.name.textContent = ab.name;
 
     var bits = [];
+    if(ab.rank) bits.push('Nivel '+ab.rank+'/5');
     bits.push(targetLabel(ab));
     if (ab.range) bits.push(ab.range.toFixed(1) + ' u');
     if (ab.radius) bits.push('radio ' + ab.radius.toFixed(1) + ' u');
@@ -50,6 +51,22 @@ Arena.define('ui/tooltips', ['ui/hud'], function (Arena) {
     bits.push(castTime > 0 ? 'casteo ' + castTime.toFixed(2) + ' s' : 'instantáneo');
     if (ab.cooldown) bits.push('recarga ' + ab.cooldown + ' s');
     bits.push(GCD_LABEL[ab.gcd] || ('GCD ' + ab.gcd));
+    var input=caster?Ability.inputContext(world,caster,ab,{targetId:caster.targetId}):null;
+    var effectiveEffects=input&&input.targetId===caster.id&&ab.selfTargetEffects?ab.selfTargetEffects:(ab.effects||[]);
+    var allEffects=effectiveEffects.concat(ab.selfEffects||[]),resolvedTarget=input&&(input.target||world.getEntity(input.targetId));
+    function selectedEffects(list){
+      var out=[];
+      list.forEach(function(e){
+        if(e.type==='conditional'&&caster&&resolvedTarget){
+          var fn=Arena.Combat.Resolver.conditions[e.check];
+          out=out.concat(selectedEffects(fn&&fn(world,caster,resolvedTarget,ab,e)?e.then||[]:e.otherwise||[]));
+        }else out.push(e);
+      });return out;
+    }
+    allEffects=selectedEffects(allEffects);
+    var durations=allEffects.map(function(e){return e.duration || 0;});
+    var duration=Math.max.apply(Math,[0].concat(durations));
+    if(duration) bits.push('efecto ' + duration + ' s');
 
     this.meta.innerHTML = '';
     for (var i = 0; i < bits.length; i++) {
@@ -59,11 +76,11 @@ Arena.define('ui/tooltips', ['ui/hud'], function (Arena) {
 
     var desc = ab.desc || '';
     // Daño y curación estimados con la potencia real del lanzador.
-    var estimate = estimateNumbers(ab, caster);
+    var estimate = estimateNumbers({effects:allEffects}, caster);
     if (estimate) desc += '  <b style="color:#ffd98a">' + estimate + '</b>';
     this.desc.innerHTML = desc;
 
-    this.tip.textContent = ab.tip || '';
+    this.tip.textContent = (ab.originalName ? 'Referencia: '+ab.originalName+'. ' : '') + (ab.tip || '');
     this.tip.style.display = ab.tip ? 'block' : 'none';
 
     this._place(anchorEl);
@@ -97,6 +114,7 @@ Arena.define('ui/tooltips', ['ui/hud'], function (Arena) {
     switch (ab.target) {
       case 'self': return 'sobre ti';
       case 'enemy': return 'enemigo';
+      case 'targetArea': return ab.affects==='alliesAndSelf'?'área sobre aliado o tú':'área sobre el enemigo';
       case 'ally': return 'aliado';
       case 'allyOrSelf': return 'aliado o tú';
       case 'cone': return 'cono frontal';
@@ -114,6 +132,25 @@ Arena.define('ui/tooltips', ['ui/hud'], function (Arena) {
       var e = list[i];
       var flat;
       switch (e.type) {
+        case 'sourceDamage':
+        case 'sourceDrain':
+          flat=((e.min||0)+(e.max===undefined?e.min||0:e.max))/2;
+          out.push('≈ '+Math.round(flat)+' de daño bruto');
+          break;
+        case 'sourceWeaponDamage':
+          out.push(Math.round(((e.pctMin||0)+(e.pctMax===undefined?e.pctMin||0:e.pctMax))/2*100)+' % '+(e.bonus?'adicional de daño de arma':'del daño de arma'));
+          break;
+        case 'sourceHeal':
+          flat=((e.min||0)+(e.max===undefined?e.min||0:e.max))/2;
+          if(e.percentOfMax)flat*=caster.effectiveHpMax()/100;
+          out.push('≈ '+Math.round(flat)+' de curación');
+          break;
+        case 'sourceDot':
+        case 'sourceDrainDot':
+        case 'sourceHot':
+          flat=((e.min||0)+(e.max===undefined?e.min||0:e.max))/2;
+          out.push('≈ '+Math.round(flat)+(e.type==='sourceHot'?' de curación':' de daño bruto')+' cada '+(e.interval||1)+' s');
+          break;
         case 'physicalDamage':
         case 'magicalDamage':
         case 'pureDamage':

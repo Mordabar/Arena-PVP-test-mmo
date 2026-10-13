@@ -102,7 +102,7 @@ Arena.define('render/anim/actions',
     return {
       family: null, t: 0, duration: 0, isPower: false,
       weight: 0,             // 0..1 — cuánto pesa la acción sobre la guardia
-      variant: 0, normalSequence: 0, visualAction: null,
+      variant: 0, normalSequence: 0, sequence: 0, cancelled: false, visualAction: null,
       authoritativeReleasePending: false, normalReleaseImpact: 0, authoritativeReleaseDelay: 0,
       /* Familia VISUAL del hechizo en curso (data/castFamilies.js). La fija la
          simulación al empezar el casteo y sobrevive hasta la recuperación: es
@@ -122,6 +122,8 @@ Arena.define('render/anim/actions',
   };
 
   Act.trigger = function (st, family, cfg, isPower, castFamily, visualAction, visualVariant, spellGesture) {
+    st.sequence = (st.sequence || 0) + 1;
+    st.cancelled = false;
     st.family = family;
     st.duration = (cfg.actionTime[family] || 0.42);
     st.t = 0;
@@ -149,6 +151,7 @@ Arena.define('render/anim/actions',
    * ya tomó la decisión; aquí simplemente dejamos que BLEND_OUT la disuelva. */
   Act.cancelVisual = function (st) {
     if (!st || !st.family) return;
+    st.cancelled = true;
     st.t = 1;
   };
 

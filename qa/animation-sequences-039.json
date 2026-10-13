@@ -1,0 +1,1774 @@
+{
+  "passed": true,
+  "checks": 2018,
+  "method": "CPU projections of actual native rig with gait updates. Forced action phases; not gameplay recording.",
+  "rows": [
+    {
+      "class": "devastador",
+      "state": "left",
+      "phase": 0,
+      "file": null,
+      "selected": {
+        "state": "COMBAT_IDLE",
+        "clip": "Sword_Idle",
+        "mask": "full",
+        "loop": true,
+        "fade": 0.18,
+        "rate": 0.94,
+        "window": null,
+        "phaseGroup": "idle",
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Sword_Idle"
+      },
+      "left": [
+        -0.08274240970020696,
+        1.0684754864089352,
+        -0.36375588434162875
+      ],
+      "right": [
+        -0.23952671270237821,
+        0.8961107028238838,
+        -0.47429226492983223
+      ],
+      "foot": [
+        -0.13036259805930558,
+        0.10486458923798103,
+        -0.27040364225000363
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "left",
+      "phase": 0.2,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5623716066303852,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeLeft",
+        "direction": "LEFT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        0.605863134223173,
+        1.2410917442256766,
+        -0.22788718272985267
+      ],
+      "right": [
+        0.437258115549302,
+        1.0835950412177104,
+        -0.3434759717793388
+      ],
+      "foot": [
+        0.5810235067509171,
+        0.10622206510188126,
+        1.1201932298421369e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "left",
+      "phase": 0.4,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5989718522234357,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeLeft",
+        "direction": "LEFT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        1.4013807685774153,
+        1.2468288351892582,
+        -0.23006813533405268
+      ],
+      "right": [
+        1.2325000753114332,
+        1.0887724981022955,
+        -0.3444797967069887
+      ],
+      "foot": [
+        1.3727288032107388,
+        0.10622206461158556,
+        1.3425802775079987e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "left",
+      "phase": 0.6,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5999719071755139,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeLeft",
+        "direction": "LEFT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        2.2033127249320357,
+        1.241021066162041,
+        -0.22766926829125986
+      ],
+      "right": [
+        2.034733973316139,
+        1.0835804233703812,
+        -0.34337484330665824
+      ],
+      "foot": [
+        2.1070063202867786,
+        0.10622208335655098,
+        8.78338689974667e-9
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "left",
+      "phase": 0.8,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5999992323994554,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeLeft",
+        "direction": "LEFT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        3.008863933717944,
+        1.2469474396380837,
+        -0.2302900571327612
+      ],
+      "right": [
+        2.8399589500463156,
+        1.0888354690867148,
+        -0.34458295157809066
+      ],
+      "foot": [
+        2.963424000515724,
+        0.16792081137103854,
+        3.294860950742162e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "left",
+      "phase": 1,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5999999790262902,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeLeft",
+        "direction": "LEFT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        3.805072754272158,
+        1.240772241448732,
+        -0.22666856675902206
+      ],
+      "right": [
+        3.63662138747449,
+        1.0835917165380244,
+        -0.34291213276967747
+      ],
+      "foot": [
+        3.8376943716590994,
+        0.2112481447213263,
+        4.1091721303399e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "right",
+      "phase": 0,
+      "file": null,
+      "selected": {
+        "state": "COMBAT_IDLE",
+        "clip": "Sword_Idle",
+        "mask": "full",
+        "loop": true,
+        "fade": 0.18,
+        "rate": 0.94,
+        "window": null,
+        "phaseGroup": "idle",
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Sword_Idle"
+      },
+      "left": [
+        -0.14940907636687362,
+        1.0684754864089352,
+        -0.36375588434162875
+      ],
+      "right": [
+        -0.3061933793690449,
+        0.8961107028238838,
+        -0.47429226492983223
+      ],
+      "foot": [
+        -0.19702926472597224,
+        0.10486458923798103,
+        -0.27040364225000363
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "right",
+      "phase": 0.2,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5623716066303852,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeRight",
+        "direction": "RIGHT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -1.060803532443495,
+        1.241091744225677,
+        -0.22788718272985323
+      ],
+      "right": [
+        -1.2294085511173647,
+        1.0835950412177104,
+        -0.3434759717793388
+      ],
+      "foot": [
+        -0.9092062245727245,
+        0.10622206742141999,
+        1.6596673396707118e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "right",
+      "phase": 0.4,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5989718522234357,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeRight",
+        "direction": "RIGHT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -1.8652858980892544,
+        1.2468288351892585,
+        -0.23006813533405263
+      ],
+      "right": [
+        -2.0341665913552367,
+        1.0887724981022955,
+        -0.3444797967069887
+      ],
+      "foot": [
+        -1.7092062130635266,
+        0.10622207505297931,
+        2.2790937345695816e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "right",
+      "phase": 0.6,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5999719071755139,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeRight",
+        "direction": "RIGHT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -2.6633539417346332,
+        1.241021066162041,
+        -0.22766926829125986
+      ],
+      "right": [
+        -2.83193269335053,
+        1.0835804233703812,
+        -0.34337484330665824
+      ],
+      "foot": [
+        -2.509206242366909,
+        0.1062220929668859,
+        2.2620822659469297e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "right",
+      "phase": 0.8,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5999992323994554,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeRight",
+        "direction": "RIGHT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -3.457802732948719,
+        1.2469474396380837,
+        -0.2302900571327612
+      ],
+      "right": [
+        -3.6267077166203476,
+        1.0888354690867148,
+        -0.34458295157809066
+      ],
+      "foot": [
+        -3.3092062446073895,
+        0.1679208124809648,
+        3.356362590634099e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "right",
+      "phase": 1,
+      "file": null,
+      "selected": {
+        "state": "STRAFE",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.5999999790262902,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.strafeRight",
+        "direction": "RIGHT",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -4.261593912394499,
+        1.240772241448732,
+        -0.22666856675902275
+      ],
+      "right": [
+        -4.430045279192167,
+        1.0835917165380244,
+        -0.34291213276967747
+      ],
+      "foot": [
+        -4.109206220392388,
+        0.2112481465854797,
+        4.009315246467082e-8
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "back",
+      "phase": 0,
+      "file": null,
+      "selected": {
+        "state": "COMBAT_IDLE",
+        "clip": "Sword_Idle",
+        "mask": "full",
+        "loop": true,
+        "fade": 0.18,
+        "rate": 0.94,
+        "window": null,
+        "phaseGroup": "idle",
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Sword_Idle"
+      },
+      "left": [
+        -0.11607574303354029,
+        1.0684754864089352,
+        -0.3970892176749621
+      ],
+      "right": [
+        -0.27286004603571157,
+        0.8961107028238838,
+        -0.5076255982631656
+      ],
+      "foot": [
+        -0.1636959313926389,
+        0.10486458923798103,
+        -0.303736975583337
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "back",
+      "phase": 0.2,
+      "file": null,
+      "selected": {
+        "state": "BACKPEDAL",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.859966198369506,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.walkBackward",
+        "direction": "BACK",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -0.2290118099123506,
+        1.240666383205847,
+        -1.0590057662871557
+      ],
+      "right": [
+        -0.39733788829693684,
+        1.0837461688444705,
+        -1.1757829202943797
+      ],
+      "foot": [
+        -0.13500002198938668,
+        0.14916356811609705,
+        -0.7058239709000621
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "back",
+      "phase": 0.4,
+      "file": null,
+      "selected": {
+        "state": "BACKPEDAL",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.903537919313614,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.walkBackward",
+        "direction": "BACK",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -0.23140757438224094,
+        1.2464869608280589,
+        -1.8664268173497431
+      ],
+      "right": [
+        -0.40067597946982847,
+        1.0876668124146345,
+        -1.979192739883335
+      ],
+      "foot": [
+        -0.13500002464569752,
+        0.1737789945297039,
+        -1.7322183000036242
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "back",
+      "phase": 0.6,
+      "file": null,
+      "selected": {
+        "state": "BACKPEDAL",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.9047284609232307,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.walkBackward",
+        "direction": "BACK",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -0.22719464463297034,
+        1.242968633328781,
+        -2.6591136987082136
+      ],
+      "right": [
+        -0.3955317329728625,
+        1.0860207465906526,
+        -2.775834075092332
+      ],
+      "foot": [
+        -0.13500001162275532,
+        0.10622207297435021,
+        -2.516967119756088
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "back",
+      "phase": 0.8,
+      "file": null,
+      "selected": {
+        "state": "BACKPEDAL",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.9047609909517327,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.walkBackward",
+        "direction": "BACK",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -0.22598699347054246,
+        1.2421648515295627,
+        -3.463735894587015
+      ],
+      "right": [
+        -0.3949105948422759,
+        1.0840232883450147,
+        -3.577966240220723
+      ],
+      "foot": [
+        -0.13500001632648692,
+        0.10622202920583995,
+        -3.15031118093039
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "back",
+      "phase": 1,
+      "file": null,
+      "selected": {
+        "state": "BACKPEDAL",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": true,
+        "fade": 0.1,
+        "rate": 1.9047618797932027,
+        "window": null,
+        "phaseGroup": "locomotion",
+        "procedural": false,
+        "source": "ARENA_NATIVE_FOOT_IK",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "semanticSlot": "locomotion.walkBackward",
+        "direction": "BACK",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "intentionalBlank": false
+      },
+      "left": [
+        -0.23194517786125196,
+        1.2469894339272476,
+        -4.263721507762143
+      ],
+      "right": [
+        -0.40086661959039865,
+        1.088851602548975,
+        -4.3779597719704215
+      ],
+      "foot": [
+        -0.1350000075025931,
+        0.17783628043502858,
+        -3.9406857321041517
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "kick",
+      "phase": 0,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "family": "kick",
+        "syncAuthoritative": true,
+        "syncProgress": 0,
+        "semanticSlot": "kick",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "nativeKick": true,
+        "kickProgress": 0,
+        "eventToken": "action:3"
+      },
+      "left": [
+        -0.2238637982934053,
+        1.247265283118918,
+        -0.2322516213533546
+      ],
+      "right": [
+        -0.39301937478592697,
+        1.0886571582071771,
+        -0.34547856231902185
+      ],
+      "foot": [
+        -0.1511777060457295,
+        0.10334938132633043,
+        -0.03755323783348484
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "kick",
+      "phase": 0.2,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "family": "kick",
+        "syncAuthoritative": true,
+        "syncProgress": 0.21739130434782608,
+        "semanticSlot": "kick",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "nativeKick": true,
+        "kickProgress": 0.2,
+        "eventToken": "action:3"
+      },
+      "left": [
+        -0.22828636819912645,
+        1.2407661453253758,
+        -0.22663209230959738
+      ],
+      "right": [
+        -0.39673314292609935,
+        1.0835951230477634,
+        -0.34289521806376244
+      ],
+      "foot": [
+        -0.150989268138,
+        0.4434914214749211,
+        -0.0365797993963074
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "kick",
+      "phase": 0.4,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "family": "kick",
+        "syncAuthoritative": true,
+        "syncProgress": 0.43478260869565216,
+        "semanticSlot": "kick",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "nativeKick": true,
+        "kickProgress": 0.4,
+        "eventToken": "action:3"
+      },
+      "left": [
+        -0.2319489994126214,
+        1.246475765972029,
+        -0.22947034182612824
+      ],
+      "right": [
+        -0.4007537093528133,
+        1.088572096507409,
+        -0.34420547114538114
+      ],
+      "foot": [
+        -0.15251369619293426,
+        0.7966040465309775,
+        0.5762890077822074
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "kick",
+      "phase": 0.6,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "family": "kick",
+        "syncAuthoritative": true,
+        "syncProgress": 0.6296296296296295,
+        "semanticSlot": "kick",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "nativeKick": true,
+        "kickProgress": 0.6,
+        "eventToken": "action:3"
+      },
+      "left": [
+        -0.23058189655150868,
+        1.243132163035165,
+        -0.23190332589090745
+      ],
+      "right": [
+        -0.3996992964635466,
+        1.0846102346996338,
+        -0.34531764595795905
+      ],
+      "foot": [
+        -0.15263366540780227,
+        0.7861431990835825,
+        0.5503773460418881
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "kick",
+      "phase": 0.8,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "family": "kick",
+        "syncAuthoritative": true,
+        "syncProgress": 0.8148148148148149,
+        "semanticSlot": "kick",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "nativeKick": true,
+        "kickProgress": 0.8,
+        "eventToken": "action:3"
+      },
+      "left": [
+        -0.22804793337738422,
+        1.2418499018431743,
+        -0.22506810019003315
+      ],
+      "right": [
+        -0.3962965695686058,
+        1.08508875173701,
+        -0.34216886791515
+      ],
+      "foot": [
+        -0.1510805862744199,
+        0.4257149676335637,
+        0.1802232195084409
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "devastador",
+      "state": "kick",
+      "phase": 1,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Idle_Loop",
+        "mask": "lower",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Idle_Loop",
+        "family": "kick",
+        "syncAuthoritative": true,
+        "syncProgress": 1,
+        "semanticSlot": "kick",
+        "directUpperBase": "Sword_Idle",
+        "directUpperBaseProgress": 0.5,
+        "nativeKick": true,
+        "kickProgress": 1,
+        "eventToken": "action:3"
+      },
+      "left": [
+        -0.22396641401022238,
+        1.2473459090181613,
+        -0.23181705960306545
+      ],
+      "right": [
+        -0.3930662574061642,
+        1.0888471463674827,
+        -0.3452806837511673
+      ],
+      "foot": [
+        -0.15116089644034642,
+        0.10334866478729754,
+        -0.037561182268525936
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "centinela",
+      "state": "draw",
+      "phase": 0,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Arena_Archer_VideoNotch",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoNotch",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0,
+        "fallbackSyncProgress": 0,
+        "bowDraw": 0,
+        "semanticSlot": "archerAttackCharge"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.048077434668684846,
+        1.4204992506326302,
+        0.3351254570528679
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": null,
+      "aimForwardDot": 0.9501510974915048
+    },
+    {
+      "class": "centinela",
+      "state": "draw",
+      "phase": 0.2,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Arena_Archer_VideoNotch",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoNotch",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0.2,
+        "fallbackSyncProgress": 0.2,
+        "bowDraw": 0.2,
+        "semanticSlot": "archerAttackCharge"
+      },
+      "left": [
+        0.10073634767144231,
+        1.4167563272420352,
+        0.49559870137392303
+      ],
+      "right": [
+        0.07913106287815923,
+        1.4320313823048374,
+        0.31747284496620376
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.270390394581544
+      ],
+      "nockGap": 7.584015733198395e-9,
+      "aimForwardDot": 0.9927242773773848
+    },
+    {
+      "class": "centinela",
+      "state": "draw",
+      "phase": 0.4,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Arena_Archer_VideoNotch",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoNotch",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0.4,
+        "fallbackSyncProgress": 0.4,
+        "bowDraw": 0.4,
+        "semanticSlot": "archerAttackCharge"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.10090064982850931,
+        1.446430976338358,
+        0.2745311158929586
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": 3.129901698538515e-9,
+      "aimForwardDot": 0.9999997238111008
+    },
+    {
+      "class": "centinela",
+      "state": "draw",
+      "phase": 0.6,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Arena_Archer_VideoNotch",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoNotch",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0.6,
+        "fallbackSyncProgress": 0.6,
+        "bowDraw": 0.6,
+        "semanticSlot": "archerAttackCharge"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.10055076098326005,
+        1.4605761621897675,
+        0.18988590342767672
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": 1.2284277981019431e-8,
+      "aimForwardDot": 0.9999998157377846
+    },
+    {
+      "class": "centinela",
+      "state": "draw",
+      "phase": 0.8,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Arena_Archer_VideoNotch",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoNotch",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0.8,
+        "fallbackSyncProgress": 0.8,
+        "bowDraw": 0.8,
+        "semanticSlot": "archerAttackCharge"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.10046377239905926,
+        1.47467175454866,
+        0.10533988480277398
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": 5.70467942097701e-9,
+      "aimForwardDot": 0.9999997560856742
+    },
+    {
+      "class": "centinela",
+      "state": "draw",
+      "phase": 1,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Arena_Archer_VideoNotch",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoNotch",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 1,
+        "fallbackSyncProgress": 1,
+        "bowDraw": 1,
+        "semanticSlot": "archerAttackCharge"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.10056459662952646,
+        1.4888011913880748,
+        0.020840232806234232
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": 6.062505957704813e-9,
+      "aimForwardDot": 0.9999999345630148
+    },
+    {
+      "class": "centinela",
+      "state": "release",
+      "phase": 0,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Arena_Archer_VideoShoot",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoShoot",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0,
+        "fallbackSyncProgress": 0,
+        "bowDraw": 0,
+        "semanticSlot": "archerPowerRelease",
+        "eventToken": "action:3"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.05204050120692982,
+        1.4190756685118988,
+        0.3299746625245557
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": null,
+      "aimForwardDot": 0.959392320654722
+    },
+    {
+      "class": "centinela",
+      "state": "release",
+      "phase": 0.2,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Arena_Archer_VideoShoot",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoShoot",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0.1931034482758621,
+        "fallbackSyncProgress": 0.1931034482758621,
+        "bowDraw": 0.3448275862068966,
+        "semanticSlot": "archerPowerRelease",
+        "eventToken": "action:3"
+      },
+      "left": [
+        0.10073634767144246,
+        1.4167563272420347,
+        0.49559870137392287
+      ],
+      "right": [
+        0.10117145849407967,
+        1.4421689671471425,
+        0.2981050924881674
+      ],
+      "foot": [
+        -0.16369708009427217,
+        0.10490551774533896,
+        -0.2703903945815439
+      ],
+      "nockGap": null,
+      "aimForwardDot": 0.9999975730428813
+    },
+    {
+      "class": "centinela",
+      "state": "release",
+      "phase": 0.4,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Arena_Archer_VideoShoot",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoShoot",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0.3862068965517242,
+        "fallbackSyncProgress": 0.3862068965517242,
+        "bowDraw": 0.6896551724137931,
+        "semanticSlot": "archerPowerRelease",
+        "eventToken": "action:3"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.10034638072934277,
+        1.4666356589194158,
+        0.15225966296262122
+      ],
+      "foot": [
+        -0.16369708009427222,
+        0.1049055177453388,
+        -0.2703903945815439
+      ],
+      "nockGap": null,
+      "aimForwardDot": 0.9999993549716586
+    },
+    {
+      "class": "centinela",
+      "state": "release",
+      "phase": 0.6,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Arena_Archer_VideoShoot",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoShoot",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0.580952380952381,
+        "fallbackSyncProgress": 0.580952380952381,
+        "bowDraw": 0,
+        "semanticSlot": "archerPowerRelease",
+        "eventToken": "action:3"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.09630692559980089,
+        1.4856845515826025,
+        0.036763180415894825
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": null,
+      "aimForwardDot": 0.9999534071025578
+    },
+    {
+      "class": "centinela",
+      "state": "release",
+      "phase": 0.8,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Arena_Archer_VideoShoot",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoShoot",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 0.7904761904761906,
+        "fallbackSyncProgress": 0.7904761904761906,
+        "bowDraw": 0,
+        "semanticSlot": "archerPowerRelease",
+        "eventToken": "action:3"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.07216059608998199,
+        1.4689164763311615,
+        0.12033836786268122
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": null,
+      "aimForwardDot": 0.9971132029421182
+    },
+    {
+      "class": "centinela",
+      "state": "release",
+      "phase": 1,
+      "file": null,
+      "selected": {
+        "state": "ACTION",
+        "clip": "Arena_Archer_VideoShoot",
+        "mask": "upper",
+        "loop": false,
+        "fade": 0.075,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "SOURCE_DERIVED_CC0",
+        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
+        "requestedClip": "Arena_Archer_VideoShoot",
+        "directLowerBase": "Arena_Archer_VideoReady",
+        "directLowerBaseProgress": 0.5,
+        "syncAuthoritative": true,
+        "syncProgress": 1,
+        "fallbackSyncProgress": 1,
+        "bowDraw": 0,
+        "semanticSlot": "archerPowerRelease",
+        "eventToken": "action:3"
+      },
+      "left": [
+        0.10073634767144234,
+        1.4167563272420352,
+        0.4955987013739231
+      ],
+      "right": [
+        0.051748549807089164,
+        1.4194920882133757,
+        0.3301389561508662
+      ],
+      "foot": [
+        -0.1636970800942722,
+        0.10490551774533874,
+        -0.27039039458154396
+      ],
+      "nockGap": null,
+      "aimForwardDot": 0.9588569884855511
+    },
+    {
+      "class": "arcanista",
+      "state": "cast",
+      "phase": 0,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Spell_Simple_Idle_Loop",
+        "mask": "upper",
+        "loop": true,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Spell_Simple_Idle_Loop",
+        "directLowerBase": "Idle_Loop",
+        "directLowerBaseProgress": 0.5,
+        "semanticSlot": "casterCharge",
+        "castPoseProgress": 0
+      },
+      "left": [
+        0.2961149135508351,
+        1.2428997876970578,
+        0.3037876086677337
+      ],
+      "right": [
+        -0.30358417546639654,
+        1.1883415096246297,
+        0.15568513379783155
+      ],
+      "foot": [
+        -0.1636971176381034,
+        0.10490251188464583,
+        -0.27039134986723523
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "arcanista",
+      "state": "cast",
+      "phase": 0.2,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Spell_Simple_Idle_Loop",
+        "mask": "upper",
+        "loop": true,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Spell_Simple_Idle_Loop",
+        "directLowerBase": "Idle_Loop",
+        "directLowerBaseProgress": 0.5,
+        "semanticSlot": "casterCharge",
+        "castPoseProgress": 0.2
+      },
+      "left": [
+        0.294301556714375,
+        1.260784723838322,
+        0.32426569823643814
+      ],
+      "right": [
+        -0.3033829156019999,
+        1.1886665263608054,
+        0.1559085455439667
+      ],
+      "foot": [
+        -0.1636971176381034,
+        0.10490251188464583,
+        -0.27039134986723523
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "arcanista",
+      "state": "cast",
+      "phase": 0.4,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Spell_Simple_Idle_Loop",
+        "mask": "upper",
+        "loop": true,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Spell_Simple_Idle_Loop",
+        "directLowerBase": "Idle_Loop",
+        "directLowerBaseProgress": 0.5,
+        "semanticSlot": "casterCharge",
+        "castPoseProgress": 0.4
+      },
+      "left": [
+        0.2940882612706956,
+        1.281884207535314,
+        0.3400219204559596
+      ],
+      "right": [
+        -0.30279330912165503,
+        1.1890748358775833,
+        0.15609971046033744
+      ],
+      "foot": [
+        -0.1636971176381034,
+        0.10490251188464583,
+        -0.27039134986723523
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "arcanista",
+      "state": "cast",
+      "phase": 0.6,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Spell_Simple_Idle_Loop",
+        "mask": "upper",
+        "loop": true,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Spell_Simple_Idle_Loop",
+        "directLowerBase": "Idle_Loop",
+        "directLowerBaseProgress": 0.5,
+        "semanticSlot": "casterCharge",
+        "castPoseProgress": 0.6
+      },
+      "left": [
+        0.2935088423132012,
+        1.2993304061432536,
+        0.3556563528098641
+      ],
+      "right": [
+        -0.30246530209848177,
+        1.1891171560928715,
+        0.15598688709144856
+      ],
+      "foot": [
+        -0.1636971176381034,
+        0.10490251188464583,
+        -0.27039134986723523
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "arcanista",
+      "state": "cast",
+      "phase": 0.8,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Spell_Simple_Idle_Loop",
+        "mask": "upper",
+        "loop": true,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Spell_Simple_Idle_Loop",
+        "directLowerBase": "Idle_Loop",
+        "directLowerBaseProgress": 0.5,
+        "semanticSlot": "casterCharge",
+        "castPoseProgress": 0.8
+      },
+      "left": [
+        0.293068028302098,
+        1.3132057579961636,
+        0.3743554748220224
+      ],
+      "right": [
+        -0.30288378845169023,
+        1.1886685612015966,
+        0.15577552582683443
+      ],
+      "foot": [
+        -0.1636971176381034,
+        0.10490251188464583,
+        -0.27039134986723523
+      ],
+      "nockGap": null
+    },
+    {
+      "class": "arcanista",
+      "state": "cast",
+      "phase": 1,
+      "file": null,
+      "selected": {
+        "state": "CAST_CHARGE",
+        "clip": "Spell_Simple_Idle_Loop",
+        "mask": "upper",
+        "loop": true,
+        "fade": 0.12,
+        "rate": 1,
+        "window": null,
+        "phaseGroup": null,
+        "procedural": false,
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "FINAL_USER_LOCKED",
+        "requestedClip": "Spell_Simple_Idle_Loop",
+        "directLowerBase": "Idle_Loop",
+        "directLowerBaseProgress": 0.5,
+        "semanticSlot": "casterCharge",
+        "castPoseProgress": 1
+      },
+      "left": [
+        0.29317066658597435,
+        1.3261892182546133,
+        0.3948246579272554
+      ],
+      "right": [
+        -0.30349757377384945,
+        1.188354029867765,
+        0.15567425943829702
+      ],
+      "foot": [
+        -0.1636971176381034,
+        0.10490251188464583,
+        -0.27039134986723523
+      ],
+      "nockGap": null
+    }
+  ]
+}

@@ -53,7 +53,7 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
     },
     peel: {
       name: 'Peel defensivo', desc: 'Se mantiene cerca del frente aliado y prioriza protección/interrupción.',
-      combat: true, move: 'auto', desiredRange: 4.5
+      combat: true, move: 'auto', desiredRange: 1.6
     },
     sparring: {
       name: 'Rival Ladder', desc: 'Perfil completo de duelo: rango por clase, rotación y defensivos reactivos.',
@@ -133,7 +133,7 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
     guardian: [
       { id: 'guardian_guardia_absoluta', when: 'selfCritical' },
       { id: 'guardian_proteccion_aliada', when: 'allyNeedsCleanse', target: 'ally' },
-      { id: 'guardian_interponer', when: 'allyFocused', target: 'ally' },
+      { id: 'guardian_interponer', when: 'pressured', target: 'ally' },
       { id: 'guardian_avasallamiento', when: 'targetCasting' },
       { id: 'guardian_egida', when: 'threatened' },
       { id: 'guardian_postura', when: 'selfHurt' },
@@ -169,7 +169,9 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
       { id: 'vinculador_barrera', when: 'allyNeedsHeal', target: 'ally' },
       { id: 'vinculador_regeneracion', when: 'allyNeedsHeal', target: 'ally' },
       { id: 'vinculador_intervencion', when: 'allyFocused', target: 'ally' },
-      { id: 'vinculador_pulso_vital', when: 'allyNeedsHeal', target: 'ally' }
+      { id: 'vinculador_pulso_vital', when: 'allyNeedsHeal', target: 'ally' },
+      { id: 'vinculador_hiedra_duelo', when: 'threatened' },
+      { id: 'vinculador_misil_duelo', when: 'always' }
     ]
   };
 
@@ -183,7 +185,8 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
     for (var i = 0; i < pool.length; i++) {
       var a = pool[i];
       if (!a.isTargetable()) continue;
-      if (a.hpPct() < bestPct) { bestPct = a.hpPct(); best = a; }
+      var threshold = a.id === self.id ? 0.65 : 0.85;
+      if (a.hpPct() < Math.min(bestPct,threshold)) { bestPct = a.hpPct(); best = a; }
     }
     return best;
   }
@@ -202,7 +205,7 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
   }
 
   function pickProtectTarget(world, self) {
-    var pool = world.alliesOf(self, false);
+    var pool = world.alliesOf(self, true);
     var enemies = world.enemiesOf(self);
     var best = null, bestScore = 0;
     for (var i = 0; i < pool.length; i++) {
@@ -346,9 +349,21 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
   AI._rotate = function (world, self, target, profile) {
     if (self.cast) return;
 
-    var rotation = ROTATIONS[self.classId] || [];
+    if(self.isCompanion)return; // Pets use their own normals, never the owner's spell kit.
+    var rotation = Arena.Data.trainerCatalogue ? (self.abilities||[]).map(function(id){
+      var ab=Arena.Data.abilities[id],fx=ab?(ab.effects||[]).concat(ab.selfEffects||[]):[];
+      var healing=fx.some(function(e){return /Heal|ResourceRestore/.test(e.type);});
+      var summoning=fx.some(function(e){return e.type==='summon';});
+      return {id:id,target:ab&&ab.target==='ground'?'ground':ab&&ab.target==='self'?'self':'enemy',when:healing?'trainerNeedsRecovery':summoning?'trainerNoPet':'always'};
+    }).sort(function(a,b){return (a.when==='always'?1:0)-(b.when==='always'?1:0);}) : (ROTATIONS[self.classId] || []);
     for (var i = 0; i < rotation.length; i++) {
       var entry = rotation[i];
+      if(entry.when==='trainerNeedsRecovery'){
+        var rec=Arena.Data.abilities[entry.id];
+        var mana=(rec.effects||[]).some(function(e){return e.type==='sourceResourceRestore';});
+        if(mana?(self.resourcePct()>.35||self.hpPct()<.5):self.hpPct()>.7)continue;
+      }
+      if(entry.when==='trainerNoPet'&&world.companionsOf(self).length)continue;
       var cond = C[entry.when] || C.always;
       if (!cond(world, self, target)) continue;
 
@@ -367,6 +382,7 @@ Arena.define('ai/dummyAI', ['sim/world', 'data/passives'], function (Arena) {
   };
 
   AI._contextFor = function (world, self, target, entry) {
+    if(entry.target==='self')return {targetId:self.id,target:self};
     if (entry.target === 'ally') {
       var ally = null;
       if (entry.when === 'allyNeedsCleanse') ally = pickCleanseTarget(world, self);

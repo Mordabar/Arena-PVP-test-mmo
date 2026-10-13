@@ -59,6 +59,9 @@ Arena.define('render/vfx', ['data/castFamilies'], function (Arena) {
     sp.sx=cfg.start.x; sp.sy=cfg.start.y; sp.sz=cfg.start.z;
     sp.ex=cfg.end.x; sp.ey=cfg.end.y; sp.ez=cfg.end.z;
     sp.seed=(cfg.seed===undefined ? VFX._spellCursor : cfg.seed)|0;
+    sp.variant=cfg.variant||0;sp.pulseRate=cfg.pulseRate||1;sp.orbitDirection=cfg.orbitDirection||1;
+    sp.trailLength=cfg.trailLength||.35;sp.rank=cfg.rank||3;
+    sp.casterId=cfg.casterId||null;sp.abilityId=cfg.abilityId||null;
     return sp;
   };
 
@@ -147,10 +150,11 @@ Arena.define('render/vfx', ['data/castFamilies'], function (Arena) {
       else if (type==='fireball' || type==='magmaOrb') life=.58;
       else if (type==='dreadWave') life=.65;
       VFX.spawnSpell({type:type,element:pr.element,start:start,end:end,life:life,
-        radius:pr.impactRadius||ab.radius||0,intensity:pr.intensity||'standard',seed:(ab.sourceIndex||0)});
+        radius:pr.impactRadius||ab.radius||0,intensity:pr.intensity||'standard',seed:pr.seed||ab.sourceIndex||0,
+        variant:pr.visualVariant,pulseRate:pr.pulseRate,orbitDirection:pr.orbitDirection,trailLength:pr.trailLength,rank:ab.rank});
       var col=VFX.elementColor(pr.element);
       // Secondary particles make the release legible even on the native renderer.
-      VFX.burst(end, type==='meteor'||type==='fireball'||type==='iceBurst'?18:10, {
+      VFX.burst(end, Math.min(28,pr.particleCount||10), {
         r:col[0],g:col[1],b:col[2],speed:type==='lightningBolt'?5.5:3.2,
         life:type==='meteor'?.65:.45,size:type==='meteor'?.16:.09,gravity:type==='meteor'?-4:-.4,
         style:(pr.element==='ice'?'shard':(pr.element==='lightning'?'spark':'orb'))
@@ -163,9 +167,10 @@ Arena.define('render/vfx', ['data/castFamilies'], function (Arena) {
       var pr=ab.presentation, end={x:p.x,y:p.y,z:p.z};
       var type=(pr.shape==='magmaOrb'?'magmaImpact':(pr.shape==='fireball'||pr.shape==='fireBolt'?'fireImpact':pr.shape));
       VFX.spawnSpell({type:type,element:pr.element,start:end,end:end,life:type==='magmaImpact'?.82:.58,
-        radius:pr.impactRadius||ab.radius||1.8,intensity:pr.intensity||'standard',seed:ab.sourceIndex||0});
+        radius:pr.impactRadius||ab.radius||1.8,intensity:pr.intensity||'standard',seed:pr.seed||ab.sourceIndex||0,
+        variant:pr.visualVariant,pulseRate:pr.pulseRate,orbitDirection:pr.orbitDirection,trailLength:pr.trailLength,rank:ab.rank});
       var col=VFX.elementColor(pr.element);
-      VFX.burst(end, pr.intensity==='major'?24:18,{r:col[0],g:col[1],b:col[2],speed:4.4,life:.55,size:.12,gravity:-1.8,style:pr.element==='ice'?'shard':'spark'});
+      VFX.burst(end, Math.min(28,pr.particleCount||18),{r:col[0],g:col[1],b:col[2],speed:4.4,life:.55,size:.12,gravity:-1.8,style:pr.element==='ice'?'shard':'spark'});
     }
 
     function damageReactionKind(p) {
@@ -269,13 +274,22 @@ Arena.define('render/vfx', ['data/castFamilies'], function (Arena) {
         var impact=semanticPoint(p,.05);
         if (impact) VFX.spawnSpell({type:'meteor',element:'fire',
           start:{x:impact.x-2.4,y:impact.y+13.0,z:impact.z-1.7},end:impact,
-          life:Math.max(.35,p.castTime||castAb.castTime||2),radius:1.6,intensity:'major',seed:castAb.sourceIndex||0});
+          life:Math.max(.35,p.castTime||castAb.castTime||2),radius:1.6,intensity:'major',seed:castAb.presentation.seed||0,casterId:p.casterId,abilityId:p.abilityId});
       }
     });
 
     bus.on('AbilityCastInterrupted', function (p) {
+      VFX.spells.forEach(function(sp){if(sp.casterId===p.casterId&&sp.abilityId===p.abilityId)sp.alive=false;});
       var vis = renderer && renderer.characterHandleOf(p.casterId);
       if (vis) Arena.Render.CharacterBackend.current.beginCast(vis, null, null, null);
+    });
+
+    bus.on('AbilityFizzled',function(p){VFX.spells.forEach(function(sp){if(sp.casterId===p.casterId&&sp.abilityId===p.abilityId)sp.alive=false;});});
+    bus.on('AbilityHit',function(p){var ab=Arena.Data.abilities[p.abilityId],pr=ab&&ab.presentation;
+      if(!pr||pr.shape!=='physicalSkill'||p.outcome!=='hit')return;
+      var pos=posOf(p.targetId,.15);if(!pos)return;
+      VFX.spawnSpell({type:'physicalSkill',element:'physical',start:pos,end:pos,life:.32,seed:pr.seed,variant:pr.visualVariant,rank:ab.rank,orbitDirection:pr.orbitDirection});
+      VFX.burst(pos,Math.min(18,pr.particleCount||8),{r:1,g:.65,b:.22,speed:2.5,life:.3,size:.05,gravity:-2,style:'spark'});
     });
 
     bus.on('AbilityCastCompleted', function (p) {
@@ -344,6 +358,8 @@ Arena.define('render/vfx', ['data/castFamilies'], function (Arena) {
     bus.on('AbilityBlocked', function (p) {
       var pos = posOf(p.targetId, 1.0);
       if (!pos) return;
+      var vis=renderer&&renderer.characterHandleOf(p.targetId);
+      if(vis){vis.block=1;vis.blockSequence=(vis.blockSequence||0)+1;}
       VFX.burst(pos, 14, { r: 1.0, g: 0.85, b: 0.4, speed: 4.5, life: 0.45, size: 0.11 });
       if (renderer) renderer.camera.shakeTier('moderate');
     });

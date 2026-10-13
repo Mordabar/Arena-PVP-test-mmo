@@ -23,7 +23,7 @@ Arena.define('combat/abilitySystem',
   var A = {};
 
   A.REASONS = {
-    dead: 'Estás muerto', unknown: 'Habilidad desconocida', silenced: 'Estás mareado',
+    dead: 'Estás muerto', unknown: 'Habilidad desconocida', silenced: 'Estás silenciado',
     stunned: 'Estás bajo control', disarmed: 'No puedes usar el arma',
     noOffense: 'No puedes usar poderes ofensivos', noDamage: 'No puedes usar habilidades dañinas',
     noAoE: 'No puedes usar poderes de área',
@@ -45,13 +45,14 @@ Arena.define('combat/abilitySystem',
   A.castTimeOf = function (world, caster, ability) {
     var base = ability.castTime || 0;
     if (base <= 0) return 0;
-    return Math.max(0, base * (1 + caster.mods().castSpeedPct));
+    var m=caster.mods();
+    return Math.max(0, base * (1 + m.castSpeedPct) / Math.max(0.05,1+(m.castSpeedBonusPct||0)));
   };
 
   A.gcdOf = function (world, caster, ability) {
     var g = ability.gcd === undefined ? 'standard' : ability.gcd;
-    if (typeof g === 'number') return g;
-    return B.GCD[g] === undefined ? B.GCD.standard : B.GCD[g];
+    var base=typeof g === 'number'?g:(B.GCD[g] === undefined ? B.GCD.standard : B.GCD[g]);
+    return Arena.Combat.RegnumFormulas.globalCooldown(base,caster.mods().attackSpeedPct);
   };
 
   A.timingOf = function (ability) {
@@ -97,7 +98,7 @@ Arena.define('combat/abilitySystem',
   };
 
   A._weaponCycle = function (entity) {
-    return entity.autoAttackCycle / Math.max(0.15, 1 + entity.mods().attackSpeedPct);
+    return Arena.Combat.RegnumFormulas.attackCycle(entity.classId,entity.weaponSpeed,Math.max(-.85,entity.mods().attackSpeedPct));
   };
 
   A._weaponWindup = function (entity) {
@@ -190,9 +191,13 @@ Arena.define('combat/abilitySystem',
       if (!target) return no('noTarget');
       var corpseAction = !!(ability.flags && (ability.flags.revive || ability.flags.cremate));
       if (!target.alive && !corpseAction) return no('targetDead');
+      if(ability.flags&&ability.flags.cremate&&(target.alive||target.cremated))return no('badTarget');
+      if(ability.flags&&ability.flags.revive&&target.alive)return no('badTarget');
       if (target.alive && !target.isTargetable()) return no('untargetable');
       var hostile = world.areHostile(caster, target);
-      if ((ability.target === 'enemy' || ability.target === 'targetArea') && !hostile) return no('badTarget');
+      var friendlyArea=ability.target==='targetArea' && (ability.affects==='allies'||ability.affects==='alliesAndSelf');
+      if ((ability.target === 'enemy' || (ability.target === 'targetArea'&&!friendlyArea)) && !hostile) return no('badTarget');
+      if (friendlyArea && (hostile || (ability.affects==='allies'&&target.id===caster.id))) return no('badTarget');
       if (ability.target === 'ally' && (hostile || target.id === caster.id)) return no('badTarget');
       if (ability.target === 'allyOrSelf' && hostile) return no('badTarget');
       if (hostile && target.mods().stealthed && !target.hasStatus('revealed')) return no('untargetable');
@@ -216,6 +221,16 @@ Arena.define('combat/abilitySystem',
   /* =========================================================================
    * Habilidades: request → begin → release
    * ====================================================================== */
+  A.inputContext = function (world, caster, ability, ctx) {
+    var out = Object.assign({}, ctx || {});
+    var target = out.target || world.getEntity(out.targetId);
+    var friendlyArea=ability && ability.target==='targetArea' && ability.affects==='alliesAndSelf';
+    if (ability && (ability.target === 'allyOrSelf'||friendlyArea) && (!target || world.areHostile(caster, target))) {
+      out.target = caster; out.targetId = caster.id;
+    }
+    return out;
+  };
+
   A.tryUse = function (world, caster, abilityId, ctx) {
     ctx = ctx || {};
     var ability = Arena.Data.abilities[abilityId];
@@ -456,8 +471,9 @@ Arena.define('combat/abilitySystem',
 
     Status.breakStealth(world, entity, 'attack');
     var normalMods = entity.mods();
-    var srcBonus=0, sb=normalMods.sourceBonusDamageFlat||{}; for(var bk in sb) if(Object.prototype.hasOwnProperty.call(sb,bk)) srcBonus+=Number(sb[bk]||0);
-    var raw = entity.power * B.AUTO_ATTACK.coefficient * (1 + (normalMods.normalDamagePct || 0)) * Math.max(0,1+(normalMods.weaponDamagePct||0)) + (normalMods.normalDamageFlat || 0) + srcBonus;
+    var components=entity.weaponComponents(normalMods.normalDamagePct);
+    components[entity.weaponElement]+=(normalMods.normalDamageFlat||0);
+    var raw=Object.keys(components).reduce(function(s,k){return s+components[k];},0);
     var ranged = entity.autoAttackRange > 5;
     var result = null;
 
@@ -492,11 +508,11 @@ Arena.define('combat/abilitySystem',
         casterId: entity.id, targetId: target.id, abilityId: 'auto_attack',
         from: entity.eyePos(), speed: entity.classId === 'arcanista' || entity.classId === 'vinculador' ? 38 : 48,
         kind: entity.autoAttackSchool === 'magical' ? 'bolt' : 'arrow',
-        autoAttack: true, raw: raw, school: entity.autoAttackSchool
+        autoAttack: true, raw: raw, components:components, element:entity.weaponElement, school: entity.autoAttackSchool
       });
     } else {
       result = Dmg.applyDamage(world, {
-        source: entity, target: target, raw: raw,
+        source: entity, target: target, raw: raw, components:components, element:entity.weaponElement,
         school: entity.autoAttackSchool === 'magical' ? 'magical' : 'physical',
         abilityId: 'auto_attack', canCrit: true
       });

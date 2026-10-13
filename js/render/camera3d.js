@@ -109,6 +109,7 @@ Arena.define('render/camera3d', ['math/mat4', 'math/ray', 'sim/arena'], function
 
   /** Sacudida por impacto. `amount` en unidades de intensidad (0.2–1.0). */
   Camera3D.prototype.shake = function (amount, freq) {
+    if (this.reducedMotion) return;
     this._shake = Math.min(1.2, this._shake + amount);
     if (freq) this._shakeFreq = freq;
   };

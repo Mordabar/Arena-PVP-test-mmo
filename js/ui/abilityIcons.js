@@ -252,6 +252,9 @@ Arena.define('ui/abilityIcons', [], function (Arena) {
 
   Arena.UI = Arena.UI || {};
   Arena.UI.AbilityIcons = {
+    image: function (ab) {
+      return ab ? '<img class="ability-svg" src="' + esc(ab.icon || ('assets/icons/' + ab.id + '.svg')) + '" alt="' + esc(ab.name) + '" draggable="false">' : '';
+    },
     svg: function (ab) {
       if (!ab) return '';
       var ep = ab.presentation && ELEMENT_PAL[ab.presentation.element];

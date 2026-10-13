@@ -250,7 +250,7 @@ function resolveCrossFadeDuration(sel, previousState) {
  * they belong to the requested body region, especially clavicles/fingers for
  * weapon actions and ball/toe joints for foot contact. */
 const LOWER = new Set([
-  'root','pelvis','spine_01','spine_02','spine_03',
+  'root','pelvis',
   'thigh_l','calf_l','foot_l','ball_l','ball_leaf_l',
   'thigh_r','calf_r','foot_r','ball_r','ball_leaf_r'
 ]);
@@ -449,7 +449,7 @@ export function createDirectLibrary(Arena, sourceGltf, targetRoot, options = {})
       const upperTracks = [];
       for (const tr of up.tracks) {
         const node = nodeOfTrack(tr);
-        if (LOWER.has(node)) continue; // primary owns pelvis/spine overlap
+        if (LOWER.has(node)) continue; // the leg layer owns only root/pelvis; the ready pose owns the torso
         const tc = tr.clone();
         if (hold !== null) {
           const sample = Array.from(tr.createInterpolant().evaluate(hold * up.duration));
@@ -491,6 +491,11 @@ export function createDirectLibrary(Arena, sourceGltf, targetRoot, options = {})
 
     return (cache[key] = finalize(primary));
   }
+  function legClip(name){
+    const key=name+':legs';if(cache[key])return cache[key];
+    const c=raw[name];if(!c)return null;
+    return cache[key]=new THREE.AnimationClip(key,c.duration,c.tracks.filter(t=>LOWER.has(nodeOfTrack(t))&&!UPPER.has(nodeOfTrack(t))));
+  }
 
   function resolveSelection(sel) {
     if (!sel) return null;
@@ -507,6 +512,7 @@ export function createDirectLibrary(Arena, sourceGltf, targetRoot, options = {})
     canonicalMap:CANON_TO_SOURCE,
     has,
     clipFor,
+    legClip,
     resolveSelection,
     createPlayer: null
   };
@@ -519,6 +525,7 @@ function DirectPlayer(lib, root) {
   this.root = root;
   this.mixer = new THREE.AnimationMixer(root);
   this.actual = null;
+  this.lowerAction = null; this.lowerName = null; this.eventToken = null; this.frozen = false;
   this.accion = null;
   this.estado = null;
   this.tiempoEstado = 0;
@@ -535,6 +542,23 @@ function DirectPlayer(lib, root) {
 
 DirectPlayer.prototype.play = function(sel, dt) {
   this.tiempoEstado += dt || 0;
+  this.frozen=!!(sel&&sel.freezeCurrent);
+  if(this.frozen){this.estado=sel.state;return !!this.accion;}
+  const token=sel&&sel.eventToken!==undefined?sel.eventToken:null;
+  const retrigger=token!==null&&token!==this.eventToken;
+  this.eventToken=token;
+  const lowerName=sel&&sel.liveLowerLocomotion||null;
+  if(lowerName!==this.lowerName){
+    const old=this.lowerAction;
+    const lc=lowerName?this.lib.legClip(lowerName):null;
+    this.lowerAction=lc?this.mixer.clipAction(lc):null;
+    if(this.lowerAction){
+      this.lowerAction.reset().setLoop(THREE.LoopRepeat,Infinity).setEffectiveWeight(1).play();
+      if(old){this.lowerAction.time=old.time/old.getClip().duration*lc.duration;old.stop();}
+    }else if(old)old.stop();
+    this.lowerName=lowerName;
+  }
+  if(this.lowerAction)this.lowerAction.setEffectiveTimeScale(Number.isFinite(sel.lowerRate)?sel.lowerRate:1);
   const resolved = this.lib.resolveSelection(sel);
   this.requestedClip = sel ? (sel.clip || sel.requestedClip || null) : null;
   this.resolvedClip = resolved ? resolved.name : null;
@@ -543,7 +567,8 @@ DirectPlayer.prototype.play = function(sel, dt) {
   if (!sel || !resolved) {
     if (this.actual && this.accion) {
       this.accion.fadeOut(resolveCrossFadeDuration(sel || { state:null }, this.estado));
-      this.actual = null; this.accion = null;
+      this.actual = null;
+  this.lowerAction = null; this.lowerName = null; this.eventToken = null; this.frozen = false; this.accion = null;
     }
     this.syncProgress = null; this.syncDuration = 0;
     this.estado = sel ? sel.state : null;
@@ -579,7 +604,7 @@ DirectPlayer.prototype.play = function(sel, dt) {
     : '0';
   const orientationKey = sel.orientationBone || sel.flipYBone || '';
   const key = resolved.name + ':' + (sel.mask || 'full') + ':' + (resolvedUpper || '') + ':' + holdKey + ':' + (resolvedLower || '') + ':' + lowerHoldKey + ':flipY=' + flipKey + ':' + orientationKey;
-  if (key !== this.actual) {
+  if (key !== this.actual || retrigger) {
     const prev = this.accion;
     let phase = null;
     if (prev && sel.loop && sel.phaseGroup && sel.phaseGroup === this.phaseGroup) {
@@ -610,8 +635,9 @@ DirectPlayer.prototype.play = function(sel, dt) {
   }
 
   const rate = Number.isFinite(sel.rate) ? sel.rate : 1;
-  if (this.accion && Math.abs(rate - this.ultimoRate) > 1e-3) {
-    this.accion.setEffectiveTimeScale(rate);
+  if (this.accion) {
+    // Each action owns its rate; a newly selected clip must not inherit an old cache.
+    this.accion.setEffectiveTimeScale(sel.syncAuthoritative ? 0 : rate);
     this.ultimoRate = rate;
   }
   if (sel.window && sel.amount !== undefined && this.accion) {
@@ -640,11 +666,11 @@ DirectPlayer.prototype._lockVisualRoot = function() {
 };
 
 DirectPlayer.prototype.update = function(dt) {
-  this.mixer.update(Math.max(0, Math.min(0.10, dt || 0)));
+  if(this.frozen)return;
   if (this.accion && this.syncProgress !== null && this.syncDuration > 0) {
-    this.accion.time = this.syncProgress * this.syncDuration;
-    this.mixer.update(0);
+    this.accion.time = Math.min(this.syncProgress * this.syncDuration, Math.max(0,this.syncDuration-1e-5));
   }
+  this.mixer.update(Math.max(0, Math.min(0.10, dt || 0)));
   this._lockVisualRoot();
 };
 

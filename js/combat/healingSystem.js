@@ -120,7 +120,7 @@ Arena.define('combat/healingSystem',
   H.restoreResource = function (world, target, amount, reason) {
     if (!target || !target.alive || amount <= 0) return 0;
     var before = target.resource;
-    target.resource = Math.min(target.resourceMax, target.resource + amount);
+    target.resource = Math.min(target.effectiveResourceMax(), target.resource + amount);
     var gained = target.resource - before;
     if (gained > 0) {
       world.bus.emit('ResourceRestored', {

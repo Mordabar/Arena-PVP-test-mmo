@@ -24,10 +24,13 @@
  * ========================================================================== */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { createThreeRenderer } from './threeRenderer.js?build=v0340-20260820-warrior-facing';
-import { loadCmuClips } from './threeCmuClips.js?build=v0340-20260820-warrior-facing';
+import { createThreeRenderer } from './threeRenderer.js?build=v0390-trainer';
+import { loadCmuClips } from './threeCmuClips.js?build=v0390-trainer';
 
 var Arena = window.Arena;
+var loadingUI=document.getElementById('loading-screen');
+var bootLoading=new THREE.LoadingManager();
+bootLoading.onProgress=function(url,done,total){if(loadingUI){loadingUI.querySelector('p').textContent='Cargando recursos · '+done+' / '+total;loadingUI.querySelector('i').style.width=(done/Math.max(1,total)*100)+'%';}};
 
 try {
   if (!Arena || !Arena.Render || !Arena.Render.RendererBackend) {
@@ -39,12 +42,12 @@ try {
      las seis subclases. Ya no se descarga ni se retargetea el legacy retarget body. UAL1
      aporta cuerpo+skin+locomoción/caster y UAL2 aporta acciones complementarias.
      Ambos comparten exactamente el mismo rig de 65 joints. */
-  var glbLoader = new GLTFLoader();
+  var glbLoader = new GLTFLoader(bootLoading);
   var loaded = await Promise.all([
-    glbLoader.loadAsync('./assets/animations/ual1-arena-runtime.glb?build=v0340'),
-    glbLoader.loadAsync('./assets/animations/ual2-melee-runtime.glb?build=v0340'),
-    glbLoader.loadAsync('./assets/animations/ual2-rm-runtime.glb?build=v0340'),
-    loadCmuClips('./assets/animations/arena-cmu-v031.json?build=v0340')
+    glbLoader.loadAsync('./assets/animations/ual1-arena-runtime.glb?build=v0390'),
+    glbLoader.loadAsync('./assets/animations/ual2-melee-runtime.glb?build=v0390'),
+    glbLoader.loadAsync('./assets/animations/ual2-rm-runtime.glb?build=v0390'),
+    loadCmuClips('./assets/animations/arena-cmu-v031.json?build=v0390')
   ]);
   var ual1Gltf = loaded[0], ual2Gltf = loaded[1], ual2RmGltf = loaded[2], cmuLibrary = loaded[3];
 
@@ -138,7 +141,9 @@ try {
   window.ARENA_THREE = THREE;      // sólo para depuración desde consola
 
   Arena.Game.boot();
+  if(loadingUI) loadingUI.remove();
 } catch (err) {
+  if(loadingUI) loadingUI.remove();
   if (Arena && Arena.Game && Arena.Game.showFatal) Arena.Game.showFatal(err);
   throw err;
 }

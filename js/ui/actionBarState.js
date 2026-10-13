@@ -13,7 +13,7 @@ Arena.define('ui/actionBarState', ['data/powerLibrary'], function (Arena) {
   function safeStorage() {
     try { return window.localStorage || null; } catch (e) { return null; }
   }
-  function keyFor(classId) { return 'arena.actionbars.v4.sourceParity.' + classId; }
+  function keyFor(classId) { return 'arena.actionbars.v6.trainer.' + classId; }
   function blank() {
     var bars=[]; for(var b=0;b<BAR_COUNT;b++){bars[b]=[];for(var i=0;i<SLOT_COUNT;i++)bars[b][i]=null;} return bars;
   }
@@ -26,6 +26,7 @@ Arena.define('ui/actionBarState', ['data/powerLibrary'], function (Arena) {
     /* v0.12: la primera barra debe enseñar la IDENTIDAD de la clase, no los
        primeros registros del documento por accidente. Featured vive en datos
        y después se completa con el kit pequeño y el resto del libro. */
+    if(c) ids=ids.concat(c.abilities || []);
     if(Arena.Data.powerLibrary&&Arena.Data.powerLibrary.featuredFor) ids=ids.concat(Arena.Data.powerLibrary.featuredFor(classId));
     if(Arena.Data.powerLibrary) ids=ids.concat(Arena.Data.powerLibrary.activeFor(classId));
     var seen=Object.create(null), clean=[];

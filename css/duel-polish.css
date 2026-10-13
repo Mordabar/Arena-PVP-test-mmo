@@ -1,0 +1,63 @@
+:root { --duel-accent:#d4b475; }
+button:focus-visible,input:focus-visible {outline:2px solid #f3d9a3;outline-offset:4px}
+.arena-lobby {background:radial-gradient(ellipse at 35% 20%,rgba(45,88,81,.38),transparent 48%),linear-gradient(125deg,#071010f5,#102326ee 55%,#080e15f5)}
+.arena-lobby[data-class-id=devastador]{--duel-accent:#e0a568}
+.arena-lobby[data-class-id=guardian]{--duel-accent:#90c9e9}
+.arena-lobby[data-class-id=centinela]{--duel-accent:#b5cf83}
+.arena-lobby[data-class-id=rastreador]{--duel-accent:#85cdb1}
+.arena-lobby[data-class-id=arcanista]{--duel-accent:#c4a1ee}
+.arena-lobby[data-class-id=vinculador]{--duel-accent:#84ddcd}
+.lobby-main h1 span,.selected-head h3,.eyebrow{color:var(--duel-accent)}
+.lobby-main h1{font-size:clamp(45px,5.3vw,76px);line-height:1.03}
+.lobby-lead{max-width:560px;font-size:15px;color:#b2c4c2}
+.class-card{min-height:95px;background:linear-gradient(125deg,#162727,#0c191e);border-color:#b3d3cc1c}
+.class-card.active{border-color:var(--duel-accent);box-shadow:inset 3px 0 var(--duel-accent),0 9px 28px #0003}
+.class-copy small{color:#a0b4b0;line-height:1.5}
+.class-glyph{background:#ffffff08}
+.kit-row{grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.kit-icon .ability-svg{border:1px solid #ffffff1a}
+.selected-card,.ladder-card,.queue-card{border-color:#cfdfd525;background:linear-gradient(135deg,#1b3130e8,#0c1b20f2)}
+.selected-card{border-top:2px solid var(--duel-accent)}
+.primary-queue{border-color:var(--duel-accent);background:linear-gradient(135deg,#d7bc86,#b79359);color:#142220;box-shadow:0 8px 28px #0004}
+.primary-queue:hover{filter:brightness(1.12);transform:translateY(-1px)}
+.primary-queue small{color:#263b3a;opacity:1}
+.mode-pills button{cursor:default}
+.slot{transition:border-color .1s,filter .1s,box-shadow .1s}
+.slot.ready{box-shadow:0 0 0 1px #cba96730,inset 0 0 14px #d9bf6820}
+.slot.queued{box-shadow:0 0 0 2px #ffe49b,0 0 18px #dbb46c70}
+.slot.no-resource::after{content:'◆';position:absolute;right:4px;top:3px;color:#75b8ff;z-index:6;font-size:10px}
+.slot.out-of-range::after{content:'↗';position:absolute;right:4px;top:3px;color:#ffb07c;z-index:6;font-size:11px}
+.slot[data-reason='Estás bajo control']{filter:grayscale(.8)}
+.slot .icon img{width:100%;height:100%;display:block;user-select:none}
+.cd-text{font-variant-numeric:tabular-nums;text-shadow:0 1px 4px #000,0 0 4px #000}
+.duel-polish{position:fixed;inset:0;z-index:105;pointer-events:none;font-family:var(--ui-font,system-ui)}
+.damage-vignette{position:absolute;inset:0;box-shadow:inset 0 0 95px 30px #bb2438;opacity:0;pointer-events:none}
+.duel-utilities{position:absolute;right:18px;top:17px;display:flex;align-items:center;gap:8px;pointer-events:auto}
+.duel-utilities span{font-size:10px;color:#b5c6be;letter-spacing:.08em}
+.duel-utilities button,.duel-settings button{border:1px solid #c9d4c230;border-radius:5px;background:#0c171ee6;color:#d7e2de;font:600 11px var(--ui-font,system-ui);padding:8px 11px;cursor:pointer}
+body.arena-product-lobby .duel-utilities,body.arena-product-results .duel-utilities{top:82px}
+.weapon-cycle{position:absolute;left:50%;bottom:113px;transform:translateX(-50%);width:285px;text-align:center;color:#b9c9c4}
+.weapon-cycle[hidden]{display:none}
+.weapon-cycle-head{display:flex;justify-content:space-between;align-items:center;font-size:10px;text-shadow:0 1px 3px #000}
+.weapon-cycle-head b{font-weight:600;color:#ead6a8}
+.weapon-cycle-head span{font-variant-numeric:tabular-nums}
+.weapon-cycle-track{height:3px;background:#03070ec9;border:1px solid #ffffff0a;margin:6px 0}
+.weapon-cycle-track i{display:block;height:100%;width:100%;transform-origin:left;background:linear-gradient(90deg,#8b774f,#e0c994)}
+.weapon-cycle small{font-size:10px;text-shadow:0 1px 4px #000;color:#c4d4cd}
+.duel-settings{position:absolute;right:18px;top:118px;width:295px;padding:24px;background:#0c1a21f7;border:1px solid #d4ba7866;border-radius:10px;pointer-events:auto;box-shadow:0 24px 80px #0009;color:#d3e0dc}
+.duel-settings[hidden]{display:none}
+.duel-settings h2{font:500 26px Georgia,serif;margin:0 0 20px;color:#e6d0a3}
+.duel-settings label{display:block;font-size:12px;margin:18px 0}
+.duel-settings input[type=range]{display:block;width:100%;margin-top:9px;accent-color:#d1b579}
+.duel-settings input[type=checkbox]{accent-color:#d1b579}
+.duel-settings p{font-size:11px;line-height:1.9;color:#a5bab3;border-top:1px solid #ffffff15;padding-top:13px}
+#loading-screen{position:fixed;inset:0;z-index:1000;background:radial-gradient(ellipse at center,#18322f,#071115 65%);display:flex;align-items:center;justify-content:center;flex-direction:column;color:#d3e2df;font-family:system-ui}
+.loading-mark{display:grid;place-items:center;width:66px;height:66px;border:1px solid #cfb67c;transform:rotate(45deg);font:40px Georgia;color:#ddc898;margin-bottom:26px}
+#loading-screen h1{font:500 25px Georgia;letter-spacing:.16em}
+#loading-screen p{font-size:12px;color:#a9bfba}
+.loading-track{height:3px;width:240px;background:#ffffff12;margin:15px 0}
+.loading-track i{display:block;background:#d9bf86;height:100%;width:5%;transition:width .2s}
+#loading-screen small{font-size:10px;color:#849d97;letter-spacing:.13em}
+@media(max-width:1000px){.duel-utilities{top:70px}.weapon-cycle{bottom:113px}.duel-settings{top:112px}.lobby-grid{padding-top:145px}.class-card{min-height:82px}}
+@media(max-width:640px){.duel-utilities{right:8px;gap:5px}.duel-utilities button{font-size:10px;padding:7px}.weapon-cycle{bottom:111px;width:250px}.lobby-grid{padding-top:150px}.duel-settings{right:8px;width:min(295px,calc(100vw - 16px))}}
+@media(prefers-reduced-motion:reduce){.primary-queue:hover,.class-card:hover{transform:none}.slot,.loading-track i{transition:none}}

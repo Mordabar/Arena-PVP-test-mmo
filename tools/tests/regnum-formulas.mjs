@@ -1,0 +1,53 @@
+import fs from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const Arena={Combat:{},define(_name,_deps,factory){factory(Arena);}};
+vm.runInNewContext(fs.readFileSync(new URL('../../js/combat/regnumFormulas.js',import.meta.url),'utf8'),{Arena});
+const F=Arena.Combat.RegnumFormulas;
+let count=0;
+const near=(actual,expected,label)=>{assert.ok(Math.abs(actual-expected)<1e-6,`${label}: ${actual} != ${expected}`);count++;};
+// Independent hand arithmetic: active 100+20+30=150; *1.2=180; +2*(100-20)=340.
+near(F.weaponDamage({classId:'devastador',weaponFlat:100,jewelryFlat:20,buffFlat:30,bonusPct:.2,attribute:100}),340,'active vs passive bonus');
+near(F.weaponDamage({classId:'guardian',weaponFlat:100,attribute:100}),220,'knight K');
+near(F.weaponDamage({classId:'centinela',weaponFlat:100,attribute:100}),220,'marksman K');
+near(F.weaponDamage({classId:'rastreador',weaponFlat:100,attribute:100}),180,'hunter K');
+near(F.weaponDamage({classId:'arcanista',weaponFlat:100,attribute:100}),240,'warlock K');
+near(F.weaponDamage({classId:'protector',weaponFlat:100,attribute:100}),206.4,'conjurer K');
+// Armour coefficients are not resistance-share weights; do not normalize either.
+const archer={};for(const slot of ['chest','helmet','legs','shoulders','gloves'])archer[slot]={base:226,bonusFlat:10,resistances:{fire:'Buena'}};
+near(F.protection('rastreador',archer,0),351.265211886,'all five 226(+10)');
+near(F.protection('rastreador',archer,.05),368.8284724803,'protection after flat bonuses');
+near(F.protection('rastreador',{chest:{base:100,bonusFlat:10}},0),40.75,'flat bonus outside K');
+near(F.resistance('rastreador',archer,'fire',0),.14877049179,'retains 99.18032786% total weights');
+near(F.resistance('rastreador',archer,'fire',.05),.19877049179,'bonus resistance additive');
+near(F.resistanceGradePct('Muy Mala'),-.3,'bad resistance');
+near(F.resistanceGradePct('Excellent'),.45,'excellent resistance');
+assert.throws(()=>F.resistanceGradePct('typo'));count++;
+// Slashing 100 reduced by 15%=85; fire 200 by 30%=140; neutral 50 unchanged.
+// Sum275 minus 100*.52=223; armour is subtracted once, not three times.
+const p={components:{slashing:100,fire:200,neutral:50},resistances:{slashing:.15,fire:.3,neutral:.99},armor:100};
+near(F.mitigate(p).damage,223,'sum elemental damage, armor once');
+near(F.mitigate({...p,critical:true}).damage,296.59,'shared G194 references post-armor G193');
+near(F.mitigate({...p,ignoreDefensePct:.5}).damage,249,'penetration reduces flat armor');
+near(F.mitigate({components:{fire:100},resistances:{fire:-.15},armor:0}).damage,115,'negative resistance amplifies');
+near(F.mitigate({components:{fire:10},armor:100}).damage,0,'no negative damage/healing');
+near(F.mitigate({components:{fire:100},resistances:{fire:1.2},armor:0}).damage,0,'runtime guard resistance over100');
+near(F.criticalChance(100,0),.07,'critical percent points converted to probability');
+near(F.criticalChance(100,2),.21,'relative +200% critical');
+near(F.criticalChance(10,0),0,'negative chance clamped');
+near(F.evasionChance(100,60,0),.04933333333333334,'evasion probability');
+near(F.evasionChance(100,0,0),0,'guard original DIV/0');
+near(F.powerResistanceChance(100,100,60,0,0),.0433184,'power resistance probability');
+near(F.health('devastador',100,60,0),4900,'warrior HP');
+near(F.health('arcanista',100,60,0),3900,'mage HP');
+near(F.mana('devastador',100,60,0),1900,'regular mana');
+near(F.mana('protector',100,60,0),1905,'conjurer mana');
+near(F.attackRate('devastador','slow',.2),.54,'warrior slow rate');
+near(F.attackRate('rastreador','medium',.25),.75,'archer medium rate');
+near(F.attackRate('protector','fast',0),.65,'mage fast rate');
+near(F.attackCycle('guardian','medium',.25),1.5384615384615383,'attack cycle reciprocal rate');
+near(F.castTime(2,.5),1.3333333333333333,'casttime divided by 1+VI');
+near(F.globalCooldown(2,.25),1.5,'GCD linear VA, not reciprocal');
+near(F.moveSpeed(1),7.2,'positive movespeed cap');
+near(F.moveSpeed(-1),1.44,'negative movespeed cap');
+console.log(`PASS ${count} independently checked historical Regnum formulas`);

@@ -96,6 +96,7 @@ Arena.define('main',
       onRematch: function () { self.rematch(); },
       onLobby: function () { self.enterLobby(); }
     });
+    this.polish = new Arena.UI.DuelPolish(this);
     this.world.bus.on('EntityDied', function () { self._matchEndPending = true; });
 
     // El audio se arma en el primer gesto: los navegadores bloquean el contexto
@@ -134,6 +135,13 @@ Arena.define('main',
     world.entities.length = 0;
     world._byId = Object.create(null);
     world.zones.length = 0;
+    world.auras.length = 0;
+    world.bus.history.length = 0;
+    this._keys = Object.create(null);
+    this.input.dragging = false;
+    this.input.dragActive = false;
+    this.input.camMode = null;
+    this._exitPointerLock();
     world.projectiles.length = 0;
     world.bus.emit('WorldReset', { time: world.time });
     if (VFX) VFX.clear();
@@ -185,19 +193,29 @@ Arena.define('main',
   };
 
   Game.startMatch = function (mode, classId) {
+    // El laboratorio nunca concede ventajas ni cámara lenta a una partida.
+    Object.assign(this.world.settings, {freeCooldowns:false, freeResources:false,
+      godModePlayer:false, aiEnabled:true, expandedPowerPassives:false, rngEnabled:false});
+    B.DR.enabled=true;
+    this.renderer.showTelegraphs=true;
+    this.world.clock.timeScale = 1;
+    if(this.lab&&this.lab.syncToggles)this.lab.syncToggles();
     this.playerClass = Arena.Data.classes[classId] ? classId : this.playerClass;
     this._lastMatch = { mode: mode === '2v2' ? '2v2' : '1v1', classId: this.playerClass };
     this._matchResolved = false;
+    this._matchFinishAt = null;
     this._matchEndPending = false;
     this.buildScenario(this._lastMatch.mode === '2v2' ? 'team' : 'duel');
     this._setBotsEnabled(false);
     var p = this.world.getPlayer();
     if (p) { p._moveIntent = null; p._turnIntent = 0; p.autoAttackOn = false; p.combatMode = false; }
     this.flow.begin(this._lastMatch.mode, this.playerClass, 3.0);
+    if(this.renderer.canvas&&this.renderer.canvas.focus)this.renderer.canvas.focus({preventScroll:true});
   };
 
   Game.openTraining = function () {
     this._matchResolved = false;
+    this._matchFinishAt = null;
     this._matchEndPending = false;
     this.flow.begin('training', this.playerClass, 0);
     this.buildScenario('timing');
@@ -208,6 +226,7 @@ Arena.define('main',
   Game.enterLobby = function () {
     document.body.classList.remove('arena-training');
     this._matchResolved = false;
+    this._matchFinishAt = null;
     this._matchEndPending = false;
     this._clearWorld();
     this.flow.enterLobby();
@@ -236,9 +255,16 @@ Arena.define('main',
   Game._evaluateMatchEnd = function () {
     if (!this.flow || this.flow.phase !== 'ACTIVE' || this.flow.mode === 'training' || this._matchResolved) return;
     var alive0=this._teamAlive(0), alive1=this._teamAlive(1);
-    if (alive0 && alive1) return;
+    var expired = this.flow.matchElapsed >= Arena.Data.duelProfile.maxSeconds;
+    if (alive0 && alive1 && !expired) return;
+    if (!expired && this._matchFinishAt === null) {
+      this._matchFinishAt = this.world.time + 0.9;
+      this._setBotsEnabled(false);
+      return;
+    }
+    if (!expired && this.world.time < this._matchFinishAt) return;
     this._matchResolved = true;
-    var winner = (!alive0 && !alive1) ? -1 : (alive0 ? 0 : 1);
+    var winner = (expired || (!alive0 && !alive1)) ? -1 : (alive0 ? 0 : 1);
     var enemyName='Rival';
     for(var i=0;i<this.world.entities.length;i++){ var e=this.world.entities[i]; if(e.team===1 && !e.isCompanion){ enemyName=Arena.Data.classes[e.classId]?Arena.Data.classes[e.classId].name:e.name; break; } }
     this.flow.finish(winner, {
@@ -461,6 +487,7 @@ Arena.define('main',
 
     window.addEventListener('keydown', function (e) { self._onKeyDown(e); });
     window.addEventListener('keyup', function (e) { self._onKeyUp(e); });
+    window.addEventListener('blur', function () { self._keys=Object.create(null); input.dragging=false;input.dragActive=false;input.camMode=null; });
     window.addEventListener('blur', function () {
       input.forward = 0; input.strafe = 0;
       if (input.pointerTimer) { clearTimeout(input.pointerTimer); input.pointerTimer = null; }
@@ -471,8 +498,9 @@ Arena.define('main',
   Game._keys = Object.create(null);
 
   Game._onKeyDown = function (e) {
-    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT')) return;
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
     var key = e.key.toLowerCase();
+    if(key==='escape'&&this.polish&&this.polish.closeSettings()){e.preventDefault();return;}
     if (this._keys[key]) return;               // ignorar autorepetición
     this._keys[key] = true;
 
@@ -632,11 +660,8 @@ Arena.define('main',
         this.input.mouseNdc.x, this.input.mouseNdc.y);
       ctx.groundPoint = pt;
     }
-    // Curación sobre uno mismo cuando no hay aliado seleccionado.
-    if (ab && ab.target === 'allyOrSelf' && !ctx.target) {
-      ctx.targetId = player.id;
-      ctx.target = player;
-    }
+    // Apoyo: el contexto coincide con el HUD y conserva el objetivo hostil.
+    ctx = Ability.inputContext(world, player, ab, ctx);
     Ability.tryUse(world, player, abilityId, ctx);
   };
 
@@ -676,9 +701,10 @@ Arena.define('main',
     var self = this;
     for (var i = 0; i < this.hud.slots.length; i++) {
       (function (slot) {
+        slot.root.addEventListener('keydown', function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();e.stopPropagation();self._useSlot(slot.index);}});
         slot.root.addEventListener('mousedown', function (e) {
           e.preventDefault();
-          self._useSlot(slot.index);
+          if(e.button===0) self._useSlot(slot.index);
         });
         slot.root.addEventListener('mouseenter', function () {
           if (slot.abilityId) {
@@ -715,7 +741,7 @@ Arena.define('main',
 
     var world = this.world;
     var player = world.getPlayer();
-    if (this.flow) this.flow.update(realDt);
+    if (this.flow && this.flow.phase === 'COUNTDOWN') this.flow.update(realDt);
 
     /* --- Intención de movimiento y giro -----------------------------------
      *
@@ -762,11 +788,13 @@ Arena.define('main',
     // free-look, por lo que ninguna de esas rutas vuelve a sumar el delta.
     var bodyYawBeforeTick = player ? player.yaw : 0;
     var followKeyboardTurn = !!(player && player._turnIntent && this.input.camMode !== 'steer' && this.input.camMode !== 'freelook');
+    var simBefore=world.time;
     var alpha = world.advance(realDt);
+    if (this.flow && this.flow.phase === 'ACTIVE') this.flow.update(world.time - simBefore);
     if (followKeyboardTurn && player && this.renderer && this.renderer.camera && this.renderer.camera.followBodyYaw) {
       this.renderer.camera.followBodyYaw(V.angleDelta(bodyYawBeforeTick, player.yaw));
     }
-    if (this._matchEndPending) { this._matchEndPending = false; this._evaluateMatchEnd(); }
+    if (this._matchEndPending || (this._matchFinishAt !== null && this._matchFinishAt !== undefined) || (this.flow && this.flow.matchElapsed >= Arena.Data.duelProfile.maxSeconds)) { this._matchEndPending = false; this._evaluateMatchEnd(); }
 
     /* --- Presentación ----------------------------------------------------- */
     this.renderer.syncVisuals(realDt);
@@ -793,6 +821,7 @@ Arena.define('main',
 
     this.renderer.render(alpha, realDt);
     this.hud.update(realDt, alpha);
+    if (this.polish) this.polish.update(realDt);
     if (this.shell && this.flow) this.shell.update(this.flow.snapshot());
     this.lab.update(realDt, realDt);
     this._updateAnimDebug(player);

@@ -68,8 +68,8 @@ Arena.define('sim/world',
     this.bus.emit('EntitySpawned', {
       entityId: entity.id, name: entity.name, classId: entity.classId, team: entity.team
     });
-    if (this.settings.expandedPowerPassives && Arena.Data.powerLibrary && !entity.isCompanion) {
-      var pids = Arena.Data.powerLibrary.passiveFor(entity.classId);
+    if ((Arena.Data.trainerBuild || this.settings.expandedPowerPassives) && Arena.Data.powerLibrary && !entity.isCompanion) {
+      var pids = Arena.Data.trainerBuild ? Arena.Data.trainerBuild.selectedFor(entity.classId) : Arena.Data.powerLibrary.passiveFor(entity.classId);
       for (var pi = 0; pi < pids.length; pi++) {
         var pab = Arena.Data.abilities[pids[pi]];
         if (pab && pab.selfEffects && pab.selfEffects.length) {
@@ -412,7 +412,7 @@ Arena.define('sim/world',
     // Source passives from pet/summon disciplines are tagged companionPassive
     // and are applied to the creature at creation, never to its owner.
     if (Arena.Data.powerLibrary) {
-      var pp=Arena.Data.powerLibrary.passiveFor(owner.classId);
+      var pp=Arena.Data.trainerBuild?Arena.Data.trainerBuild.selectedFor(owner.classId):Arena.Data.powerLibrary.passiveFor(owner.classId);
       for(var pj=0;pj<pp.length;pj++){
         var pa=Arena.Data.abilities[pp[pj]];
         if(pa&&pa.flags&&pa.flags.companionPassive&&pa.companionEffects&&pa.companionEffects.length){
@@ -460,6 +460,8 @@ Arena.define('sim/world',
       maxLife: cfg.maxLife || 3.0,
       autoAttack: !!cfg.autoAttack,
       raw: cfg.raw || 0,
+      components: cfg.components || null,
+      element: cfg.element || 'neutral',
       school: cfg.school || 'physical'
     };
     this.projectiles.push(p);
@@ -502,7 +504,7 @@ Arena.define('sim/world',
         });
         if (p.autoAttack && caster) {
           var aa = Dmg.applyDamage(this, {
-            source: caster, target: target, raw: p.raw,
+            source: caster, target: target, raw: p.raw, components:p.components, element:p.element,
             school: p.school === 'magical' ? 'magical' : 'physical',
             abilityId: 'auto_attack', canCrit: true
           });
@@ -709,8 +711,9 @@ Arena.define('sim/world',
     var outOfCombat = (this.time - e.lastCombatAt) > B.OUT_OF_COMBAT_SECONDS;
     var regenPct=e.mods ? (e.mods().resourceRegenPct||0) : 0;
     var rate = res.regen * Math.max(0,1+regenPct) * (outOfCombat ? B.OUT_OF_COMBAT_RESOURCE_MULT : 1);
-    if (e.resource < e.resourceMax) {
-      e.resource = Math.min(e.resourceMax, e.resource + rate * dt);
+    var resourceMax=e.effectiveResourceMax();
+    if (e.resource < resourceMax) {
+      e.resource = Math.min(resourceMax, e.resource + rate * dt);
     }
     var hpMax = e.effectiveHpMax ? e.effectiveHpMax() : e.hpMax;
     if (outOfCombat && e.hp < hpMax) {

@@ -159,7 +159,7 @@ Arena.define('render/anim/locomotion',
 
     var dist = Math.sqrt(dx * dx + dz * dz);
     var rawSpeed = dist / Math.max(dt, 1e-4);
-    var norm = clamp(rawSpeed / Math.max(entity.moveSpeedBase, 0.001), 0, 1.2);
+    var norm = clamp(rawSpeed / Math.max(entity.moveSpeedBase, 0.001), 0, 3.0);
 
     // Aceleración y frenado con ritmos distintos: el cuerpo tarda más en
     // arrancar que en pararse, y esa asimetría es la que da sensación de peso.
@@ -170,7 +170,7 @@ Arena.define('render/anim/locomotion',
        base de la entidad y no sirve para sincronizar la zancada de un clip:
        para eso hace falta el metro por segundo de verdad. Es dato derivado de
        presentación; no toca nada de simulación. */
-    st.metersPerSecond = st.moveSpeed * (entity.moveSpeedBase || 0);
+    st.metersPerSecond = damp(st.metersPerSecond||0, rawSpeed, rate, dt);
     var dSpeed = (st.moveSpeed - prevSpeed) / Math.max(dt, 1e-4);
     st.acceleration = clamp(dSpeed / 8, 0, 1);
     st.deceleration = clamp(-dSpeed / 8, 0, 1);

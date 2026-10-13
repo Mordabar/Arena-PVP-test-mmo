@@ -4,7 +4,7 @@
  * Cadena de resolución de un golpe (documento §7 y §10, paso 6):
  *   0. Estasis / invulnerabilidad ....... daño = 0, evento y salida
  *   1. Amplificación del lanzador ....... damageDealtPct
- *   2. Mitigación por defensa ........... raw × 100/(100+def)
+ *   2. Resistencias elementales → suma → armadura × 0.52 (modelo comunitario)
  *   3. Modificadores del receptor ....... damageTakenPct (con cap)
  *   4. Redirección (Interponer) ......... fracción al protector
  *   5. Enlace protector ................. reducción compartida con el vinculador
@@ -18,6 +18,7 @@ Arena.define('combat/damageSystem',
   var B = Arena.Data.balance;
   var EFF = Arena.Data.effects;
   var Status = Arena.Combat.StatusSystem;
+  var F = Arena.Combat.RegnumFormulas;
 
   var D = {};
 
@@ -69,26 +70,39 @@ Arena.define('combat/damageSystem',
       return result;
     }
 
+    if(p.abilityId==='auto_attack'){
+      var normalDefense=target.mods(),ev=target.evasionChance(),bp=normalDefense.blockPct;
+      var evaded=ev>=.999||(world.settings.rngEnabled&&world.rng.chance(ev));
+      var blocked=normalDefense.blocksDirectHits||bp>=.999||(world.settings.rngEnabled&&world.rng.chance(bp));
+      if(evaded||blocked){result.evaded=evaded;result.blocked=blocked&&!evaded;world.bus.emit(evaded?'DamageEvaded':'DamageBlocked',result);return result;}
+    }
+
     var dmg = result.raw;
+    var amplification=1;
 
     /* 1 — Amplificación del lanzador */
-    if (source) {
+    if (source && !p.redirectedFrom && !p.noSourceReflect) {
       var sm = source.mods();
-      dmg *= (1 + sm.damageDealtPct);
-      dmg += Math.max(0, sm.bonusDamageFlat || 0);
+      amplification=Math.max(0,1+sm.damageDealtPct);
+      dmg *= amplification;
       if (p.canCrit && world.settings.rngEnabled) {
-        var critChance = p.critChance === undefined ? 0.15 : p.critChance;
-        critChance = Math.max(0, Math.min(1, critChance + (sm.critChancePct || 0)));
-        if (world.rng.chance(critChance)) { dmg *= 1.5 * Math.max(0.1, 1 + (sm.critDamagePct || 0)); result.crit = true; }
+        var critChance = p.critChance === undefined ? source.criticalChance() : p.critChance;
+        if (world.rng.chance(critChance)) result.crit = true;
       }
     }
 
     /* 2 — Mitigación por defensa */
-    var defense = 0;
-    if (result.school === 'physical') defense = target.armor();
-    else if (result.school === 'magical') defense = target.resist();
-    if (p.ignoreDefensePct) defense *= (1 - p.ignoreDefensePct);
-    dmg = (result.school === 'pure') ? dmg : B.mitigate(dmg, defense);
+    if(result.school!=='pure'){
+      var components={},resistances={},input=p.components||{},keys=Object.keys(input);
+      if(!keys.length){input={};input[p.element||'neutral']=result.raw;keys=Object.keys(input);}
+      keys.forEach(function(el){var normalized=el==='blunt'?'crushing':el==='ice'?'cold':el==='physical'?'slashing':el==='generic'?'neutral':el;
+        components[normalized]=(components[normalized]||0)+Number(input[el]||0)*amplification;
+        var em=target.mods().elementDamageTakenPct||{},modifier=em[el];
+        if(modifier===undefined)modifier=em[normalized==='cold'?'ice':normalized==='crushing'?'blunt':normalized];
+        resistances[normalized]=1-(1-target.elementResistance(normalized))*(1+(modifier||0));});
+      result.formula=F.mitigate({components:components,resistances:resistances,armor:target.armor(),ignoreDefensePct:p.ignoreDefensePct,critical:result.crit,criticalBonusPct:source?source.mods().critDamagePct:0});
+      dmg=result.formula.damage;
+    }else if(result.crit)dmg*=F.CRITICAL_MULTIPLIER*Math.max(0,1+(source?source.mods().critDamagePct:0));
 
     /* 3 — Modificadores del receptor */
     var tm = target.mods();
@@ -96,7 +110,7 @@ Arena.define('combat/damageSystem',
     dmg *= Math.max(0.01, 1 + (tm.sourceDamageTakenPct || 0));
     if (result.school === 'physical') dmg *= (1 + (tm.physicalDamageTakenPct || 0));
     else if (result.school === 'magical') dmg *= (1 + (tm.magicalDamageTakenPct || 0));
-    if (tm.elementDamageTakenPct && tm.elementDamageTakenPct[result.element] !== undefined) dmg *= (1 + tm.elementDamageTakenPct[result.element]);
+    if (result.school==='pure'&&tm.elementDamageTakenPct && tm.elementDamageTakenPct[result.element] !== undefined) dmg *= (1 + tm.elementDamageTakenPct[result.element]);
     if (p.rangeKind === 'ranged') dmg *= (1 + (tm.rangedDamageTakenPct || 0));
     else if (p.rangeKind === 'melee') dmg *= (1 + (tm.meleeDamageTakenPct || 0));
     result.mitigated = dmg;

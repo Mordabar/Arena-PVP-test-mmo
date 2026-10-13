@@ -179,7 +179,7 @@ Arena.define('ui/combatLog', ['ui/hud'], function (Arena) {
     });
 
     bus.on('AbilityNullified', function (p) {
-      var why = p.reason === 'stasis' ? 'el objetivo está en estasis' : 'Intervención lo anula';
+      var why = {stasis:'el objetivo está en estasis',intervention:'Intervención lo anula',evasion:'el objetivo lo evade',sourcePowerResistance:'el objetivo resiste el poder'}[p.reason]||'efecto anulado';
       self.push('counter', A(p.abilityId) + ' de ' + N(p.casterId) + ' no surte efecto: ' + why,
         [p.casterId, p.targetId]);
     });

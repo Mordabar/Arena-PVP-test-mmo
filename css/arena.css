@@ -1077,6 +1077,16 @@ body.arena-training #brand { display: none; }
 .power-book-close { width:34px;height:34px;border:0;border-radius:9px;background:rgba(255,255,255,.05);color:#e9eeeb;font:300 24px/1 sans-serif;cursor:pointer; }
 .power-book-close:hover { background:rgba(255,255,255,.10); }
 .power-book-body { flex:1; overflow:auto; padding:14px 16px 24px; scrollbar-width:thin; }
+.power-original { display:block;color:#9cacac;font-size:10px;margin:3px 0; }
+.power-rank-controls { display:flex;align-items:center;gap:10px;margin:8px 0; }
+.power-rank-select,.power-passive-toggle { background:#18282d;color:#efdfb9;border:1px solid #4d5b5c;border-radius:5px;padding:4px; }
+.power-passive-toggle[aria-pressed="true"] { border-color:#cab178;color:#f4dfa5; }
+.power-level-details { font-size:10px;overflow:auto;color:#b9cac7; }
+.power-level-details summary { cursor:pointer;padding:4px 0; }
+.power-level-table { border-collapse:collapse;width:100%;margin:5px 0; }
+.power-level-table th,.power-level-table td { padding:4px;border:1px solid #2f4449;text-align:center; }
+.power-level-table td:first-child { text-align:left; }
+.power-level-table .selected-rank { color:#ffdda3;background:#493c262e; }
 .power-discipline { margin:0 0 18px; }
 .power-discipline h3 { margin:0 0 8px; font:700 10px var(--ui-font); letter-spacing:.13em; text-transform:uppercase; color:#c9aa66; }
 .power-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }

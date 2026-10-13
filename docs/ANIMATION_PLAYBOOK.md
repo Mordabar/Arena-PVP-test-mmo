@@ -1,3 +1,21 @@
+# Nota actual · v0.38
+
+El pulido de duelo y las modificaciones actuales se documentan en CAMBIOS_038.md y ANIMATION_MATRIX_038.md. Los apartados siguientes conservan el playbook original v0.37 y sus secciones históricas. No usar capturas heredadas para acreditar v0.38; consultar qa/VERIFICACION_038.md.
+
+# Actualización 0.37 — 9 de octubre de 2026
+
+Este encabezado describe la versión actual. El playbook histórico se conserva debajo como referencia; sus inventarios de 17/13 clips y sus mapeos Slide/CMU ya no representan esta versión.
+
+- UAL1 y UAL2 Standard completos: 43 clips cada uno (A_TPose compartido); RM adicional de escudo y CMU existente. El cuerpo sigue siendo UAL de 65 huesos.
+- DirectPlayer usa token de evento, tiempos autoritativos sin avance adicional, capa disjunta de piernas y congelación de pose.
+- Restaurar la pose previa a restricciones antes del próximo mixer update evita acumulación de IK; no restaurar el bind al cambiar de action.
+- Recuperación, caída/tendido/levantarse, prioridad de control y aterrizaje se seleccionan explícitamente.
+- Arco y locomoción direccional son adaptaciones PROVISIONALES. No hay Bow_* ni clips originales de ocho direcciones en estos packs. Nunca declararlos equivalentes a esos originales.
+- La dirección ausente se cubre con applyDirectionalFeet sobre el rig nativo. applyGreatswordGrip sostiene el agarre secundario; ninguno escribe estado de simulación.
+- LEEME.md contiene instrucciones y límites. animation-lab.html reproduce recursos originales; qa/ conserva evidencia de inspección.
+
+---
+
 # Cómo desarrollar animación en este proyecto — playbook para una IA
 
 > Este documento existe porque el patrón que rompió la animación en este

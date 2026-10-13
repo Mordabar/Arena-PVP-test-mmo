@@ -18,7 +18,7 @@
  * (espejo de lateralidad, poses que no se alcanzan, T-pose intermitente).
  * ========================================================================== */
 import * as THREE from 'three';
-import { createDirectLibrary } from './threeDirectAnim.js?build=v0340-20260820-warrior-facing';
+import { createDirectLibrary } from './threeDirectAnim.js?build=v0390-trainer';
 
 const RIG_PARENT = {
   Hips:null, Spine:'Hips', Chest:'Spine', Neck:'Chest', Head:'Neck',
@@ -361,6 +361,107 @@ export function createCharacterFactory(Arena, scene, opts) {
     lower.updateWorldMatrix(true,true);
   }
 
+  var _legUpAxis=new THREE.Vector3(0,1,0);
+  var _legTarget=new THREE.Vector3(), _legPole=new THREE.Vector3(), _legLocal=new THREE.Vector3(), _legWorldQ=new THREE.Quaternion(), _legParentQ=new THREE.Quaternion(), _legYawQ=new THREE.Quaternion();
+  Character.prototype.applyDirectionalFeet = function(entity,sel){
+    var L=this.handle&&this.handle.loco;
+    var enabled=sel&&(/^(BACKPEDAL|STRAFE|DIAGONAL|TURN)$/.test(sel.state||'')||sel.directionalFeet);
+    this._directionalIKBlend=Math.max(0,Math.min(1,(this._directionalIKBlend||0)+(enabled?1:-1)*this.lastDt*10));
+    if(!enabled||!L||L.airborne)return;
+    var yaw=this.root.rotation.y,sc=this.skinnedRoot.scale.x,sy=Math.sin(yaw),cy=Math.cos(yaw);
+    _legYawQ.setFromAxisAngle(_legUpAxis,yaw);
+    for(var i=0;i<2;i++){
+      var prefix=i===0?'Left':'Right',foot=this.rigBones[prefix+'Foot'],leg=L.legs[i];
+      if(!foot||!leg)continue;
+      _legTarget.set(leg.footPos.x,leg.footPos.y+0.105*sc,leg.footPos.z);
+      if(sel.state==='TURN'){
+        // Replant alternating feet during rotation instead of holding old world anchors.
+        var side=i===0?1:-1,turnPhase=(this.fxTime*3.0+i*.5)%1;
+        _legTarget.set(this.root.position.x+cy*side*.13*sc,this.root.position.y+(.105+Math.max(0,Math.sin(turnPhase*Math.PI*2))*.06)*sc,this.root.position.z-sy*side*.13*sc);
+      }
+      // A lateral shuffle must not send either foot through the other leg.
+      // Keep existing contact/swing targets and cadence, but bound their reach
+      // in character space. This also bounds old anchors after a sharp reversal.
+      _legLocal.copy(_legTarget);this.root.worldToLocal(_legLocal);
+      var nativeSide=i===0?1:-1;
+      _legLocal.x=nativeSide*Math.max(.075*sc,Math.min(.43*sc,nativeSide*_legLocal.x));
+      _legLocal.z=Math.max(-.34*sc,Math.min(.34*sc,_legLocal.z));
+      _legLocal.y=Math.max(.105*sc,Math.min(.30*sc,_legLocal.y));
+      _legTarget.copy(_legLocal);this.root.localToWorld(_legTarget);
+      _legPole.set(_legTarget.x+sy*.75,_legTarget.y+.50,_legTarget.z+cy*.75);
+      this.skinnedRoot.updateMatrixWorld(true);
+      solveTwoBoneIK(this.rigBones[prefix+'UpperLeg'],this.rigBones[prefix+'LowerLeg'],foot,_legTarget,_legPole,this._directionalIKBlend);
+      // Preserve the native ankle basis while leveling the planted sole.
+      _legWorldQ.copy(this.rigBindWorldQuat[prefix+'Foot']).premultiply(_legYawQ);
+      foot.parent.getWorldQuaternion(_legParentQ);
+      _legWorldQ.premultiply(_legParentQ.invert());
+      foot.quaternion.slerp(_legWorldQ,this._directionalIKBlend).normalize();
+    }
+    this.skinnedRoot.updateMatrixWorld(true);
+  };
+
+  // No native Kick is shipped in Standard. This conservative authored front
+  // kick uses native limb lengths and the existing action's authoritative t.
+  // It is an explicit provisional presentation, never a claimed source clip.
+  var _kickLocal=new THREE.Vector3(),_kickPole=new THREE.Vector3(),_kickTarget=new THREE.Vector3();
+  Character.prototype.applyNativeKick=function(entity,sel){
+    if(!sel||!sel.nativeKick)return;
+    var t=Math.max(0,Math.min(1,sel.kickProgress||0)),ph=this.handle.cfg.phases.kick;
+    var impact=ph.impact||.46,recovery=ph.recovery||.62;
+    function smooth(x){x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);}
+    var load=smooth(t/Math.max(.05,impact*.65)),extension=t<impact?smooth((t-impact*.42)/(impact*.58)):1-smooth((t-impact)/Math.max(.08,1-impact));
+    var lift=load*(1-smooth((t-recovery)/(1-recovery)));
+    var sc=this.skinnedRoot.scale.x;
+    _kickLocal.set(-.15*sc,(.105+.47*lift+.25*extension)*sc,(-.04+.68*extension)*sc);
+    _kickTarget.copy(_kickLocal);this.root.localToWorld(_kickTarget);
+    _kickPole.set(-.20*sc,1.15*sc,.48*sc);this.root.localToWorld(_kickPole);
+    solveTwoBoneIK(this.rigBones.RightUpperLeg,this.rigBones.RightLowerLeg,this.rigBones.RightFoot,_kickTarget,_kickPole,.98);
+    _legYawQ.setFromAxisAngle(_legUpAxis,this.root.rotation.y);
+    _eOffset.set(-.70*extension,0,0,'XYZ');_qOffset.setFromEuler(_eOffset);
+    _legWorldQ.copy(this.rigBindWorldQuat.RightFoot).premultiply(_qOffset).premultiply(_legYawQ);
+    this.rigBones.RightFoot.parent.getWorldQuaternion(_legParentQ);
+    _legWorldQ.premultiply(_legParentQ.invert());
+    this.rigBones.RightFoot.quaternion.slerp(_legWorldQ,.95).normalize();
+    // Stable support leg under the centre of mass, not the retargeted CMU hop.
+    _kickTarget.set(.15*sc,.105*sc,-.05*sc);this.root.localToWorld(_kickTarget);
+    _kickPole.set(.18*sc,.72*sc,.40*sc);this.root.localToWorld(_kickPole);
+    solveTwoBoneIK(this.rigBones.LeftUpperLeg,this.rigBones.LeftLowerLeg,this.rigBones.LeftFoot,_kickTarget,_kickPole,.98);
+    this.skinnedRoot.updateMatrixWorld(true);
+  };
+
+  var _castTarget=new THREE.Vector3(),_castPole=new THREE.Vector3();
+  Character.prototype.applyNativeCastGrip=function(entity,sel){
+    if(Arena.Data.archetypeOf(entity.classId)!=='caster'||!sel||!this.handle.intent.combatMode)return;
+    if(!/^(COMBAT_IDLE|CAST_CHARGE|ACTION|WALK|RUN|SPRINT|BACKPEDAL|STRAFE|DIAGONAL|TURN)$/.test(sel.state))return;
+    var casting=sel.state==='CAST_CHARGE',action=sel.state==='ACTION',sc=this.skinnedRoot.scale.x;
+    // Keep the staff hand beside the torso; the free hand performs the source
+    // casting gesture. Previously both hands reached forward with a vertical
+    // staff passing through the knees/chest in the release pose.
+    _castTarget.set(-.29*sc,(1.10+(casting?.08:0))*sc,.16*sc);this.root.localToWorld(_castTarget);
+    _castPole.set(-.54*sc,.98*sc,-.08*sc);this.root.localToWorld(_castPole);
+    solveTwoBoneIK(this.rigBones.RightUpperArm,this.rigBones.RightLowerArm,this.rigBones.RightHand,_castTarget,_castPole,.96);
+    if(casting){
+      var p=sel.castPoseProgress||0;
+      _castTarget.set(.27*sc,(1.26+p*.07)*sc,(.26+p*.09)*sc);this.root.localToWorld(_castTarget);
+      _castPole.set(.50*sc,1.05*sc,.10*sc);this.root.localToWorld(_castPole);
+      solveTwoBoneIK(this.rigBones.LeftUpperArm,this.rigBones.LeftLowerArm,this.rigBones.LeftHand,_castTarget,_castPole,.90);
+    }
+    this.skinnedRoot.updateMatrixWorld(true);
+  };
+
+  var _secondaryGripTarget=new THREE.Vector3(), _secondaryGripPole=new THREE.Vector3();
+  Character.prototype.applyGreatswordGrip=function(entity,sel){
+    if(entity.classId!=='devastador'||!sel||!this.weapons)return;
+    if(!/^(COMBAT_IDLE|ACTION|CAST_CHARGE|WALK|RUN|SPRINT|BACKPEDAL|STRAFE|DIAGONAL|TURN)$/.test(sel.state||''))return;
+    if(!this.handle.intent.combatMode&&sel.state!=='ACTION'&&sel.state!=='CAST_CHARGE')return;
+    if(this.handle.action.family==='cry')return;
+    this.skinnedRoot.updateMatrixWorld(true);
+    _secondaryGripTarget.set(0,-.23,0);this.weapons.greatsword.localToWorld(_secondaryGripTarget);
+    _secondaryGripPole.set(.62,1.05,.22);this.root.localToWorld(_secondaryGripPole);
+    solveTwoBoneIK(this.rigBones.LeftUpperArm,this.rigBones.LeftLowerArm,this.rigBones.LeftHand,_secondaryGripTarget,_secondaryGripPole,.95);
+    this.skinnedRoot.updateMatrixWorld(true);
+  };
+
   Character.prototype.applyArcherBowConstraint = function(entity, sel) {
     if(!this.directUalRig || !sel || Arena.Data.archetypeOf(entity.classId)!=='archer')return;
     var combat=!!(this.handle&&this.handle.intent&&this.handle.intent.combatMode);
@@ -368,8 +469,8 @@ export function createCharacterFactory(Arena, scene, opts) {
     var st=sel.state||'';
     var locomotion=/^(WALK|RUN|SPRINT|BACKPEDAL|STRAFE|DIAGONAL|TURN)$/.test(st);
     var ready=/^(COMBAT_IDLE|ARCHER_COMBAT_IDLE)$/.test(st)||locomotion;
-    var charge=st==='CAST_CHARGE';
-    var action=st==='ACTION';
+    var charge=st==='CAST_CHARGE'&&sel.semanticSlot==='archerAttackCharge';
+    var action=st==='ACTION'&&sel.semanticSlot!=='archerBuffCharge';
     if(!ready&&!charge&&!action)return;
 
     /* Lock the planted combat base across notch/release. v0.32 allowed the
@@ -381,21 +482,20 @@ export function createCharacterFactory(Arena, scene, opts) {
     if(ready&&!locomotion){
       this._archerReadyLower=Object.create(null);
       for(var li=0;li<lowerNames.length;li++){var ln=lowerNames[li],lb=this.rigBones[ln];if(lb)this._archerReadyLower[ln]={p:lb.position.clone(),q:lb.quaternion.clone()};}
-    } else if((charge||action)&&this._archerReadyLower){
+    } else if((charge||action)&&!sel.liveLowerLocomotion&&this._archerReadyLower){
       for(var lj=0;lj<lowerNames.length;lj++){var lnn=lowerNames[lj],bb=this.rigBones[lnn],src=this._archerReadyLower[lnn];if(!bb||!src)continue;bb.position.copy(src.p);bb.quaternion.copy(src.q);}
       this.skinnedRoot.updateMatrixWorld(true);
     }
 
     var phase=Number.isFinite(sel.syncProgress)?Math.max(0,Math.min(1,sel.syncProgress)):0;
-    var draw=ready?0.62:(charge?Math.max(.12,phase):1.0);
+    var draw=ready?0:(Number.isFinite(sel.bowDraw)?sel.bowDraw:0);
     var snap=0;
-    if(action){
-      /* Around authoritative RELEASE the string hand snaps slightly rearward;
-         afterwards it returns to the combat-ready anchor instead of dropping
-         to Idle. The exact release still belongs to simulation. */
-      var d=Math.abs(phase-.56);
-      snap=d<.16?(1-d/.16):0;
-      if(phase>.72)draw=Math.max(.62,1-(phase-.72)/.28*.38);
+    if(action&&phase>=.56){
+      // Fingers recoil behind the cheek at RELEASE, then return to the bow.
+      // String unloads immediately; the hand does not teleport forward with it.
+      var recovery=Math.max(0,Math.min(1,(phase-.56)/.44));
+      draw=1-recovery;
+      snap=Math.sin(recovery*Math.PI)*.65;
     }
 
     /* v0.34 · WORLD-FORWARD BOW BASIS.
@@ -406,11 +506,13 @@ export function createCharacterFactory(Arena, scene, opts) {
        directly from the simulation-owned visual yaw. This makes the final
        right-hand→left-hand aim vector agree with the character's forward
        hemisphere regardless of how the source pose was exported. */
-    _archLeftLocal.set(0.14,1.40,0.49);
+    _archLeftLocal.set(0.10,1.40,0.49);
     _archLeftPoleLocal.set(0.48,1.20,0.20);
-    _archRightStart.set(-0.08,1.40,0.24);
-    _archRightDraw.set(-0.16,1.50,0.02);
-    _archRightSnap.set(-0.30,1.48,-0.02);
+    // Grip, nock and cheek share the same aim plane. A previous 30 cm lateral
+    // offset made the string imply a shot ~33 degrees beside the actual rival.
+    _archRightStart.set(0.10,1.40,0.44);
+    _archRightDraw.set(0.10,1.47,0.02);
+    _archRightSnap.set(0.04,1.47,-0.02);
     _archRightLocal.copy(_archRightStart).lerp(_archRightDraw,draw).lerp(_archRightSnap,snap*0.72);
     _archRightPoleLocal.set(-0.58,1.46,-0.02);
 
@@ -429,7 +531,7 @@ export function createCharacterFactory(Arena, scene, opts) {
     bowWorld(_archLeftPoleWorld,_archLeftPoleLocal);
     bowWorld(_archRightWorld,_archRightLocal);
     bowWorld(_archRightPoleWorld,_archRightPoleLocal);
-    var w=locomotion?0.78:(ready?0.90:0.96);
+    var w=locomotion?0.97:(ready?0.98:0.995);
     solveTwoBoneIK(this.rigBones.LeftUpperArm,this.rigBones.LeftLowerArm,this.rigBones.LeftHand,_archLeftWorld,_archLeftPoleWorld,w);
     solveTwoBoneIK(this.rigBones.RightUpperArm,this.rigBones.RightLowerArm,this.rigBones.RightHand,_archRightWorld,_archRightPoleWorld,w);
     this.skinnedRoot.updateMatrixWorld(true);
@@ -458,7 +560,7 @@ export function createCharacterFactory(Arena, scene, opts) {
     var gs = this.guardianShield;
     if (!gs || !gs.node || !gs.node.parent || entity.classId !== 'guardian') return;
     var st = sel && sel.state || '';
-    var explicit = !!(sel && st === 'ACTION' && (sel.family === 'shield' || sel.family === 'block'));
+    var explicit = !!(sel && (st==='BLOCK' || (st === 'ACTION' && (sel.family === 'shield' || sel.family === 'block'))));
     /* v0.35 · Slide_Start/Loop/Exit force the arm through a get-up motion the
        standing "readable defensive orientation" was never authored for: the
        shield's POSITION follows the forearm near the chest while this
@@ -467,7 +569,10 @@ export function createCharacterFactory(Arena, scene, opts) {
        side. Ground poses are not a stance the tower shield needs to read
        from, so the constraint steps out of the way there too — same
        principle already applied to explicit shield/block actions. */
-    if (/^KNOCKDOWN/.test(st)) return;
+    if (/^KNOCKDOWN/.test(st) || st === 'DEATH') {
+      gs.node.rotation.set(0,0,0,'XYZ');
+      return;
+    }
     var hold = explicit ? 0.70 : 0.90;
 
     // Desired broad face: vertical, character-forward, with a subtle inward
@@ -482,6 +587,7 @@ export function createCharacterFactory(Arena, scene, opts) {
 
   Character.prototype.applyNativeWeaponConstraint = function (entity, sel, kind) {
     if (!this.directUalRig || !this.weapons || !kind) return;
+    if (sel && (sel.state === 'DEATH' || /^KNOCKDOWN/.test(sel.state))) return;
     var w=this.weapons[kind];
     if (!w || !w.visible || !w.parent) return;
     var arche=Arena.Data.archetypeOf(entity.classId);
@@ -516,7 +622,19 @@ export function createCharacterFactory(Arena, scene, opts) {
        sólo se elige el clip que lo representa. */
     var sel = (this.player && SM)
       ? SM.select(this.handle, arche, null) : null;
+    if(sel&&sel.freezeCurrent){this.root.position.set(pos.x,pos.y,pos.z);return;}
+    if(this._preConstraintPose){
+      for(var pi=0;pi<this._preConstraintPose.length;pi++){
+        var pc=this._preConstraintPose[pi];pc.bone.position.copy(pc.p);pc.bone.quaternion.copy(pc.q);pc.bone.scale.copy(pc.s);
+      }
+    }
 
+
+    var recovery=this._nativeRecovery;
+    if(sel&&sel.normalStage==='RECOVERY')this._nativeRecovery={sel:Object.assign({},sel),token:sel.eventToken};
+    else if(recovery&&sel&&/^(IDLE|COMBAT_IDLE)$/.test(sel.state)&&this.player&&this.player.accion&&this.player.accion.time<this.player.accion.getClip().duration-1e-4){
+      sel=Object.assign({},recovery.sel);
+    }else this._nativeRecovery=null;
     /* v0.32 · transición NORMAL/COMBAT. Caster usa literalmente Spell_Simple
        Enter/Exit. Melee cambia por crossfade entre Idle_Loop y Sword_Idle /
        Idle_Shield_Loop; no se inventa Sword_Enter/Exit. */
@@ -543,15 +661,16 @@ export function createCharacterFactory(Arena, scene, opts) {
       this._lastTargetMode = combatModeVisual;
     }
 
-    if (this._modeTransition && !busyForMode) {
+    if (sel && /^(DEATH|STUN|STASIS|KNOCKDOWN)/.test(sel.state)) this._modeTransition=null;
+    if (this._modeTransition && !busyForMode && sel && !/^(DEATH|STUN|STASIS|KNOCKDOWN)/.test(sel.state)) {
       var mt=this._modeTransition;
       mt.elapsed=Math.min(mt.duration,mt.elapsed+this.lastDt);
       var mtAlpha=mt.duration>0?Math.max(0,Math.min(1,mt.elapsed/mt.duration)):1;
       if (mt.kind==='caster') {
         sel = {
           state:combatModeVisual?'CASTER_ENTER':'CASTER_EXIT',
-          clip:'Idle_Loop', mask:'lower', loop:false, fade:0.07,
-          directUpperBase:mt.clip, rate:1, procedural:false,
+          clip:mt.clip, mask:'upper', loop:false, fade:0.07,
+          directLowerBase:'Idle_Loop', directLowerBaseProgress:0.5, rate:1, procedural:false,
           source:'HYBRID_CC0_NATIVE', qualityStatus:'FINAL', requestedClip:mt.clip,
           syncAuthoritative:true, syncProgress:mt.start+(mt.end-mt.start)*mtAlpha
         };
@@ -630,7 +749,7 @@ export function createCharacterFactory(Arena, scene, opts) {
     /* La gramática propia del proyecto sigue viva y es la que cubre lo que UAL2
        no trae: retroceso, strafe, giro, casteo y arco. Se apaga sólo lo que el
        clip horneado ya está haciendo, para que no haya doble animación. */
-    var mandaPiernas = conClip && (sel.mask === 'lower' || sel.mask === 'full' || !!sel.directLowerBase);
+    var mandaPiernas = conClip && (sel.mask === 'lower' || sel.mask === 'full' || !!sel.directLowerBase || !!sel.liveLowerLocomotion);
     var mandaTodo = conClip && sel.mask === 'full';
     /* v0.20: los clips UAL2 de espada se reproducen full-body porque el audit
        visual demostró que su cadena pie→cadera→torso es muy superior al recorte
@@ -671,7 +790,7 @@ export function createCharacterFactory(Arena, scene, opts) {
     /* Native UAL clips already contain their full body lean. Residual spring
        offsets from the procedural contract must not double-tilt a direct clip. */
     var directOwnsRootPose = this.directUalRig && conClip;
-    var directOwnsFullPose = directOwnsRootPose && sel && (sel.mask === 'full' || !!sel.directUpperBase || !!sel.directLowerBase);
+    var directOwnsFullPose = directOwnsRootPose && sel && (sel.mask === 'full' || !!sel.directUpperBase || !!sel.directLowerBase || !!sel.liveLowerLocomotion);
     this.root.rotation.set(directOwnsRootPose ? 0 : a.rootPitch, yaw, directOwnsRootPose ? 0 : a.rootRoll);
     this.skinnedRoot.scale.setScalar(modelScale);
 
@@ -689,7 +808,7 @@ export function createCharacterFactory(Arena, scene, opts) {
     var previousDirectAction = this.player ? this.player.actual : null;
     if (this.player) this.player.play(sel, this.lastDt);
     var directActionChanged = this.player ? previousDirectAction !== this.player.actual : false;
-    var mustRestoreBind = !this.directUalRig || !conClip || directActionChanged;
+    var mustRestoreBind = !this.directUalRig || !conClip;
 
     if (mustRestoreBind) {
       if (this.directUalRig && this.directBindAll) {
@@ -722,6 +841,23 @@ export function createCharacterFactory(Arena, scene, opts) {
     }
 
 
+    if(this.directUalRig && conClip){
+      if(!this._preConstraintPose)this._preConstraintPose=this.directBindAll.map(function(b){return {bone:b.bone,p:b.bone.position.clone(),q:b.bone.quaternion.clone(),s:b.bone.scale.clone()};});
+      else for(var ci=0;ci<this._preConstraintPose.length;ci++){
+        var cp=this._preConstraintPose[ci];cp.p.copy(cp.bone.position);cp.q.copy(cp.bone.quaternion);cp.s.copy(cp.bone.scale);
+      }
+    }
+    if(this.directUalRig && conClip){
+      this.applyDirectionalFeet(entity,sel);this.applyNativeKick(entity,sel);this.applyGreatswordGrip(entity,sel);this.applyNativeCastGrip(entity,sel);
+      var hurt=this.handle.hurt || 0;
+      if(hurt > 0 && entity.alive && !this.handle.intent.crowdControl && sel.state !== 'HIT' &&
+         (this.handle.casting || (this.handle.action && this.handle.action.family))) {
+        // Breve reacción local sobre el clip en curso: no reinicia ni cancela el casteo.
+        var pulse=Math.sin((1-hurt)*Math.PI)*0.07;
+        _eOffset.set(pulse,0,pulse*0.45,'XYZ');_qOffset.setFromEuler(_eOffset);
+        this.rigBones.Chest.quaternion.multiply(_qOffset).normalize();
+      }
+    }
     if (this.directUalRig && conClip && arche === 'archer') {
       this.applyArcherBowConstraint(entity, sel);
     }
@@ -753,27 +889,30 @@ export function createCharacterFactory(Arena, scene, opts) {
     if (this.weapons.shield) this.weapons.shield.visible = isGuardian;
     var w=this.weapons[effectiveKind];
     if(w){
-      if (this.directUalRig && conClip && (effectiveKind==='sword'||effectiveKind==='greatsword')) w.rotation.set(0,0,0,'XYZ');
+      if (this.directUalRig && sel && (sel.state==='DEATH' || /^KNOCKDOWN/.test(sel.state))) w.rotation.set(0,0,0,'XYZ');
+      else if (this.directUalRig && conClip && (effectiveKind==='sword'||effectiveKind==='greatsword')) w.rotation.set(0,0,0,'XYZ');
       else w.rotation.set(a.weapon.pitch,a.weapon.yaw,a.weapon.roll,'XYZ');
       if(effectiveKind==='staff') w.rotation.z += -0.05;
       if((effectiveKind==='sword'||effectiveKind==='greatsword') && !(this.directUalRig && conClip)) w.rotation.z += -0.08;
-      if(effectiveKind==='bow' && w.userData.string){
-        /* Upload the tiny bow-string buffer only when draw actually changes.
-           Combat-ready archer stance keeps draw=0, so idle/run no longer force
-           a GPU buffer update every frame on low-end laptops. */
-        var nextDraw=(sel && Number.isFinite(sel.bowDraw)) ? sel.bowDraw : (a.weapon.draw||0);
-        if (!Number.isFinite(w.userData.lastDraw) || Math.abs(nextDraw-w.userData.lastDraw)>0.0001) {
-          var pa=w.userData.string.geometry.attributes.position.array;
-          pa[3]=0; pa[4]=0; pa[5]=-0.30*nextDraw;
-          w.userData.string.geometry.attributes.position.needsUpdate=true;
-          w.userData.lastDraw=nextDraw;
-        }
-      }
     }
     this.skinnedRoot.updateMatrixWorld(true);
     if (this.directUalRig && (effectiveKind==='staff' || effectiveKind==='bow')) {
       this.applyNativeWeaponConstraint(entity, sel, effectiveKind);
       this.skinnedRoot.updateMatrixWorld(true);
+    }
+    var bow=this.weapons.bow;
+    if(bow&&bow.visible&&bow.userData.string){
+      var nextDraw=(sel&&Number.isFinite(sel.bowDraw))?sel.bowDraw:(a.weapon.draw||0);
+      // Convert after the final bow socket rotation; at RELEASE the string
+      // snaps home immediately while the draw hand continues its follow-through.
+      _archRightWorld.set(0,0,0);
+      if(nextDraw>.02){this.rigBones.RightHand.getWorldPosition(_archRightWorld);bow.worldToLocal(_archRightWorld);}
+      var pa=bow.userData.string.geometry.attributes.position.array;
+      if(Math.abs(pa[3]-_archRightWorld.x)+Math.abs(pa[4]-_archRightWorld.y)+Math.abs(pa[5]-_archRightWorld.z)>.0001){
+        pa[3]=_archRightWorld.x;pa[4]=_archRightWorld.y;pa[5]=_archRightWorld.z;
+        bow.userData.string.geometry.attributes.position.needsUpdate=true;
+      }
+      bow.userData.lastDraw=nextDraw;
     }
     if (this.directUalRig && entity.classId === 'guardian' && this.guardianShield) {
       this.applyGuardianShieldConstraint(entity, sel);
@@ -822,10 +961,10 @@ export function createCharacterFactory(Arena, scene, opts) {
     if (this.magicLight) {
       var castGlow = (this.handle && this.handle.cast) ? this.handle.cast : 0;
       var actionGlow = (this.handle && this.handle.action && this.handle.action.weight) ? this.handle.action.weight : 0;
-      var glow = Math.max(castGlow, actionGlow * 0.72);
+      var glow = entity.alive && !(this.handle && this.handle.deadTime > 0) ? Math.max(castGlow, actionGlow * 0.72) : 0;
       var fxPos = { x: pos.x, y: pos.y + 1.35, z: pos.z };
       this.magicLight.position.set(fxPos.x, fxPos.y, fxPos.z);
-      this.magicLight.intensity = 0.22 + glow * 1.9;
+      this.magicLight.intensity = entity.alive && !(this.handle && this.handle.deadTime > 0) ? 0.22 + glow * 1.9 : 0;
       this.magicLight.color.setRGB(palette.accent[0], palette.accent[1], palette.accent[2]);
       if (this.castFx) {
         this.castFx.time = this.fxTime;

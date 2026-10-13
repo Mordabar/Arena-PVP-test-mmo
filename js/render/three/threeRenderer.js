@@ -17,9 +17,9 @@
  * su propia sensación y ésa es justo la que no queremos cambiar.
  * ========================================================================== */
 import * as THREE from 'three';
-import { createEnvironment } from './threeEnvironment.js?build=v0340-20260820-warrior-facing';
-import { createCharacterFactory } from './threeCharacter.js?build=v0340-20260820-warrior-facing';
-import { createVfxRenderer, createSelectionRings, createProjectileRenderer } from './threeVfx.js?build=v0340-20260820-warrior-facing';
+import { createEnvironment } from './threeEnvironment.js?build=v0390-trainer';
+import { createCharacterFactory } from './threeCharacter.js?build=v0390-trainer';
+import { createVfxRenderer, createSelectionRings, createProjectileRenderer } from './threeVfx.js?build=v0390-trainer';
 
 export function createThreeRenderer(Arena, canvas, world, opts) {
   opts = opts || {};

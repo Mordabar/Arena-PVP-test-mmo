@@ -1,0 +1,2446 @@
+{
+  "sourceVersion": "1.35.19",
+  "entries": [
+    {
+      "trainerIndex": 1,
+      "key": "Short Bows|Dual shot",
+      "name": "Disparo gemelo",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 2,
+      "key": "Short Bows|Rapid shot",
+      "name": "Cadencia vertiginosa",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 3,
+      "key": "Short Bows|Grounding arrow",
+      "name": "Flecha del cepo",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 4,
+      "key": "Short Bows|Lightness",
+      "name": "Paso de pluma",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 5,
+      "key": "Short Bows|Meditation",
+      "name": "Meditación del vigía",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 6,
+      "key": "Short Bows|Adaptability",
+      "name": "Instinto versátil",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 7,
+      "key": "Short Bows|Tear apart",
+      "name": "Herida abierta",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 8,
+      "key": "Short Bows|Duelist",
+      "name": "Maestro del duelo",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 9,
+      "key": "Short Bows|Hinder",
+      "name": "Lastre del cazador",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 10,
+      "key": "Short Bows|Repetition shot",
+      "name": "Salva de repetición",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 11,
+      "key": "Long Bows|Shield piercing",
+      "name": "Saeta rompeescudos",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 12,
+      "key": "Long Bows|Parabolic shot",
+      "name": "Arco parabólico",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 13,
+      "key": "Long Bows|Maneuver",
+      "name": "Maniobra del viento",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 14,
+      "key": "Long Bows|Eagle's eye",
+      "name": "Ojo del águila real",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 15,
+      "key": "Long Bows|Point shot",
+      "name": "Disparo certero",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 16,
+      "key": "Long Bows|Omnipresent",
+      "name": "Vigía omnipresente",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 17,
+      "key": "Long Bows|Break apart",
+      "name": "Impacto desgarrador",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 18,
+      "key": "Long Bows|Specialist",
+      "name": "Especialista del arco",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 19,
+      "key": "Long Bows|Obfuscate",
+      "name": "Velo de confusión",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 20,
+      "key": "Long Bows|Projectile rain",
+      "name": "Lluvia de saetas",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 21,
+      "key": "Tricks|Ambush",
+      "name": "Emboscada del acechador",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 22,
+      "key": "Tricks|Sudden strike",
+      "name": "Golpe de sorpresa",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 23,
+      "key": "Tricks|Stunning fist",
+      "name": "Puño del aturdimiento",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 24,
+      "key": "Tricks|Retaliation",
+      "name": "Eco de represalia",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 25,
+      "key": "Tricks|Sticky touch",
+      "name": "Contacto viscoso",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 26,
+      "key": "Tricks|Dirty fighting",
+      "name": "Combate tramposo",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 27,
+      "key": "Tricks|Finesse",
+      "name": "Fineza del tirador",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 28,
+      "key": "Tricks|Sentinel",
+      "name": "Centinela nocturno",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 29,
+      "key": "Tricks|Distracting shot",
+      "name": "Flecha de distracción",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 30,
+      "key": "Tricks|Caltrop's arrow",
+      "name": "Saeta de abrojos",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 31,
+      "key": "Evasion|Dodge",
+      "name": "Esquiva fugaz",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 32,
+      "key": "Evasion|Mobility",
+      "name": "Paso veloz",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 33,
+      "key": "Evasion|Evasive tactics",
+      "name": "Arte de la evasión",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 34,
+      "key": "Evasion|Cat reflexes",
+      "name": "Reflejo de pantera",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 35,
+      "key": "Evasion|Acrobatic",
+      "name": "Acrobacia del viento",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 36,
+      "key": "Evasion|Spell elude",
+      "name": "Fuga de hechizos",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 37,
+      "key": "Evasion|Escapist",
+      "name": "Escapista de sombras",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 38,
+      "key": "Evasion|Wits",
+      "name": "Ingenio alerta",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 39,
+      "key": "Evasion|Low profile",
+      "name": "Silueta discreta",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 40,
+      "key": "Evasion|Son of the wind",
+      "name": "Heredero del vendaval",
+      "classes": [
+        "centinela",
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 41,
+      "key": "Scouting|Ensnaring arrow",
+      "name": "Flecha de zarzas",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 42,
+      "key": "Scouting|Death sentence",
+      "name": "Sentencia del acechador",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 43,
+      "key": "Scouting|Enemy surveillance",
+      "name": "Vigilia enemiga",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 44,
+      "key": "Scouting|Wild spirit",
+      "name": "Espíritu indómito",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 45,
+      "key": "Scouting|Camouflage",
+      "name": "Manto de camuflaje",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 46,
+      "key": "Scouting|Inherited Lightness",
+      "name": "Ligereza ancestral",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 47,
+      "key": "Scouting|Cold blood",
+      "name": "Instinto de sangre fría",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 48,
+      "key": "Scouting|Reveal",
+      "name": "Revelación del rastreador",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 49,
+      "key": "Scouting|Confuse",
+      "name": "Desconcierto",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 50,
+      "key": "Scouting|Stalker surroundings",
+      "name": "Territorio del acechador",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 51,
+      "key": "Pets|Natural Dominance",
+      "name": "Pacto de la naturaleza",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 52,
+      "key": "Pets|Heal Pet",
+      "name": "Caricia revitalizante",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 53,
+      "key": "Pets|Wild Defense",
+      "name": "Guardia de la bestia",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 54,
+      "key": "Pets|Prominent Sight",
+      "name": "Mirada del depredador",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 55,
+      "key": "Pets|Training",
+      "name": "Disciplina del vínculo",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 56,
+      "key": "Pets|Revive Pet",
+      "name": "Retorno del compañero",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 57,
+      "key": "Pets|Bestial wrath",
+      "name": "Ira del colmillo",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 58,
+      "key": "Pets|Natural armor",
+      "name": "Coraza de corteza",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 59,
+      "key": "Pets|Nature's Fury",
+      "name": "Furia del bosque",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 60,
+      "key": "Pets|Skin of the Beast",
+      "name": "Piel del depredador",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 62,
+      "key": "Hunter WM|War Council",
+      "name": "Consejo del acechador",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 64,
+      "key": "Hunter WM|Horn of the Wind",
+      "name": "Cuerno del vendaval",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 66,
+      "key": "Hunter WM|Warmaster's Might",
+      "name": "Maestría del rastreador",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 68,
+      "key": "Hunter WM|Head of the Pack",
+      "name": "Líder de la manada",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 70,
+      "key": "Hunter WM|Warmaster Blood",
+      "name": "Sangre del explorador",
+      "classes": [
+        "rastreador"
+      ]
+    },
+    {
+      "trainerIndex": 71,
+      "key": "Arrow Mastery|Recharged arrows",
+      "name": "Saetas sobrecargadas",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 72,
+      "key": "Arrow Mastery|Winter stroke",
+      "name": "Oleada de invierno",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 73,
+      "key": "Arrow Mastery|Burst of wind",
+      "name": "Ráfaga del vendaval",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 74,
+      "key": "Arrow Mastery|Serpent bite",
+      "name": "Colmillo de serpiente",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 75,
+      "key": "Arrow Mastery|Ignus scorch",
+      "name": "Quemadura de Ignus",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 76,
+      "key": "Arrow Mastery|Ethereal arrow",
+      "name": "Saeta del éter",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 77,
+      "key": "Arrow Mastery|Needle blast",
+      "name": "Estallido de agujas",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 78,
+      "key": "Arrow Mastery|Arcana strike",
+      "name": "Proyectil astral",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 79,
+      "key": "Arrow Mastery|Fire rain",
+      "name": "Diluvio de brasas",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 80,
+      "key": "Arrow Mastery|Lightning arrow",
+      "name": "Flecha de la tempestad",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 81,
+      "key": "Aiming Mastery|Dead eye",
+      "name": "Mirada mortífera",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 82,
+      "key": "Aiming Mastery|Focus",
+      "name": "Foco del tirador",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 83,
+      "key": "Aiming Mastery|Skin piercer",
+      "name": "Saeta perforante",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 84,
+      "key": "Aiming Mastery|Foresight",
+      "name": "Visión anticipada",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 85,
+      "key": "Aiming Mastery|Cyclops curse",
+      "name": "Maleficio del cíclope",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 86,
+      "key": "Aiming Mastery|Lethal strike",
+      "name": "Impacto letal",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 87,
+      "key": "Aiming Mastery|Strategic position",
+      "name": "Bastión estratégico",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 88,
+      "key": "Aiming Mastery|Trained eye",
+      "name": "Ojo experto",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 89,
+      "key": "Aiming Mastery|Seeking strike",
+      "name": "Disparo rastreador",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 90,
+      "key": "Aiming Mastery|Hawk's gaze",
+      "name": "Mirada del halcón real",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 92,
+      "key": "Marksman WM|War Council",
+      "name": "Consejo del tirador",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 94,
+      "key": "Marksman WM|Fire Arrow",
+      "name": "Saeta de la hoguera",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 96,
+      "key": "Marksman WM|Warmaster's Might",
+      "name": "Maestría del centinela",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 98,
+      "key": "Marksman WM|Killer Instinct",
+      "name": "Instinto del ejecutor",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 100,
+      "key": "Marksman WM|Warmaster Blood",
+      "name": "Sangre del tirador",
+      "classes": [
+        "centinela"
+      ]
+    },
+    {
+      "trainerIndex": 101,
+      "key": "Mental|Arcane missile",
+      "name": "Misil de la mente",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 102,
+      "key": "Mental|Beetle swarm",
+      "name": "Enjambre voraz",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 103,
+      "key": "Mental|Blaze",
+      "name": "Llamarada psíquica",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 104,
+      "key": "Mental|Mind push",
+      "name": "Repulsión mental",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 105,
+      "key": "Mental|Pricking ivy",
+      "name": "Hiedra del tormento",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 106,
+      "key": "Mental|Will domain",
+      "name": "Dominio psíquico",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 107,
+      "key": "Mental|Silence",
+      "name": "Sello del silencio",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 108,
+      "key": "Mental|Splinter wall",
+      "name": "Muralla de espinas",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 109,
+      "key": "Mental|Time master",
+      "name": "Señor del instante",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 110,
+      "key": "Mental|Sultar's devouring mass",
+      "name": "Masa de la vorágine",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 111,
+      "key": "Mana Control|Energy barrier",
+      "name": "Barrera del éter",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 112,
+      "key": "Mana Control|Mana burn",
+      "name": "Combustión de maná",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 113,
+      "key": "Mana Control|Synergy bond",
+      "name": "Lazo sinérgico",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 114,
+      "key": "Mana Control|Dragon's blood",
+      "name": "Sangre dracónica",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 115,
+      "key": "Mana Control|Energy borrow",
+      "name": "Préstamo del éter",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 116,
+      "key": "Mana Control|Ambitious sacrifice",
+      "name": "Sacrificio del ambicioso",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 117,
+      "key": "Mana Control|Arcane devotion",
+      "name": "Devoción astral",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 118,
+      "key": "Mana Control|Mana pool",
+      "name": "Reserva de maná",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 119,
+      "key": "Mana Control|Mana communion",
+      "name": "Comunión del éter",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 120,
+      "key": "Mana Control|Mana pylon",
+      "name": "Obelisco de maná",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 121,
+      "key": "Staff Mastery|Fire magnification",
+      "name": "Bastón de las brasas",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 122,
+      "key": "Staff Mastery|Arcane acceleration",
+      "name": "Aceleración astral",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 123,
+      "key": "Staff Mastery|Arcane projection",
+      "name": "Proyección del éter",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 124,
+      "key": "Staff Mastery|Combat magic",
+      "name": "Arte del bastón",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 125,
+      "key": "Staff Mastery|Static field",
+      "name": "Campo de estática",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 126,
+      "key": "Staff Mastery|Ice magnification",
+      "name": "Bastón de escarcha",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 127,
+      "key": "Staff Mastery|Protection dome",
+      "name": "Cúpula del guardián",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 128,
+      "key": "Staff Mastery|Metabolic control",
+      "name": "Control del pulso",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 129,
+      "key": "Staff Mastery|Lightning magnification",
+      "name": "Bastón de la tormenta",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 130,
+      "key": "Staff Mastery|Evendim's fury",
+      "name": "Furia del firmamento",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 131,
+      "key": "Enchantments|Curse",
+      "name": "Maleficio de ruina",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 132,
+      "key": "Enchantments|Feline dexterity",
+      "name": "Agilidad de pantera",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 133,
+      "key": "Enchantments|Blindness",
+      "name": "Velo de ceguera",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 134,
+      "key": "Enchantments|Bless",
+      "name": "Bendición del alba",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 135,
+      "key": "Enchantments|Bear strength",
+      "name": "Vigor del oso",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 136,
+      "key": "Enchantments|Bless weapon",
+      "name": "Arma consagrada",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 137,
+      "key": "Enchantments|Dispel magic",
+      "name": "Disipación astral",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 138,
+      "key": "Enchantments|Fox wits",
+      "name": "Ingenio del zorro",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 139,
+      "key": "Enchantments|Clumsiness",
+      "name": "Lastre de torpeza",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 140,
+      "key": "Enchantments|Mass dispel magic",
+      "name": "Purga de encantamientos",
+      "classes": [
+        "arcanista",
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 141,
+      "key": "Life|Heal ally",
+      "name": "Alivio del compañero",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 142,
+      "key": "Life|Heal self",
+      "name": "Aliento vital",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 143,
+      "key": "Life|Resurrect",
+      "name": "Retorno del alma",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 144,
+      "key": "Life|Regenerate ally",
+      "name": "Renuevo fraterno",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 145,
+      "key": "Life|Regenerate self",
+      "name": "Renuevo interior",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 146,
+      "key": "Life|Divine intervention",
+      "name": "Mano de la providencia",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 147,
+      "key": "Life|Life savior",
+      "name": "Custodio de la vida",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 148,
+      "key": "Life|Greater regeneration",
+      "name": "Flujo de renovación",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 149,
+      "key": "Life|Greater healing",
+      "name": "Oleada de sanación",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 150,
+      "key": "Life|Mass resurrection",
+      "name": "Retorno de los caídos",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 151,
+      "key": "Summon|Summon imps",
+      "name": "Círculo de diablillos",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 152,
+      "key": "Summon|Extraplanar bond",
+      "name": "Vínculo del otro plano",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 153,
+      "key": "Summon|Summon demon",
+      "name": "Heraldo demoníaco",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 154,
+      "key": "Summon|Material bond",
+      "name": "Vínculo de materia",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 155,
+      "key": "Summon|Summon zombies",
+      "name": "Legión de los marchitos",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 156,
+      "key": "Summon|Demonic rage",
+      "name": "Rabia del abismo",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 157,
+      "key": "Summon|Summon golem",
+      "name": "Guardián de piedra",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 158,
+      "key": "Summon|Magical armor",
+      "name": "Coraza del invocado",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 159,
+      "key": "Summon|Blood drinker",
+      "name": "Sed del invocado",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 160,
+      "key": "Summon|Summon lich",
+      "name": "Señor del sepulcro",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 161,
+      "key": "Sorcery|Force armor",
+      "name": "Coraza del éter",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 162,
+      "key": "Sorcery|Shifting silhouette",
+      "name": "Figura cambiante",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 163,
+      "key": "Sorcery|Friendly shielding",
+      "name": "Escudo fraterno",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 164,
+      "key": "Sorcery|Mind blank",
+      "name": "Mente vacía",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 165,
+      "key": "Sorcery|Karma mirror",
+      "name": "Espejo del destino",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 166,
+      "key": "Sorcery|Magic barrier",
+      "name": "Barrera de sortilegios",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 167,
+      "key": "Sorcery|Material wall",
+      "name": "Muralla corpórea",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 168,
+      "key": "Sorcery|Sanctuary",
+      "name": "Refugio sagrado",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 169,
+      "key": "Sorcery|Insightful",
+      "name": "Visión interior",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 170,
+      "key": "Sorcery|Steel skin",
+      "name": "Dermis de acero",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 172,
+      "key": "Conjurer WM|War Council",
+      "name": "Consejo de la vida",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 174,
+      "key": "Conjurer WM|Defensive Portal",
+      "name": "Umbral del refugio",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 176,
+      "key": "Conjurer WM|Warmaster's Might",
+      "name": "Maestría del vinculador",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 178,
+      "key": "Conjurer WM|Divine Protection",
+      "name": "Amparo de la providencia",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 180,
+      "key": "Conjurer WM|Warmaster Blood",
+      "name": "Sangre del sanador",
+      "classes": [
+        "vinculador"
+      ]
+    },
+    {
+      "trainerIndex": 181,
+      "key": "Arcania|Stalagmite",
+      "name": "Aguja de piedra",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 182,
+      "key": "Arcania|Slow",
+      "name": "Lastre temporal",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 183,
+      "key": "Arcania|Petrify hands",
+      "name": "Manos de granito",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 184,
+      "key": "Arcania|Laziness",
+      "name": "Sopor arcano",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 185,
+      "key": "Arcania|Meteor",
+      "name": "Meteorito del caos",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 186,
+      "key": "Arcania|Wind wall",
+      "name": "Muralla del vendaval",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 187,
+      "key": "Arcania|Crystal blast",
+      "name": "Fragmentación cristalina",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 188,
+      "key": "Arcania|Fragility",
+      "name": "Marca de fragilidad",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 189,
+      "key": "Arcania|Golem fist",
+      "name": "Puño del titán",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 190,
+      "key": "Arcania|Sultar's Terror",
+      "name": "Terror del vacío",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 191,
+      "key": "Necromancy|Vampirism",
+      "name": "Mordisco vampírico",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 192,
+      "key": "Necromancy|Darkness",
+      "name": "Manto de oscuridad",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 193,
+      "key": "Necromancy|Infuriate",
+      "name": "Ira impuesta",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 194,
+      "key": "Necromancy|Vitality absorption",
+      "name": "Sifón de vitalidad",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 195,
+      "key": "Necromancy|Sadistic guards",
+      "name": "Centinelas del tormento",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 196,
+      "key": "Necromancy|Sadistic servants",
+      "name": "Siervos del dolor",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 197,
+      "key": "Necromancy|Soulkeeper",
+      "name": "Custodia de almas",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 198,
+      "key": "Necromancy|Cremation",
+      "name": "Pira de cenizas",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 199,
+      "key": "Necromancy|Possess summoning",
+      "name": "Dominio del invocado",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 200,
+      "key": "Necromancy|Master of doom",
+      "name": "Señor de la perdición",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 201,
+      "key": "Elements|Fire ball",
+      "name": "Orbe de la hoguera",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 202,
+      "key": "Elements|Ice blast",
+      "name": "Estallido glacial",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 203,
+      "key": "Elements|Lightning",
+      "name": "Rayo de tormenta",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 204,
+      "key": "Elements|Elemental conjunction",
+      "name": "Convergencia elemental",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 205,
+      "key": "Elements|Freeze",
+      "name": "Prisión de escarcha",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 206,
+      "key": "Elements|Frozen storm",
+      "name": "Ventisca despiadada",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 207,
+      "key": "Elements|Element exposure",
+      "name": "Marca de los elementos",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 208,
+      "key": "Elements|Magma blast",
+      "name": "Erupción de magma",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 209,
+      "key": "Elements|Twister",
+      "name": "Torbellino errante",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 210,
+      "key": "Elements|Summon lightning",
+      "name": "Descarga celestial",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 212,
+      "key": "Warlock WM|War Council",
+      "name": "Consejo de la ruina",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 214,
+      "key": "Warlock WM|Offensive Portal",
+      "name": "Umbral del asalto",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 216,
+      "key": "Warlock WM|Warmaster's Might",
+      "name": "Maestría del arcanista",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 218,
+      "key": "Warlock WM|Mass Pricking Ivy",
+      "name": "Jardín de espinas",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 220,
+      "key": "Warlock WM|Warmaster Blood",
+      "name": "Sangre del hechicero",
+      "classes": [
+        "arcanista"
+      ]
+    },
+    {
+      "trainerIndex": 221,
+      "key": "Slashing Weapons|Charge",
+      "name": "Carga del filo",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 222,
+      "key": "Slashing Weapons|Accurate swings",
+      "name": "Esgrima certera",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 223,
+      "key": "Slashing Weapons|Disable limb",
+      "name": "Corte incapacitante",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 224,
+      "key": "Slashing Weapons|Athletic",
+      "name": "Vigor atlético",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 225,
+      "key": "Slashing Weapons|South cross",
+      "name": "Cruz del horizonte",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 226,
+      "key": "Slashing Weapons|Crash",
+      "name": "Choque de acero",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 227,
+      "key": "Slashing Weapons|Devastate",
+      "name": "Filo devastador",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 228,
+      "key": "Slashing Weapons|Iron skin",
+      "name": "Dermis de hierro",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 229,
+      "key": "Slashing Weapons|Fatal strike",
+      "name": "Corte fatal",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 230,
+      "key": "Slashing Weapons|Typhoon",
+      "name": "Tifón de filos",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 231,
+      "key": "Blunt Weapons|Forceful blow",
+      "name": "Golpe del martillo",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 232,
+      "key": "Blunt Weapons|Brutal impacts",
+      "name": "Impactos de demolición",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 233,
+      "key": "Blunt Weapons|Ribs breaker",
+      "name": "Quebrantacostillas",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 234,
+      "key": "Blunt Weapons|Lethal anatomy",
+      "name": "Anatomía del verdugo",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 235,
+      "key": "Blunt Weapons|Crushing",
+      "name": "Martillo triturador",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 236,
+      "key": "Blunt Weapons|Execution",
+      "name": "Sentencia del mazo",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 237,
+      "key": "Blunt Weapons|Mind squasher",
+      "name": "Quiebra de la mente",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 238,
+      "key": "Blunt Weapons|Steel temper",
+      "name": "Temple de forja",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 239,
+      "key": "Blunt Weapons|Jaw breaker",
+      "name": "Quebrantaquijadas",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 240,
+      "key": "Blunt Weapons|Thunder strike",
+      "name": "Trueno del martillo",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 241,
+      "key": "Piercing Weapons|Gutting",
+      "name": "Desgarro penetrante",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 242,
+      "key": "Piercing Weapons|Agile maneuvers",
+      "name": "Maniobra ligera",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 243,
+      "key": "Piercing Weapons|Balestra",
+      "name": "Paso de balestra",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 244,
+      "key": "Piercing Weapons|Versatility",
+      "name": "Arsenal versátil",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 245,
+      "key": "Piercing Weapons|Ripost",
+      "name": "Contrapunta",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 246,
+      "key": "Piercing Weapons|Impale",
+      "name": "Lanza de empalamiento",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 247,
+      "key": "Piercing Weapons|Brain piercing",
+      "name": "Perforación cerebral",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 248,
+      "key": "Piercing Weapons|Bendable",
+      "name": "Cuerpo flexible",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 249,
+      "key": "Piercing Weapons|Multiple thrust",
+      "name": "Ráfaga de estocadas",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 250,
+      "key": "Piercing Weapons|Lightning strike",
+      "name": "Estocada relampagueante",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 251,
+      "key": "Tactics|Kick",
+      "name": "Patada del derribo",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 252,
+      "key": "Tactics|Caution",
+      "name": "Guardia cautelosa",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 253,
+      "key": "Tactics|Throat cutter",
+      "name": "Corte de garganta",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 254,
+      "key": "Tactics|Martial defense",
+      "name": "Disciplina defensiva",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 255,
+      "key": "Tactics|Rigorous Preparation",
+      "name": "Preparación del veterano",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 256,
+      "key": "Tactics|Back slam",
+      "name": "Golpe de revés",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 257,
+      "key": "Tactics|Onslaught",
+      "name": "Embestida implacable",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 258,
+      "key": "Tactics|Intimidate",
+      "name": "Presencia intimidante",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 259,
+      "key": "Tactics|Disabling",
+      "name": "Manos inutilizadas",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 260,
+      "key": "Tactics|Martial reflexes",
+      "name": "Reflejo del combatiente",
+      "classes": [
+        "devastador",
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 261,
+      "key": "Warcries|Colossus",
+      "name": "Fuerza de coloso",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 262,
+      "key": "Warcries|Frenzy",
+      "name": "Frenesí de batalla",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 263,
+      "key": "Warcries|Off with their heads!!",
+      "name": "Grito del verdugo",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 264,
+      "key": "Warcries|Thirst for blood",
+      "name": "Hambre de sangre",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 265,
+      "key": "Warcries|Challenging Roar",
+      "name": "Rugido del desafío",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 266,
+      "key": "Warcries|Deafening roar",
+      "name": "Bramido del estruendo",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 267,
+      "key": "Warcries|Berserk",
+      "name": "Rabia berserker",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 268,
+      "key": "Warcries|Overwhelming strength",
+      "name": "Vigor abrumador",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 269,
+      "key": "Warcries|Spring",
+      "name": "Carrera del asalto",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 270,
+      "key": "Warcries|Unstoppable Madness",
+      "name": "Furia incontenible",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 271,
+      "key": "Two Handed Mastery|Threat",
+      "name": "Amenaza del gigante",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 272,
+      "key": "Two Handed Mastery|Spiritual blow",
+      "name": "Golpe del espíritu",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 273,
+      "key": "Two Handed Mastery|Rend",
+      "name": "Desgarro brutal",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 274,
+      "key": "Two Handed Mastery|Beast attack",
+      "name": "Zarpazo bestial",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 275,
+      "key": "Two Handed Mastery|Howl",
+      "name": "Alarido de guerra",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 276,
+      "key": "Two Handed Mastery|Expansive wave",
+      "name": "Onda del coloso",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 277,
+      "key": "Two Handed Mastery|Destabilize",
+      "name": "Golpe desequilibrante",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 278,
+      "key": "Two Handed Mastery|Fulminating",
+      "name": "Ataque fulminante",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 279,
+      "key": "Two Handed Mastery|Hands of Steel",
+      "name": "Puños de acero",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 280,
+      "key": "Two Handed Mastery|Rage of the earth",
+      "name": "Furia de la falla",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 282,
+      "key": "Barbarian WM|War Council",
+      "name": "Consejo del asalto",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 284,
+      "key": "Barbarian WM|Warmaster Beacon",
+      "name": "Estandarte de batalla",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 286,
+      "key": "Barbarian WM|Warmaster's Might",
+      "name": "Maestría del devastador",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 288,
+      "key": "Barbarian WM|Heroic Shout",
+      "name": "Clamor del héroe",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 290,
+      "key": "Barbarian WM|Warmaster Blood",
+      "name": "Sangre del berserker",
+      "classes": [
+        "devastador"
+      ]
+    },
+    {
+      "trainerIndex": 291,
+      "key": "Vanguard|Challenge",
+      "name": "Desafío del bastión",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 292,
+      "key": "Vanguard|Taunt",
+      "name": "Provocación del guardián",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 293,
+      "key": "Vanguard|Feint",
+      "name": "Finta del duelista",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 294,
+      "key": "Vanguard|Protector Temple",
+      "name": "Temple del protector",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 295,
+      "key": "Vanguard|Offensive stance",
+      "name": "Postura del asalto",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 296,
+      "key": "Vanguard|Defensive Support",
+      "name": "Apoyo del bastión",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 297,
+      "key": "Vanguard|Troll's skin",
+      "name": "Coraza del troll",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 298,
+      "key": "Vanguard|Knight's Haste",
+      "name": "Ímpetu del caballero",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 299,
+      "key": "Vanguard|Heroic presence",
+      "name": "Presencia del héroe",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 300,
+      "key": "Vanguard|Army of one",
+      "name": "Bastión solitario",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 301,
+      "key": "Shields|Block",
+      "name": "Guardia del escudo",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 302,
+      "key": "Shields|Shield bash",
+      "name": "Impacto del bastión",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 303,
+      "key": "Shields|Protect ally",
+      "name": "Amparo del aliado",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 304,
+      "key": "Shields|Precise block",
+      "name": "Parada perfecta",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 305,
+      "key": "Shields|Defensive stance",
+      "name": "Postura de baluarte",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 306,
+      "key": "Shields|Ethereal mantle",
+      "name": "Manto espectral",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 307,
+      "key": "Shields|Shield wall",
+      "name": "Muralla de escudos",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 308,
+      "key": "Shields|Steadiness",
+      "name": "Ancla del defensor",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 309,
+      "key": "Shields|Stars shield",
+      "name": "Escudo del firmamento",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 310,
+      "key": "Shields|Deflecting barrier",
+      "name": "Barrera de reflexión",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 312,
+      "key": "Knight WM|War Council",
+      "name": "Consejo del bastión",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 314,
+      "key": "Knight WM|Paladin's Aid",
+      "name": "Auxilio del paladín",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 316,
+      "key": "Knight WM|Warmaster's Might",
+      "name": "Maestría del guardián",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 318,
+      "key": "Knight WM|Blessed",
+      "name": "Favor del alba",
+      "classes": [
+        "guardian"
+      ]
+    },
+    {
+      "trainerIndex": 320,
+      "key": "Knight WM|Warmaster Blood",
+      "name": "Sangre del defensor",
+      "classes": [
+        "guardian"
+      ]
+    }
+  ],
+  "unmatched": []
+}

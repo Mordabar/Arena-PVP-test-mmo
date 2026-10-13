@@ -25,6 +25,8 @@ Arena.define('data/balance', [], function (Arena) {
     reactive: 0.25,   // defensivos, interrupciones: se sienten instantáneos
     short: 0.55,      // utility, buffs, movilidad
     standard: 0.80,   // ataques principales
+    long: 1.10,
+    veryLong: 1.50,
     none: 0           // fuera de GCD por completo
   };
 

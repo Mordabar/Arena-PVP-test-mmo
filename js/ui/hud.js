@@ -35,7 +35,8 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
     // La estela sólo baja: si el valor sube, se iguala al instante.
     if (pct > bar._ghostPct) bar._ghostPct = pct;
     else if (now - bar._ghostAt > 0.28) bar._ghostPct += (pct - bar._ghostPct) * 0.22;
-    if (pct < bar._ghostPct - 0.001) bar._ghostAt = now;
+    if (pct < (bar._lastPct === undefined ? pct : bar._lastPct) - 0.001) bar._ghostAt = now;
+    bar._lastPct = pct;
 
     bar.fill.style.width = (pct * 100).toFixed(2) + '%';
     bar.ghost.style.width = (Math.max(pct, bar._ghostPct) * 100).toFixed(2) + '%';
@@ -115,7 +116,7 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
     var keys = ['1','2','3','4','5','6','7','8','9','0','−','='];
     this.slots = [];
     for (var i = 0; i < Arena.UI.ActionBarState.SLOT_COUNT; i++) {
-      var s = el('div', 'slot', row); s.draggable = true;
+      var s = el('div', 'slot', row); s.draggable = true; s.setAttribute('role','button'); s.tabIndex=0;
       var key = el('div', 'key', s); key.textContent = keys[i];
       var icon = el('div', 'icon', s);
       var sweep = el('div', 'cd-sweep', s);
@@ -161,7 +162,8 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
       if (p.applied > 0.5) {
         var cls = p.crit ? 'crit' : (p.applied > 130 ? 'damage-big' : 'damage');
         self.floatNumber(p.targetId, p.applied, cls, '−');
-      } else if (p.absorbed > 0.5) {
+      }
+      if (p.absorbed > 0.5) {
         self.floatNumber(p.targetId, p.absorbed, 'absorb', '◈');
       }
     });
@@ -172,7 +174,8 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
     bus.on('AbilityBlocked', function (p) { self.float(p.targetId, 'BLOQUEADO', 'immune'); });
     bus.on('AbilityReflected', function (p) { self.float(p.targetId, 'REFLEJADO', 'immune'); });
     bus.on('AbilityNullified', function (p) {
-      self.float(p.targetId, p.reason === 'stasis' ? 'ESTASIS' : 'INTERVENCIÓN', 'immune');
+      var label={stasis:'ESTASIS',intervention:'INTERVENCIÓN',evasion:'EVADIDO',sourcePowerResistance:'RESISTIDO'}[p.reason]||'ANULADO';
+      self.float(p.targetId,label,'immune');
     });
     bus.on('EffectImmune', function (p) {
       if (p.reason === 'dr') self.float(p.targetId, 'INMUNE (DR)', 'immune');
@@ -279,7 +282,7 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
     var res = B.RESOURCE[p.resourceType];
     this.pRes.root.className = 'bar uf-res ' + p.resourceType;
     setBar(this.pRes, p.resourcePct(), now,
-      (res ? res.name + '  ' : '') + Math.round(p.resource) + ' / ' + p.resourceMax);
+      (res ? res.name + '  ' : '') + Math.round(p.resource) + ' / ' + p.effectiveResourceMax());
 
     this._updateCharges(p);
     this._updateStatusRow(this.pStatuses, p, now);
@@ -389,7 +392,7 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
       var id = this.actionState.abilityAt(i);
       var ab = id ? Arena.Data.abilities[id] : null;
       this.slots[i].abilityId = id || null;
-      this.slots[i].icon.innerHTML = ab ? Arena.UI.AbilityIcons.svg(ab) : '';
+      this.slots[i].icon.innerHTML = ab ? Arena.UI.AbilityIcons.image(ab) : '';
       this.slots[i].root.classList.toggle('empty', !ab);
       this.slots[i].root.setAttribute('aria-label', ab ? ab.name : 'Slot vacío');
     }
@@ -423,7 +426,8 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
 
       var cdLeft = p.cooldownRemaining(ab.id, now);
       var cdFrac = ab.cooldown > 0 ? Math.min(1, cdLeft / ab.cooldown) : 0;
-      slot.sweep.style.height = (cdFrac * 100).toFixed(1) + '%';
+      slot.sweep.style.height = '100%';
+      slot.sweep.style.background = 'conic-gradient(rgba(2,6,12,.80) ' + (cdFrac * 360).toFixed(1) + 'deg, transparent 0deg)';
       slot.cdText.textContent = cdLeft > 0
         ? (cdLeft >= 10 ? Math.ceil(cdLeft) : cdLeft.toFixed(1))
         : '';
@@ -432,7 +436,12 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
         (gcdLeft > 0 && p.gcdDuration > 0 ? (gcdLeft / p.gcdDuration).toFixed(3) : 0) + ')';
 
       // El estado del botón explica POR QUÉ no se puede usar, no sólo que no.
-      var check = Ability.canUse(world, p, ab, { targetId: p.targetId, target: target });
+      var context = Ability.inputContext(world, p, ab, { targetId: p.targetId, target: target });
+      // Un destino de suelo se valida en input; no pintar su botón como inválido sin cursor.
+      if (ab.target === 'ground') context.groundPoint = p.pos;
+      var check = Ability.canUse(world, p, ab, context);
+      slot.root.dataset.reason = check.ok ? '' : check.message;
+      slot.root.setAttribute('aria-label', ab.name + (check.ok ? ' · disponible' : ' · ' + check.message));
       var c = slot.root.classList;
       c.toggle('unusable', !check.ok && check.reason !== 'gcd');
       c.toggle('no-resource', check.reason === 'resource');
@@ -571,6 +580,8 @@ Arena.define('ui/hud', ['render/picking', 'data/passives', 'ui/abilityIcons', 'u
       if (n.parentNode) n.parentNode.removeChild(n);
     }
     this.floaters.length = 0;
+    this._agg = Object.create(null);
+    this._fanIndex = Object.create(null);
   };
 
   Arena.UI.HUD = HUD;

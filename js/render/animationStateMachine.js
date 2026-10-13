@@ -24,10 +24,13 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
     AIRBORNE:{clip:'Jump_Loop',mask:'full',loop:true,fade:0.08},
     LAND:{clip:'Jump_Land',mask:'full',loop:false,fade:0.10},
     HIT:{clip:'Hit_Chest',mask:'upper',loop:false,fade:0.075},
+    BLOCK:{clip:'Sword_Block',mask:'upper',loop:false,fade:0.06},
     KNOCKDOWN_START:{clip:'Slide_Start',mask:'full',loop:false,fade:0.06},
     KNOCKDOWN_LOOP:{clip:'Slide_Loop',mask:'full',loop:true,fade:0.04},
     KNOCKDOWN_EXIT:{clip:'Slide_Exit',mask:'full',loop:false,fade:0.07},
     DEATH:{clip:'Death01',mask:'full',loop:false,fade:0.08},
+    STASIS:{clip:'Idle_Loop',mask:'full',loop:true,fade:0.08},
+    STUN:{clip:'Hit_Head',mask:'full',loop:false,fade:0.06},
     ACTION:{clip:null,mask:'full',loop:false,fade:0.075},
     CAST_CHARGE:{clip:null,mask:'full',loop:true,fade:0.12}
   };
@@ -126,36 +129,42 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
     return 'Idle_Loop';
   }
 
-  S.select=function(handle,archetype){
+  S.selectBase=function(handle,archetype){
     var L=(handle&&handle.loco)||{},A=(handle&&handle.action)||{},pol=policyOf(handle,archetype),cid=classIdOf(handle),intent=handle&&handle.intent||{};
     var speed=clamp(L.moveSpeed||0,0,1.6),hasTarget=!!intent.hasTarget,combatMode=!!intent.combatMode;
 
     if(handle&&handle.deadTime>0)return state('DEATH',slotSel(SP.slots.death));
+    if(intent.crowdControl==='STASIS') return state('STASIS',{freezeCurrent:true});
+    if(intent.crowdControl==='STUN') return state('STUN',slotSel(SP.slots.stunHold,{syncAuthoritative:true,syncProgress:0.35}));
 
     /* Knockdown uses the exact Slide triplet selected by the user. ccBlend is a
        presentation blend only: while knockdown exists we enter/hold Slide; once
        simulation removes knockdown, the fading ccBlend drives Slide_Exit. */
     if(intent.crowdControl==='KNOCKDOWN'){
-      if((handle.ccBlend||0)<0.62)return state('KNOCKDOWN_START',slotSel(SP.slots.knockdownStart,{syncAuthoritative:true,syncProgress:clamp((handle.ccBlend||0)/.62,0,1)}));
-      return state('KNOCKDOWN_LOOP',slotSel(SP.slots.knockdownLoop,{loop:true}));
+      var fall=clamp((handle.ccElapsed||0)/0.38,0,1);
+      if(fall<1)return state('KNOCKDOWN_START',slotSel(SP.slots.knockdownStart,{syncAuthoritative:true,syncProgress:fall}));
+      return state('KNOCKDOWN_LOOP',slotSel(SP.slots.knockdownLoop,{loop:false,syncAuthoritative:true,syncProgress:0.99}));
     }
-    if((handle&&handle.ccBlend||0)>0.02&&handle&&handle.cc&&handle.cc.rootPitch>0.8){
-      return state('KNOCKDOWN_EXIT',slotSel(SP.slots.knockdownExit,{syncAuthoritative:true,syncProgress:clamp(1-(handle.ccBlend||0),0,1)}));
+    if(handle&&handle.ccExiting&&!handle.casting&&(!A.family||A.cancelled)){
+      return state('KNOCKDOWN_EXIT',slotSel(SP.slots.knockdownExit,{syncAuthoritative:true,syncProgress:clamp((handle.ccExitElapsed||0)/0.65,0,1)}));
     }
 
-    if(L.airborne){var jp=clamp(L.jumpPhase||0,0,1);if(jp<0.20)return state('JUMP_START',{rate:PP.jumpStartRate||0.88});if(jp>0.82)return state('LAND',{rate:PP.jumpLandRate||0.82});return state('AIRBORNE',{rate:PP.jumpAirRate||0.94});}
-    if((L.landingAmount||0)>0.08)return state('LAND',{rate:PP.jumpLandRate||0.82});
+    if(L.airborne){var jp=clamp(L.jumpPhase||0,0,1);if(jp<0.20)return state('JUMP_START',{syncAuthoritative:true,syncProgress:jp/0.20});return state('AIRBORNE',{rate:PP.jumpAirRate||0.94});}
+    if((L.landingAmount||0)>0.02)return state('LAND',{syncAuthoritative:true,syncProgress:clamp(1-L.landingAmount,0,1)});
 
+    if((handle&&handle.block||0)>.06 && archetype==='melee' && !handle.casting && (!A.family||A.cancelled)){
+      return state('BLOCK',slotSel(SP.slots.oneHandBlock,{mask:'upper',directLowerBase:lowerBaseForHit(handle,archetype),semanticSlot:'oneHandBlock',rate:.9}));
+    }
     /* Damage reaction clips are selected from the actual damage packet. Auto
        attack = Hit_Chest. A damaging ability without hard control = Hit_Head. */
-    if((handle&&handle.hurt||0)>0.06){
+    if((handle&&handle.hurt||0)>0.06 && !handle.casting && (!A.family || A.cancelled)){
       var hs=(handle.hurtReaction==='head')?SP.slots.hitHead:SP.slots.hitChest;
       return state('HIT',slotSel(hs,{mask:'upper',loop:false,rate:handle.hurtReaction==='head'?(PP.hitHeadRate||0.80):(PP.hitChestRate||0.82),directLowerBase:lowerBaseForHit(handle,archetype),semanticSlot:handle.hurtReaction==='head'?'hitHead':'hitChest'}));
     }
 
     /* Caster family: all Spell_* clips are now in their literal roles. */
     if(handle&&handle.casting&&archetype==='caster'){
-      return state('CAST_CHARGE',slotSel(SP.slots.casterCharge,{mask:'full',loop:true,semanticSlot:'casterCharge'}));
+      return state('CAST_CHARGE',slotSel(SP.slots.casterCharge,{mask:'upper',directLowerBase:'Idle_Loop',directLowerBaseProgress:0.5,loop:true,semanticSlot:'casterCharge',castPoseProgress:clamp(Number(intent.castProgress)||Number(handle.cast)||0,0,1)}));
     }
 
     /* Archer v0.32: charge is simulation-driven and references the exact
@@ -187,20 +196,20 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
       }
     }
 
-    if(A.family){
+    if(A.family && !A.cancelled){
       if(archetype==='archer'){
         var arslot=A.family==='ranged'?(A.isPower?SP.slots.archerPowerRelease:SP.slots.archerNormalAttack):SP.slots.archerBuffCharge;
         var aph=(handle&&handle.cfg&&handle.cfg.phases&&(handle.cfg.phases.ranged||handle.cfg.phases.light))||{impact:.56,recovery:.72};
         var at=clamp(A.t||0,0,1), impact=clamp(aph.impact||.56,.1,.9);
-        var draw=at<impact?clamp(at/impact,0,1):0;
-        return state('ACTION',slotSel(arslot,{mask:'upper',directLowerBase:'Arena_Archer_VideoReady',directLowerBaseProgress:0.50,loop:false,syncAuthoritative:true,syncProgress:at,fallbackSyncProgress:at,bowDraw:draw,semanticSlot:A.isPower?'archerPowerRelease':'archerNormalAttack'}));
+        var draw=A.family==='ranged'?(at<impact?clamp(at/impact,0,1):0):0;
+        return state('ACTION',slotSel(arslot,{mask:'upper',directLowerBase:'Arena_Archer_VideoReady',directLowerBaseProgress:0.50,loop:false,syncAuthoritative:true,syncProgress:(at<=impact?at/impact*.56:.56+(at-impact)/(1-impact)*.44),fallbackSyncProgress:(at<=impact?at/impact*.56:.56+(at-impact)/(1-impact)*.44),bowDraw:draw,semanticSlot:A.family==='ranged'?(A.isPower?'archerPowerRelease':'archerNormalAttack'):'archerBuffCharge'}));
       }
       if(archetype==='caster'){
-        var cslot=A.family==='pulse'?SP.slots.casterNormalAttack:SP.slots.casterPowerRelease;
+        var cslot=A.family==='pulse'?SP.slots.casterNormalAttack:((A.castFamily==='heal'||A.castFamily==='buff')?SP.slots.casterUtility:SP.slots.casterPowerRelease);
         return actionFromSlot(handle,A.family,cslot,A.family==='pulse'?'casterNormalAttack':'casterPowerRelease',{mask:'upper',directLowerBase:'Idle_Loop',directLowerBaseProgress:0.50});
       }
       if(archetype==='melee'){
-        if(A.family==='kick')return actionFromSlot(handle,A.family,SP.slots.kick,'kick',{mask:'lower',directUpperBase:cid==='guardian'?'Idle_Shield_Loop':'Sword_Idle',directUpperBaseProgress:0.50});
+        if(A.family==='kick')return actionFromSlot(handle,A.family,SP.slots.kick,'kick',{mask:'lower',directUpperBase:cid==='guardian'?'Idle_Shield_Loop':'Sword_Idle',directUpperBaseProgress:0.50,nativeKick:true,kickProgress:clamp(A.t||0,0,1)});
         if(A.family==='shield')return actionFromSlot(handle,A.family,SP.slots.shieldBash,'shieldBash');
         if(A.family==='charge')return actionFromSlot(handle,A.family,SP.slots.warriorCharge,'warriorCharge');
         if(A.family==='cry'){
@@ -215,8 +224,8 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
 
     var f=L.moveForward||0,r=L.moveRight||0,mps=L.metersPerSecond;
     if(mps===undefined)mps=speed*4.15;
-    function rate(n){return clamp(Math.abs(mps)/Math.max(0.1,n),0.72,1.28);}
-    if(speed>0.06){
+    function rate(n){return clamp(Math.abs(mps)/Math.max(0.1,n),0.05,2.4);}
+    if(speed>0.06 && Math.abs(mps)>0.04){
       if(f<-0.20){
         var bs=Math.abs(r)>0.28?(r<0?SP.locomotion.walkBackLeft:SP.locomotion.walkBackRight):SP.locomotion.walkBackward;
         return locomotionFromSlot(handle,archetype,'BACKPEDAL',bs,r<-.28?'locomotion.walkBackLeft':(r>.28?'locomotion.walkBackRight':'locomotion.walkBackward'),{rate:rate(1.05),direction:r<-.28?'BACK_LEFT':(r>.28?'BACK_RIGHT':'BACK')});
@@ -250,6 +259,25 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
       if(pol.grip==='staff')return state('COMBAT_IDLE',slotSel(SP.slots.combatIdleCaster,{clip:'Spell_Simple_Idle_Loop',mask:'full'}));
     }
     return state('IDLE',slotSel(SP.slots.normalIdle,{clip:'Idle_Loop',mask:'full'}));
+  };
+
+
+  S.select=function(handle,archetype){
+    var sel=S.selectBase(handle,archetype), A=handle&&handle.action||{}, L=handle&&handle.loco||{};
+    if(/^(BACKPEDAL|STRAFE|DIAGONAL|TURN)$/.test(sel.state)){sel.intentionalBlank=false;sel.source='ARENA_NATIVE_FOOT_IK';sel.qualityStatus=SP.STATUS.PROVISIONAL;}
+    if(sel.state==='ACTION')sel.eventToken='action:'+(A.sequence||0);
+    if(sel.state==='HIT')sel.eventToken='hit:'+(handle.hurtSequence||0);
+    if(sel.state==='BLOCK')sel.eventToken='block:'+(handle.blockSequence||0);
+    if(sel.state==='ACTION' || sel.state==='CAST_CHARGE' || sel.state==='HIT' || sel.state==='BLOCK'){
+      if((L.moveSpeed||0)>.06 && Math.abs(L.metersPerSecond||0)>.04 && (archetype!=='melee'||(A.family!=='kick'&&A.family!=='shield'&&A.family!=='charge'))){
+        // Leg cycle advances in real time, independently of cast/shot progress.
+        sel.mask='upper';sel.liveLowerLocomotion=lowerBaseForHit(handle,archetype);
+        sel.directionalFeet=(L.moveForward||0)<-.2||Math.abs(L.moveRight||0)>.28;
+        sel.directLowerBase=null;sel.directUpperBase=null;
+        sel.lowerRate=clamp(Math.abs(L.metersPerSecond)/(sel.liveLowerLocomotion==='Sprint_Loop'?5.2:sel.liveLowerLocomotion==='Jog_Fwd_Loop'?4.15:1.05),.05,2.4);
+      }
+    }
+    return sel;
   };
 
   S.clipsUsados=function(){

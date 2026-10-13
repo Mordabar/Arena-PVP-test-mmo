@@ -70,7 +70,8 @@ Arena.define('render/characterVisual',
       // Capa UPPER BODY: acciones de combate, reacción aditiva y CC.
       action: Act.createState(n),
       cast: 0, casting: false, castMovable: false,
-      hurt: 0, hurtReaction: 'chest', downed: 0, deadTime: 0,
+      hurt: 0, hurtSequence: 0, hurtReaction: 'chest', block:0, blockSequence:0, downed: 0, deadTime: 0,
+      ccKind: null, ccElapsed: 0, ccExitElapsed: 0,
       // Mezcla de la pose de control: 0 = normal, 1 = pose de CC completa.
       ccBlend: 0, cc: null,
       // Compatibilidad de lectura para VFX, HUD y depuración.
@@ -129,6 +130,7 @@ Arena.define('render/characterVisual',
     st.phase = st.loco.cycle * Math.PI * 2;
 
     if (st.hurt > 0) st.hurt = Math.max(0, st.hurt - dt * 3.5);
+    if (st.block > 0) st.block = Math.max(0, st.block - dt * 3.5);
 
     /* --- Control: la simulación decide QUÉ, esto sólo decide CÓMO se ve ---- */
     var cc = Act.ccPose(entity, 1);
@@ -161,6 +163,16 @@ Arena.define('render/characterVisual',
        backend con malla con skinning leería sólo esto. */
     AI.build(st.intent, entity, world, st.loco, st.action);
     st.intent.crowdControlBlend = st.ccBlend;
+    var kind = st.intent.crowdControl;
+    if (kind !== st.ccKind) { st.ccElapsed = 0; st.ccExitElapsed = 0; }
+    else st.ccElapsed += dt;
+    if (st.ccKind === 'KNOCKDOWN' && kind !== 'KNOCKDOWN') st.ccExiting = true;
+    if (kind === 'KNOCKDOWN' || !entity.alive) st.ccExiting = false;
+    if (st.ccExiting) {
+      st.ccExitElapsed += dt;
+      if (st.ccExitElapsed >= 0.65) st.ccExiting = false;
+    }
+    st.ccKind = kind;
   };
 
   /**
@@ -240,6 +252,7 @@ Arena.define('render/characterVisual',
    * `fromPos` es opcional; con él la sacudida es direccional.
    */
   CV.triggerHurt = function (st, entity, fromPos, reactionKind) {
+    st.hurtSequence++;
     st.hurt = 1;
     st.hurtReaction = reactionKind === 'head' ? 'head' : 'chest';
     if (!st.loco || !entity) return;
@@ -259,8 +272,9 @@ Arena.define('render/characterVisual',
   function mix3(a, b, t) {
     return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
   }
-  CV.paletteFor = function () {
-    return { accent: ACCENT };
+  CV.paletteFor = function (entity) {
+    var c=entity && Arena.Data.classes[entity.classId];
+    return { accent:c?c.color:ACCENT };
   };
 
   Arena.Render.CharacterVisual = CV;

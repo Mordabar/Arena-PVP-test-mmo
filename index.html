@@ -5,20 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 
-<title>Project Arena · v0.34 · Warrior UAL Literal + Timing/Facing</title>
+<title>Project Arena · v0.39 · Duelos</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230c1412'/%3E%3Cpath d='M32 12 46 52 32 43 18 52Z' fill='%23e7c678'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/arena.css?build=v0340-20260820-warrior-facing">
+<link rel="stylesheet" href="css/arena.css?build=v0390-trainer">
+<link rel="stylesheet" href="css/duel-polish.css?build=v0390">
 </head>
 <body class="three-theme">
 
+<div id="loading-screen" role="status"><div class="loading-mark">A</div><h1>PROJECT ARENA</h1><p>Preparando personajes y animaciones…</p><div class="loading-track"><i></i></div><small>v0.39 · Duelos 1v1</small></div>
 <div id="viewport">
-  <canvas id="gl"></canvas>
+  <canvas id="gl" tabindex="0" aria-label="Arena de combate. WASD para moverte; 1 a 8 para poderes; T para ataque normal."></canvas>
 </div>
 
 <div id="hud">
   <div id="brand" class="passthrough">
     <div class="t">Project Arena</div>
-    <div class="s">v0.34 · WARRIOR UAL LITERAL · NATURAL REC · ARCHER FACING FIX</div>
+    <div class="s">v0.39 · DUELOS 1v1 · SEIS CLASES</div>
   </div>
 
   <div id="help">
@@ -47,7 +49,7 @@
     <h2>El Combat Lab no ha podido arrancar</h2>
     <p>Necesita WebGL2 y debe servirse por HTTP/HTTPS porque Three.js usa módulos ES.
        En Hostinger basta con subir la carpeta completa y abrir el dominio; en local usa
-       <code>node tools/serve.js</code> si ya tienes Node, o abre <code>index.html</code> para el fallback nativo.</p>
+       <code>iniciar.bat</code> con Python instalado. No abras el archivo con doble clic: necesita un servidor HTTP.</p>
     <pre></pre>
   </div>
 </div>
@@ -60,73 +62,79 @@
      ====================================================================== -->
 
 <!-- Núcleo -->
-<script src="js/namespace.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/math/vec3.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/math/mat4.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/math/ray.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/core/eventBus.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/core/rng.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/core/fixedTick.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/core/controlMap.js?build=v0340-20260820-warrior-facing"></script>
+<script src="js/namespace.js?build=v0390-trainer"></script>
+<script src="js/math/vec3.js?build=v0390-trainer"></script>
+<script src="js/math/mat4.js?build=v0390-trainer"></script>
+<script src="js/math/ray.js?build=v0390-trainer"></script>
+<script src="js/core/eventBus.js?build=v0390-trainer"></script>
+<script src="js/core/rng.js?build=v0390-trainer"></script>
+<script src="js/core/fixedTick.js?build=v0390-trainer"></script>
+<script src="js/core/controlMap.js?build=v0390-trainer"></script>
 
 <!-- Datos y reglas -->
-<script src="js/data/balance.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/effects.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/core/entity.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/combat/statusSystem.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/combat/damageSystem.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/combat/healingSystem.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/combat/resolver.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/combat/abilitySystem.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/animConfig.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/animationProfiles.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/animationSourcePlan.js?build=v0340"></script>
-<script src="js/data/classes.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/abilities.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/powerLibrary.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/powerAnimationGrammar.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/passives.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/castFamilies.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/data/scenarios.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/hudModel.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/pointerLockDiag.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/anim/animationIntent.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/product/ladder.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/product/matchFlow.js?build=v0340-20260820-warrior-facing"></script>
+<script src="js/data/balance.js?build=v0390-trainer"></script>
+<script src="js/data/effects.js?build=v0390-trainer"></script>
+<script src="js/combat/regnumFormulas.js?build=v0390"></script>
+<script src="js/core/entity.js?build=v0390-trainer"></script>
+<script src="js/combat/statusSystem.js?build=v0390-trainer"></script>
+<script src="js/combat/damageSystem.js?build=v0390-trainer"></script>
+<script src="js/combat/healingSystem.js?build=v0390-trainer"></script>
+<script src="js/combat/resolver.js?build=v0390-trainer"></script>
+<script src="js/combat/abilitySystem.js?build=v0390-trainer"></script>
+<script src="js/data/animConfig.js?build=v0390-trainer"></script>
+<script src="js/data/animationProfiles.js?build=v0390-trainer"></script>
+<script src="js/data/animationSourcePlan.js?build=v0390"></script>
+<script src="js/data/classes.js?build=v0390-trainer"></script>
+<script src="js/data/abilities.js?build=v0390-trainer"></script>
+<script src="js/data/powerLibrary.js?build=v0390-trainer"></script>
+<script src="js/data/duelProfile.js?build=v0390"></script>
+<script src="js/data/trainerCatalogue.js?build=v0390"></script>
+<script src="js/data/trainerBuild.js?build=v0390"></script>
+<script src="js/data/powerAnimationGrammar.js?build=v0390-trainer"></script>
+<script src="js/data/passives.js?build=v0390-trainer"></script>
+<script src="js/data/castFamilies.js?build=v0390-trainer"></script>
+<script src="js/data/scenarios.js?build=v0390-trainer"></script>
+<script src="js/ui/hudModel.js?build=v0390-trainer"></script>
+<script src="js/ui/pointerLockDiag.js?build=v0390-trainer"></script>
+<script src="js/anim/animationIntent.js?build=v0390-trainer"></script>
+<script src="js/product/ladder.js?build=v0390-trainer"></script>
+<script src="js/product/matchFlow.js?build=v0390-trainer"></script>
 
 <!-- Simulación -->
-<script src="js/sim/arena.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/sim/arenaMetrics.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/sim/world.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ai/dummyAI.js?build=v0340-20260820-warrior-facing"></script>
+<script src="js/sim/arena.js?build=v0390-trainer"></script>
+<script src="js/sim/arenaMetrics.js?build=v0390-trainer"></script>
+<script src="js/sim/world.js?build=v0390-trainer"></script>
+<script src="js/ai/dummyAI.js?build=v0390-trainer"></script>
 
 <!-- Presentación 3D -->
-<script src="js/render/rendererBackend.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/poseMetrics.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/camera3d.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/anim/skeleton.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/anim/locomotion.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/anim/actions.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/animationStateMachine.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/skinnedAnimationContract.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/characterVisual.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/characterBackend.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/animDebug.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/vfx.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/render/picking.js?build=v0340-20260820-warrior-facing"></script>
+<script src="js/render/rendererBackend.js?build=v0390-trainer"></script>
+<script src="js/render/poseMetrics.js?build=v0390-trainer"></script>
+<script src="js/render/camera3d.js?build=v0390-trainer"></script>
+<script src="js/render/anim/skeleton.js?build=v0390-trainer"></script>
+<script src="js/render/anim/locomotion.js?build=v0390-trainer"></script>
+<script src="js/render/anim/actions.js?build=v0390-trainer"></script>
+<script src="js/render/animationStateMachine.js?build=v0390-trainer"></script>
+<script src="js/render/skinnedAnimationContract.js?build=v0390-trainer"></script>
+<script src="js/render/characterVisual.js?build=v0390-trainer"></script>
+<script src="js/render/characterBackend.js?build=v0390-trainer"></script>
+<script src="js/render/animDebug.js?build=v0390-trainer"></script>
+<script src="js/render/vfx.js?build=v0390-trainer"></script>
+<script src="js/render/picking.js?build=v0390-trainer"></script>
 
 <!-- Interfaz -->
-<script src="js/ui/abilityIcons.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/actionBarState.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/powerBook.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/gameShell.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/hud.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/combatLog.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/labPanel.js?build=v0340-20260820-warrior-facing"></script>
-<script src="js/ui/tooltips.js?build=v0340-20260820-warrior-facing"></script>
+<script src="js/ui/abilityIcons.js?build=v0390-trainer"></script>
+<script src="js/ui/actionBarState.js?build=v0390-trainer"></script>
+<script src="js/ui/powerBook.js?build=v0390-trainer"></script>
+<script src="js/ui/gameShell.js?build=v0390-trainer"></script>
+<script src="js/ui/hud.js?build=v0390-trainer"></script>
+<script src="js/ui/combatLog.js?build=v0390-trainer"></script>
+<script src="js/ui/labPanel.js?build=v0390-trainer"></script>
+<script src="js/ui/tooltips.js?build=v0390-trainer"></script>
+
+<script src="js/ui/duelPolish.js?build=v0390-trainer"></script>
 
 <!-- Audio -->
-<script src="js/audio/audio.js?build=v0340-20260820-warrior-facing"></script>
+<script src="js/audio/audio.js?build=v0390-trainer"></script>
 
 <!-- Arranque -->
 <!-- =========================================================================
@@ -146,7 +154,7 @@
      https://dominio.com/arena/ que en https://arena.dominio.com/.
      ====================================================================== -->
 <script>window.ARENA_DEFER_BOOT = true;</script>
-<script src="js/main.js?build=v0340-20260820-warrior-facing"></script>
+<script src="js/main.js?build=v0390-trainer"></script>
 
 <script type="importmap">
 {
@@ -156,11 +164,12 @@
   }
 }
 </script>
-<script type="module" src="js/render/three/bootstrap.js?build=v0340-20260820-warrior-facing"></script>
+<script type="module" src="js/render/three/bootstrap.js?build=v0390-trainer"></script>
 
 <script>
 (function () {
   var help = document.getElementById('help');
+  help.classList.add('collapsed');
   help.querySelector('.head').addEventListener('click', function () {
     help.classList.toggle('collapsed');
   });

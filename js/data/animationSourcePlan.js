@@ -26,7 +26,7 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
   }
 
   var P = {
-    contractVersion: '2026-08-20-warrior-literal-speed-facing-v034',
+    contractVersion: '2026-10-09-native-presentation-v039',
     baseRig: 'QUATERNIUS_UAL_NATIVE_65',
     bodyPolicy: 'ONE_NATIVE_BODY_NO_ARMOR_NO_ACCESSORIES',
     equipmentPolicy: 'FUNCTIONAL_WEAPONS_ONLY_NATIVE_BONES',
@@ -51,12 +51,15 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
       hitHead:    slot('Hit_Head', STATUS.FINAL, 'daño de poder sin control duro'),
       death:      slot('Death01', STATUS.FINAL, 'muerte'),
 
-      /* Knockdown = slide triplet. Slide_Start entra al suelo, Slide_Loop
-         mantiene el estado y Slide_Exit recupera al personaje. */
-      knockdownStart: slot('Slide_Start', STATUS.FINAL, 'inicio noqueo / caída'),
-      knockdownLoop:  slot('Slide_Loop', STATUS.FINAL, 'noqueado en el suelo'),
-      knockdownExit:  slot('Slide_Exit', STATUS.FINAL, 'salida de noqueo / levantarse'),
-      getup:           slot('Slide_Exit', STATUS.FINAL, 'levantarse después de noqueo'),
+      /* Fall and prone hold reuse Death01; LayToIdle supplies the real getup.
+         Slide is a locomotion slide and must not stand in for unconsciousness. */
+      knockdownStart: slot('Death01', STATUS.SOURCE_DERIVED, 'inicio noqueo / caída'),
+      knockdownLoop:  slot('Death01', STATUS.SOURCE_DERIVED, 'noqueado en el suelo'),
+      knockdownExit:  slot('LayToIdle', STATUS.FINAL, 'salida de noqueo / levantarse'),
+      getup:           slot('LayToIdle', STATUS.FINAL, 'levantarse después de noqueo'),
+      knockback: slot('Hit_Knockback', STATUS.PROVISIONAL, 'impacto fuerte sin traslación de gameplay'),
+      stunHold: slot('Hit_Head', STATUS.SOURCE_DERIVED, 'aturdido: mantener pose de reacción, sin ataque'),
+      casterUtility: slot('Spell_Simple_Enter', STATUS.PROVISIONAL, 'concentración para cura/buff/utility'),
 
       /* Warrior combat stance. Latest user instruction: all warriors use
          Sword_Idle, except the shield subclass, which uses Idle_Shield_Loop. */
@@ -80,7 +83,7 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
       oneHandBlock:slot('Sword_Block', STATUS.PROVISIONAL, 'bloqueo/parada 1H'),
       warriorCharge: slot('Sword_Dash', STATUS.PROVISIONAL, 'carga ofensiva disponible'),
       warriorBuff:   slot('Yes', STATUS.PROVISIONAL, 'buff/war cry genérico disponible'),
-      kick: slot('Arena_CMU_Kick', STATUS.SOURCE_DERIVED, 'Puntapié / patada guerrero', {sourceFile:'135_04.fbx', sourceLabel:'Front Kick'}),
+      kick: slot('Idle_Loop', STATUS.PROVISIONAL, 'Puntapié: patada frontal propia por IK sobre el rig nativo, sin clip Kick original', {presentation:'NATIVE_FRONT_KICK_IK'}),
 
       /* Caster: latest instruction asks to use the Spell_* family in its natural
          roles. Enter/Exit are mode transitions, Idle_Loop is combat/charge hold,
@@ -107,7 +110,7 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
       archerAttackCharge:slot('Arena_Archer_VideoNotch', STATUS.SOURCE_DERIVED, 'notch/draw previo al disparo (default hasta vídeo de referencia)'),
       archerNormalAttack:slot('Arena_Archer_VideoShoot', STATUS.SOURCE_DERIVED, 'ataque normal de arco (default hasta vídeo de referencia)'),
       archerPowerRelease:slot('Arena_Archer_VideoShoot', STATUS.SOURCE_DERIVED, 'release rápido/poder de arco (default hasta vídeo de referencia)'),
-      archerBuffCharge:  slot('Arena_Archer_VideoBuff', STATUS.PLACEHOLDER, 'buff arquero sin gesto de disparo')
+      archerBuffCharge:  slot('Spell_Simple_Enter', STATUS.PROVISIONAL, 'buff arquero sin gesto de disparo')
     },
 
     locomotion: {
@@ -116,36 +119,18 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
       runForward: slot('Jog_Fwd_Loop', STATUS.FINAL, 'correr/jog al frente'),
       sprintForward: slot('Sprint_Loop', STATUS.FINAL, 'correr al frente con buff de velocidad'),
 
-      /* v0.36 · Retirados los 9 clips CMU direccionales (25-08-2026).
-         generate-cmu-clips-v031.py cortaba cada uno de un archivo FBX crudo por
-         VENTANA DE TIEMPO ADIVINADA a partir de una nota de texto ("walk
-         sideways: left cycle") — nadie renderizó esa ventana para confirmar
-         que el contenido correspondía de verdad a esa dirección antes de
-         aceptarla. El propio script lo delata: Strafe_Left y Strafe_Right
-         salen del MISMO archivo (143_40.fbx) en dos ventanas distintas, y
-         Turn_Left/Turn_Right salen de dos tomas de mocap DISTINTAS (16_27 vs
-         16_29) en vez de ser una mismo par espejado. El usuario confirmó en
-         partida que girar, retroceder, lateral y diagonal se ven mal — y sin
-         el paquete Anims_Only_FBX_V1.zip (no disponible en este entorno) no
-         hay forma honesta de re-verificar esas ventanas.
-         missingPolicy manda no fingir un clip fuente que no se puede probar:
-         estos siete slots vuelven a Walk_Loop (ya verificado, USER_LOCKED en
-         todos los estados que sí se auditaron esta sesión) en vez de a un
-         contenido sin verificar; girar en el sitio no tiene sustituto
-         direccional honesto, así que queda en blanco (Idle_Loop, sin fingir
-         un pivote). Los clips Arena_CMU_* siguen en el runtime — sólo se
-         desconectó su cableado — para poder re-mapearlos en cuanto llegue el
-         paquete fuente o un vídeo de referencia. Arena_CMU_Kick no se toca:
-         viene de una sola captura sin par izquierda/derecha que verificar. */
-      walkBackward: slot('Walk_Loop', STATUS.PLACEHOLDER, 'caminar atrás (temporal: sin clip direccional verificado)'),
-      walkBackLeft: slot('Walk_Loop', STATUS.PLACEHOLDER, 'atrás + izquierda (temporal: sin clip direccional verificado)'),
-      walkBackRight:slot('Walk_Loop', STATUS.PLACEHOLDER, 'atrás + derecha (temporal: sin clip direccional verificado)'),
-      strafeLeft:  slot('Walk_Loop', STATUS.PLACEHOLDER, 'lateral izquierda (temporal: sin clip direccional verificado)'),
-      strafeRight: slot('Walk_Loop', STATUS.PLACEHOLDER, 'lateral derecha (temporal: sin clip direccional verificado)'),
-      diagonalForwardLeft: slot('Walk_Loop', STATUS.PLACEHOLDER, 'frente + izquierda (temporal: sin clip direccional verificado)'),
-      diagonalForwardRight:slot('Walk_Loop', STATUS.PLACEHOLDER, 'frente + derecha (temporal: sin clip direccional verificado)'),
-      turnLeft:  slot(null, STATUS.MISSING, 'giro Q / izquierda (sin sustituto honesto: en blanco hasta re-verificar)'),
-      turnRight: slot(null, STATUS.MISSING, 'giro E / derecha (sin sustituto honesto: en blanco hasta re-verificar)')
+      /* Standard has no native eight-way gait. Directional slots use native
+         Idle as a neutral body base plus world-space foot IK in threeCharacter.
+         These are custom provisional adaptations, never the missing Source clips. */
+      walkBackward: slot('Idle_Loop', STATUS.PROVISIONAL, 'caminar atrás (base UAL + IK direccional propio)'),
+      walkBackLeft: slot('Idle_Loop', STATUS.PROVISIONAL, 'atrás + izquierda (base UAL + IK direccional propio)'),
+      walkBackRight:slot('Idle_Loop', STATUS.PROVISIONAL, 'atrás + derecha (base UAL + IK direccional propio)'),
+      strafeLeft:  slot('Idle_Loop', STATUS.PROVISIONAL, 'lateral izquierda (base UAL + IK direccional propio)'),
+      strafeRight: slot('Idle_Loop', STATUS.PROVISIONAL, 'lateral derecha (base UAL + IK direccional propio)'),
+      diagonalForwardLeft: slot('Idle_Loop', STATUS.PROVISIONAL, 'frente + izquierda (base UAL + IK direccional propio)'),
+      diagonalForwardRight:slot('Idle_Loop', STATUS.PROVISIONAL, 'frente + derecha (base UAL + IK direccional propio)'),
+      turnLeft:  slot('Idle_Loop', STATUS.PROVISIONAL, 'giro Q / izquierda con ajuste de pies propio'),
+      turnRight: slot('Idle_Loop', STATUS.PROVISIONAL, 'giro E / derecha con ajuste de pies propio')
     },
 
     jump: {
@@ -186,7 +171,7 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
 
     weaponSockets: {
       sword:      { bone:'RightHand', policy:'NATIVE_BONE_SOCKET' },
-      greatsword: { bone:'RightHand', secondaryGrip:'LeftHand', policy:'PRIMARY_SOCKET_SECONDARY_GRIP_VISUAL' },
+      greatsword: { bone:'RightHand', secondaryGrip:'LeftHand', policy:'PRIMARY_SOCKET_NATIVE_WORLD_IK_SECONDARY_GRIP' },
       staff:      { bone:'RightHand', policy:'NATIVE_BONE_SOCKET_VERTICAL_CONSTRAINT' },
       bow:        { bone:'LeftHand', policy:'NATIVE_BONE_SOCKET_VERTICAL_CONSTRAINT' },
       shield:     { bone:'LeftLowerArm', policy:'NATIVE_FOREARM_SOCKET_DEFENSIVE_CONSTRAINT' }
@@ -225,8 +210,9 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
          `locomotion.*` no longer references them (see that block). The 9
          clips remain loaded in arena-cmu-v031.json for whenever the source
          pack or a reference video makes a real re-verification possible.
-         Arena_CMU_Kick is unaffected: single capture, no L/R pair at risk. */
-      reviewPolicy:'kick only; directional locomotion (walkBack*/strafe*/diagonal*/turn*) retired pending re-verification against raw source — see locomotion.* comment'
+         v0.39 also retires Arena_CMU_Kick after the user reported the kick as
+         visually wrong; its playable replacement is explicit native-rig IK. */
+      reviewPolicy:'CMU kick retired after user visual feedback; directional locomotion (walkBack*/strafe*/diagonal*/turn*) retired pending re-verification against raw source — see locomotion.* comment'
     }
   };
 

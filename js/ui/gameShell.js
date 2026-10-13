@@ -41,8 +41,8 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
 
     /* PRODUCT TOP BAR */
     var top = el('div', 'arena-topbar', this.root);
-    top.innerHTML = '<div class="arena-logo"><span class="logo-mark">A</span><span><b>PROJECT ARENA</b><small>LADDER PvP · ALPHA 0.13</small></span></div>' +
-      '<div class="arena-top-actions"><button class="ghost-btn" data-action="lab">COMBAT LAB</button><button class="ghost-btn" data-action="lobby">LOBBY</button></div>';
+    top.innerHTML = '<div class="arena-logo"><span class="logo-mark">A</span><span><b>PROJECT ARENA</b><small>DUELOS 1v1 · v0.39</small></span></div>' +
+      '<div class="arena-top-actions"><button class="ghost-btn" data-action="lab">LABORATORIO</button><button class="ghost-btn" data-action="lobby">LOBBY</button></div>';
     top.querySelector('[data-action="lab"]').onclick = function(){ uiSound('uiConfirm'); if (self.ctx.onTraining) self.ctx.onTraining(); };
     top.querySelector('[data-action="lobby"]').onclick = function(){ uiSound('uiConfirm'); if (self.ctx.onLobby) self.ctx.onLobby(); };
     this.topbar = top;
@@ -50,9 +50,9 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
     /* LOBBY */
     var lobby = el('section', 'arena-screen arena-lobby', this.root);
     lobby.innerHTML = '<div class="lobby-vignette"></div><div class="lobby-grid">' +
-      '<div class="lobby-main"><div class="eyebrow">ELIGE TU ROL</div><h1>Domina el ritmo.<br><span>Gana el duelo.</span></h1><p class="lobby-lead">Combate target-based donde parar, orientar, leer el RELEASE y decidir cuándo comprometerte importa más que vaciar la barra de habilidades.</p>' +
+      '<div class="lobby-main"><div class="eyebrow">ELIGE TU ROL</div><h1>Domina el ritmo.<br><span>Gana el duelo.</span></h1><p class="lobby-lead">Seis clases. Un rival. Combate táctico con poderes, control y recuperación de armas. Elige tu estilo y conquista la arena.</p>' +
       '<div class="class-grid" data-slot="classes"></div></div>' +
-      '<aside class="lobby-side"><div class="selected-card" data-slot="selected"></div><div class="ladder-card" data-slot="ladder"></div><div class="queue-card"><div class="section-label">FORMATO</div><div class="mode-pills"><button data-mode="1v1" class="active"><b>1v1</b><small>Duelo Ladder</small></button><button data-mode="2v2"><b>2v2</b><small>Skirmish</small></button></div><button class="primary-queue" data-action="start"><span>ENTRAR A LA ARENA</span><small>partida local · bots autoritativos</small></button><button class="training-link" data-action="training">Abrir Timing / Training Lab</button></div></aside>' +
+      '<aside class="lobby-side"><div class="selected-card" data-slot="selected"></div><div class="ladder-card" data-slot="ladder"></div><div class="queue-card"><div class="section-label">FORMATO</div><div class="mode-pills"><button data-mode="1v1" class="active"><b>1v1</b><small>Contra IA</small></button></div><button class="primary-queue" data-action="start"><span>ENTRAR A LA ARENA</span><small>partida local · rival controlado por IA</small></button><button class="training-link" data-action="training">Abrir laboratorio de combate</button></div></aside>' +
       '</div>';
     this.lobby = lobby;
     this.classGrid = lobby.querySelector('[data-slot="classes"]');
@@ -69,9 +69,9 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
 
     /* MATCH CHROME */
     var chrome = el('div', 'arena-match-chrome hidden', this.root);
-    chrome.innerHTML = '<div class="match-header"><div class="team-score team-a"><span>VANGUARDIA</span><b>0</b></div><div class="match-core"><small data-slot="mode">DUELO LADDER</small><strong data-slot="clock">0:00</strong><span data-slot="phase">ROUND 1</span></div><div class="team-score team-b"><b>0</b><span>OPONENTES</span></div></div>' +
+    chrome.innerHTML = '<div class="match-header"><div class="team-score team-a"><span>VANGUARDIA</span><b>0</b></div><div class="match-core"><small data-slot="mode">DUELO 1v1</small><strong data-slot="clock">0:00</strong><span data-slot="phase">RONDA 1</span></div><div class="team-score team-b"><b>0</b><span>OPONENTES</span></div></div>' +
       '<div class="team-panel team-left" data-slot="team0"></div><div class="team-panel team-right" data-slot="team1"></div>' +
-      '<div class="countdown-overlay"><small>PREPÁRATE</small><b data-slot="countdown">3</b><span>Lee rango · LoS · facing</span></div>';
+      '<div class="countdown-overlay"><small>PREPÁRATE</small><b data-slot="countdown">3</b><span>Orienta el cuerpo · Vigila la distancia</span></div>';
     this.matchChrome = chrome;
     this.matchMode = chrome.querySelector('[data-slot="mode"]');
     this.matchClock = chrome.querySelector('[data-slot="clock"]');
@@ -83,7 +83,7 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
 
     /* RESULTS */
     var results = el('section', 'arena-screen arena-results hidden', this.root);
-    results.innerHTML = '<div class="results-panel"><div class="result-kicker" data-slot="kicker">MATCH COMPLETE</div><h2 data-slot="title">VICTORIA</h2><p data-slot="sub">Controlaste el ritmo.</p><div class="result-rating"><span data-slot="rank">ÉTER</span><strong data-slot="rating">1000</strong><em data-slot="delta">+18</em></div><div class="result-stats" data-slot="stats"></div><div class="result-actions"><button class="primary-queue" data-action="rematch">REVANCHA</button><button class="ghost-btn" data-action="return">VOLVER AL LOBBY</button></div></div>';
+    results.innerHTML = '<div class="results-panel"><div class="result-kicker" data-slot="kicker">DUELO COMPLETADO</div><h2 data-slot="title">VICTORIA</h2><p data-slot="sub">Controlaste el ritmo.</p><div class="result-rating"><span data-slot="rank">ÉTER</span><strong data-slot="rating">1000</strong><em data-slot="delta">+18</em></div><div class="result-stats" data-slot="stats"></div><div class="result-actions"><button class="primary-queue" data-action="rematch">REVANCHA</button><button class="ghost-btn" data-action="return">VOLVER AL LOBBY</button></div></div>';
     results.querySelector('[data-action="rematch"]').onclick = function(){ uiSound('uiConfirm'); if(self.ctx.onRematch) self.ctx.onRematch(); };
     results.querySelector('[data-action="return"]').onclick = function(){ uiSound('uiConfirm'); if(self.ctx.onLobby) self.ctx.onLobby(); };
     this.results = results;
@@ -106,6 +106,7 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
       card.innerHTML = '<span class="class-glyph">'+this._classGlyph(c.id)+'</span><span class="class-copy"><b>'+esc(c.name)+'</b><small>'+esc(c.role)+'</small></span><span class="class-arrow">›</span>';
       card.onclick = function(){ uiSound('uiSelect'); self.selectClass(this.dataset.classId); };
     }
+    this.lobby.dataset.classId=this.selectedClass;
     this._renderSelected();
     this._renderLadder();
   };
@@ -117,6 +118,7 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
   GameShell.prototype.selectClass = function (id) {
     if (!Arena.Data.classes[id]) return;
     this.selectedClass = id;
+    this.lobby.dataset.classId=id;
     var cards = this.classGrid.querySelectorAll('.class-card');
     for(var i=0;i<cards.length;i++) cards[i].classList.toggle('active', cards[i].dataset.classId===id);
     this._renderSelected();
@@ -127,7 +129,7 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
     var icons = '';
     for (var i=0;i<c.abilities.length;i++) {
       var ab = Arena.Data.abilities[c.abilities[i]];
-      icons += '<div class="kit-icon" title="'+esc(ab.name)+'">'+Arena.UI.AbilityIcons.svg(ab)+'<span>'+esc(ab.name)+'</span></div>';
+      icons += '<div class="kit-icon" title="'+esc(ab.name)+'">'+Arena.UI.AbilityIcons.image(ab)+'<span>'+esc(ab.name)+'</span></div>';
     }
     this.selectedCard.innerHTML = '<div class="selected-head"><span class="hero-glyph">'+this._classGlyph(c.id)+'</span><div><small>'+esc(c.archetype)+'</small><h3>'+esc(c.name)+'</h3></div></div><p>'+esc(c.identity)+'</p><div class="tagline">“'+esc(c.tagline)+'”</div><div class="kit-row">'+icons+'</div>';
   };
@@ -137,7 +139,7 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
     var rank = Arena.Product.Ladder.rankFor(p.rating);
     var placement = p.placementRemaining > 0 ? '<span class="placement">'+p.placementRemaining+' partidas de posicionamiento</span>' : '<span>'+p.wins+'V · '+p.losses+'D</span>';
     var recent = p.recent.length ? p.recent.slice(0,5).map(function(m){return '<i class="'+m.result+'" title="'+esc(m.mode)+' '+esc(m.opponent)+'">'+(m.result==='win'?'V':(m.result==='draw'?'E':'D'))+'</i>';}).join('') : '<small class="empty-recent">Sin partidas recientes</small>';
-    this.ladderCard.innerHTML = '<div class="section-label">PERFIL LADDER</div><div class="rank-line"><span class="rank-sigil">'+rank.sigil+'</span><div><b>'+esc(rank.name)+'</b><small>'+placement+'</small></div><strong>'+p.rating+'</strong></div><div class="rank-track"><span style="width:'+Math.round(rank.progress*100)+'%"></span></div><div class="recent-line"><span>RECIENTES</span><div>'+recent+'</div></div>';
+    this.ladderCard.innerHTML = '<div class="section-label">PROGRESO LOCAL · CONTRA IA</div><div class="rank-line"><span class="rank-sigil">'+rank.sigil+'</span><div><b>'+esc(rank.name)+'</b><small>'+placement+'</small></div><strong>'+p.rating+'</strong></div><div class="rank-track"><span style="width:'+Math.round(rank.progress*100)+'%"></span></div><div class="recent-line"><span>RECIENTES</span><div>'+recent+'</div></div>';
   };
 
   GameShell.prototype.showLobby = function () {
@@ -159,7 +161,7 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
     this.lobby.classList.add('hidden');
     this.results.classList.add('hidden');
     this.matchChrome.classList.remove('hidden');
-    this.matchMode.textContent = state.mode === '2v2' ? 'SKIRMISH 2v2' : (state.mode==='training'?'COMBAT LAB':'DUELO LADDER');
+    this.matchMode.textContent = state.mode === '2v2' ? 'SKIRMISH 2v2' : (state.mode==='training'?'LABORATORIO':'DUELO 1v1');
     // El roster acaba de hacerse visible: recolocarlo en el primer frame, no al
     // cabo de doce, para que no aparezca pisando el marco del jugador.
     this._placeTick = 0;
@@ -182,7 +184,7 @@ Arena.define('ui/gameShell', ['ui/abilityIcons', 'product/matchFlow'], function 
     this.resultDelta.textContent = (result.delta>0?'+':'')+result.delta;
     this.resultDelta.className = result.delta >= 0 ? 'positive' : 'negative';
     var s = result.stats || {};
-    this.resultStats.innerHTML = '<div><small>DURACIÓN</small><b>'+secs(result.duration||0)+'</b></div><div><small>DAÑO</small><b>'+Math.round(s.damage||0)+'</b></div><div><small>CURACIÓN</small><b>'+Math.round(s.healing||0)+'</b></div><div><small>INTERRUPTS</small><b>'+Math.round(s.interrupts||0)+'</b></div>';
+    this.resultStats.innerHTML = '<div><small>DURACIÓN</small><b>'+secs(result.duration||0)+'</b></div><div><small>DAÑO</small><b>'+Math.round(s.damage||0)+'</b></div><div><small>CURACIÓN</small><b>'+Math.round(s.healing||0)+'</b></div><div><small>INTERRUPCIONES</small><b>'+Math.round(s.interrupts||0)+'</b></div>';
   };
 
   GameShell.prototype.update = function (state) {

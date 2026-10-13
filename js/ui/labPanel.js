@@ -113,6 +113,27 @@ Arena.define('ui/labPanel', ['ui/combatLog', 'ai/dummyAI'], function (Arena) {
     this.profileHint = hint;
     sel.dispatchEvent(new Event('change'));
 
+    /* Workbook model controls: edit only training, never an active duel. */
+    var fm=this._section(body,'Fórmulas Regnum · modelo comunitario 2016');
+    var note=el('div','',fm);note.textContent='Resistencia elemental → suma → armadura × 0,52 → crítico × 1,33. El 0,52 es experimental; equipo inicial calibrado para Arena.';
+    note.style.cssText='font-size:10px;color:var(--text-faint);line-height:1.5';
+    var fields=el('div','lab-row',fm);
+    function numberInput(label,value){var l=el('label','',fields);l.textContent=label;var n=el('input','lab-select',l);n.type='number';n.min=0;n.max=5000;n.value=value;n.style.width='90px';return n;}
+    var armorInput=numberInput('Armadura objetivo ',100),weaponInput=numberInput('Daño arma jugador ',50),attributeInput=numberInput('Atributo principal ',20);
+    var grade=el('select','lab-select',fm);grade.setAttribute('aria-label','Resistencia elemental del equipo');
+    [['normal','Normal (0%)'],['good','Buena (+15%)'],['very good','Muy buena (+30%)'],['excellent','Excelente (+45%)'],['bad','Mala (−15%)'],['very bad','Muy mala (−30%)']].forEach(function(g){var o=el('option','',grade);o.value=g[0];o.textContent=g[1];});
+    var apply=el('button','btn wide',fm);apply.textContent='Aplicar perfil en entrenamiento';apply.onclick=function(){
+      if(Arena.Data.trainerBuild.isLocked()){self.ctx.hud.showError('El perfil está bloqueado durante el duelo');return;}
+      var t=self._target(),p=self.world.getPlayer();if(!t||!p)return;
+      var armor=Math.max(0,Math.min(5000,Number(armorInput.value)||0));t.armorBase=armor;t.equipment=null;
+      var pieces=t.armorPieces();Object.keys(pieces).forEach(function(slot){var res={};['slashing','piercing','crushing','fire','cold','lightning'].forEach(function(k){res[k]=grade.value;});pieces[slot].resistances=res;});t.equipment=pieces;
+      p.weaponFlat=Math.max(0,Math.min(5000,Number(weaponInput.value)||0));
+      var primary=p.classId==='centinela'||p.classId==='rastreador'?'dexterity':(Arena.Combat.RegnumFormulas.family(p.classId)==='mage'?'intelligence':'strength');
+      p.attributes[primary]=Math.max(0,Math.min(5000,Number(attributeInput.value)||0));p.invalidateMods();t.invalidateMods();
+    };
+    this.formulaReadout=el('div','',fm);this.formulaReadout.style.cssText='font:10px var(--num-font);line-height:1.6;margin-top:8px';
+    this.world.bus.on('DamageApplied',function(hit){if(!hit.formula)return;var f=hit.formula;self.formulaReadout.textContent='Último golpe: bruto '+f.raw.toFixed(1)+' → resistencias '+f.afterResistance.toFixed(1)+' − armadura '+f.armorReduction.toFixed(1)+' → '+f.damage.toFixed(1)+(hit.crit?' (crítico)':'')+' · HP aplicado '+hit.applied.toFixed(1);});
+
     /* --- Aplicar control --------------------------------------------------- */
     var s4 = this._section(body, 'Aplicar al objetivo');
     var row4 = el('div', 'lab-row', s4);
@@ -277,6 +298,11 @@ Arena.define('ui/labPanel', ['ui/combatLog', 'ai/dummyAI'], function (Arena) {
     this.toggles.dr.classList.toggle('on', B.DR.enabled);
     this.toggles.rng.classList.toggle('on', this.world.settings.rngEnabled);
     this.toggles.ai.classList.toggle('on', this.world.settings.aiEnabled);
+    this.toggles.cd.classList.toggle('on',this.world.settings.freeCooldowns);
+    this.toggles.res.classList.toggle('on',this.world.settings.freeResources);
+    this.toggles.god.classList.toggle('on',this.world.settings.godModePlayer);
+    this.toggles.slow.classList.toggle('on',this.world.clock.timeScale!==1);
+    this.toggles.tele.classList.toggle('on',this.ctx.renderer.showTelegraphs!==false);
   };
 
   LabPanel.prototype.syncClass = function (classId) {

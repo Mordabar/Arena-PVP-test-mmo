@@ -1,5 +1,12 @@
 node_modules/
 *.log
 .DS_Store
-qa/
+qa/*
+!qa/trainer-catalogue.json
+!qa/trainer-039.json
+!qa/static-visual-039.json
+!qa/animation-sequences-039.json
+!qa/animation-sequences-039-CPU.png
+!qa/ANIMATION_039.md
+!qa/VERIFICACION_039.md
 THREE_R160_API.md

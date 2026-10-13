@@ -1,0 +1,8 @@
+{
+  "version": "0.39.0",
+  "checks": 1351,
+  "realIcons": 290,
+  "uniqueIconFiles": 320,
+  "vfxCases": 870,
+  "scope": "Static paths, syntax, SVG identity, Three.js VFX transforms on CPU; no browser/GPU or visual gamefeel proof."
+}

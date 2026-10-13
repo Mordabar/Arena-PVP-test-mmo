@@ -155,8 +155,19 @@ export function createVfxRenderer(Arena, scene) {
       h.core.position.set(ex,ey,ez);h.core.scale.setScalar(.22+.20*fade);h.ring.position.set(ex,ey+.02,ez);h.ring.scale.setScalar(.55+1.1*t);h.line.visible=true;
       var dp=h.lg.attributes.position.array;
       for(j=0;j<9;j++){var du=j/8,dj=(j===0||j===8)?0:Math.sin(j*3.7+(time||0)*8)*.10;dp[j*3]=semLerp(ex,sx,du)+dj;dp[j*3+1]=semLerp(ey,sy,du)+Math.sin(du*Math.PI)*.30;dp[j*3+2]=semLerp(ez,sz,du)-dj;}h.lg.attributes.position.needsUpdate=true;
+    } else if(type==='physicalSkill'){
+      h.core.visible=false;h.ring.position.set(ex,ey+.03,ez);h.ring.scale.setScalar(.35+.8*t);h.ring.rotation.x=Math.PI/2;
+      for(j=0;j<4;j++){var ps=h.shards[j];ps.visible=true;var pa=j*Math.PI/2+sp.seed*.01;ps.position.set(ex+Math.cos(pa)*t,ey+.1+Math.sin(t*Math.PI)*.25,ez+Math.sin(pa)*t);ps.scale.set(.05,.25*fade,.05);ps.rotation.z=pa;}
     } else {
       h.core.position.set(ex,ey,ez);h.core.scale.setScalar(.24+.25*fade);h.ring.position.set(ex,ey,ez);h.ring.scale.setScalar(.7+1.0*t);h.ring.rotation.z=(time||0)*2;
+    }
+    // Signature-level variation stays cosmetic: no extra attacks or radius writes.
+    var variation=1+((sp.seed>>>3)%9-4)*.025,rankScale=.84+(sp.rank||3)*.035;
+    h.core.scale.multiplyScalar(rankScale*variation);h.ring.scale.multiplyScalar(variation);
+    for(j=0;j<h.shards.length;j++)if(h.shards[j].visible){var part=h.shards[j],phase=sp.seed*.001+j;
+      part.scale.y*=.85+((sp.seed+j)%7)*.07;
+      part.position.y+=Math.sin(t*(sp.pulseRate||1)*Math.PI*2+phase)*.04;
+      part.rotation.y=(time||0)*(sp.orbitDirection||1)+phase;
     }
   }
 

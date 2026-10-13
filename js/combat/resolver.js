@@ -31,12 +31,14 @@ Arena.define('combat/resolver',
    *  Intervención la deja pasar (§9). Se calcula una vez y se cachea. */
   R.abilityCausesDamage = function (ability) {
     if (ability._causesDamage === undefined) {
-      var found = false;
-      var list = ability.effects || [];
-      for (var i = 0; i < list.length; i++) {
-        if (DAMAGE_TYPES[list[i].type]) { found = true; break; }
+      function damaging(list){
+        for(var i=0;i<list.length;i++){
+          var e=list[i];
+          if(DAMAGE_TYPES[e.type] || (e.type==='conditional'&&(damaging(e.then||[])||damaging(e.otherwise||[]))))return true;
+        }
+        return false;
       }
-      ability._causesDamage = found;
+      ability._causesDamage = damaging(ability.effects || []);
     }
     return ability._causesDamage;
   };
@@ -189,7 +191,7 @@ Arena.define('combat/resolver',
     // Efectos sobre uno mismo: buffs, cargas, coste de posicionamiento. Nunca
     // pasan por los counters del enemigo.
     if (ability.selfEffects && ability.selfEffects.length) {
-      R._applyEffectList(world, caster, caster, ability, ability.selfEffects, { isSelf: true });
+      R._applyEffectList(world, caster, caster, ability, ability.selfEffects, { isSelf: true, groundPoint:ctx.groundPoint });
     }
 
     world.bus.emit('AbilityExecuted', {
@@ -213,7 +215,7 @@ Arena.define('combat/resolver',
     var hostile = world.areHostile(caster, target);
 
     /* --- Paso 5.a — Estasis / invulnerabilidad -------------------------- */
-    if (!target.alive && !(ability.flags && ability.flags.revive)) { hit.outcome = 'dead'; return hit; }
+    if (!target.alive && !(ability.flags && (ability.flags.revive||ability.flags.cremate))) { hit.outcome = 'dead'; return hit; }
     if (target.mods().isolated) {
       hit.outcome = 'stasis';
       world.bus.emit('AbilityNullified', {
@@ -227,6 +229,7 @@ Arena.define('combat/resolver',
          Con RNG apagado sólo 100 % niega el impacto; con RNG encendido se usa
          el RNG determinista del mundo. El ataque normal no pasa por aquí. */
       var powerImmune = target.mods().powerImmunityPct || 0;
+      if(!ability.flags||ability.flags.resistible!==false)powerImmune=Math.min(1,powerImmune+target.powerResistanceChance());
       if (powerImmune >= 0.999 || (powerImmune > 0 && world.settings.rngEnabled && world.rng.chance(powerImmune))) {
         hit.outcome = 'resisted';
         world.bus.emit('AbilityNullified', { casterId:caster.id, targetId:target.id, abilityId:ability.id, reason:'sourcePowerResistance' });
@@ -270,7 +273,7 @@ Arena.define('combat/resolver',
          activar RNG en el laboratorio, porcentajes intermedios se vuelven
          plenamente funcionales usando la semilla del mundo. */
       var tm = target.mods();
-      var ev = Math.max(0, tm.evasionPct || 0);
+      var ev = target.evasionChance();
       var physicalLike = ability.flags && ability.flags.weaponAttack;
       if (physicalLike && (ev >= 0.999 || (ev > 0 && world.settings.rngEnabled && world.rng.chance(ev)))) {
         hit.outcome = 'evaded';
@@ -298,7 +301,7 @@ Arena.define('combat/resolver',
     }
 
     /* --- Pasos 6, 7 y 8 -------------------------------------------------- */
-    R._applyEffectList(world, caster, target, ability, ability.effects || [], ctx, hit);
+    R._applyEffectList(world, caster, target, ability, (target.id === caster.id && ability.selfTargetEffects) || ability.effects || [], ctx, hit);
 
     world.bus.emit('AbilityHit', {
       casterId: caster.id, targetId: target.id, abilityId: ability.id,
@@ -319,6 +322,15 @@ Arena.define('combat/resolver',
     hit = hit || { effects: [], damage: 0, healing: 0 };
     var split = ctx.splitFactor || 1;
 
+    // Consecutive direct elemental + weapon rows represent ONE attack.
+    // Subtracting armor once per row incorrectly penalised mixed damage spells.
+    var components={},groupPure=null,groupCrit=false;
+    function flush(){
+      var keys=Object.keys(components);if(!keys.length)return;
+      var raw=keys.reduce(function(s,k){return s+components[k];},0);
+      var res=Dmg.applyDamage(world,{source:caster,target:target,raw:raw,components:components,school:groupPure?'pure':(ability.flags&&ability.flags.magic?'magical':'physical'),element:keys.length===1?keys[0]:'mixed',abilityId:ability.id,canCrit:groupCrit,rangeKind:sourceRangeKind(ability)});
+      hit.damage+=res.applied;components={};groupPure=null;groupCrit=false;
+    }
     for (var i = 0; i < effects.length; i++) {
       var e = effects[i];
       var handler = R.effectHandlers[e.type];
@@ -327,8 +339,24 @@ Arena.define('combat/resolver',
       // desactivado se toman como deterministas (siempre ocurren).
       if (e.chance !== undefined && world.settings.rngEnabled && !world.rng.chance(e.chance)) continue;
       if (e.condition && !R.conditions[e.condition](world, caster, target, ability, e)) continue;
+      if(e.type==='sourceDamage'||e.type==='sourceWeaponDamage'){
+        var isPure=e.type==='sourceDamage'&&e.school==='pure';
+        if(groupPure!==null&&groupPure!==isPure)flush();groupPure=isPure;
+        if(e.type==='sourceWeaponDamage'){
+          var pct=sourceRoll(world,e.pctMin,e.pctMax),mult=e.bonus?1+pct:pct;
+          var wc=caster.weaponComponents();
+          Object.keys(wc).forEach(function(k){components[k]=(components[k]||0)+wc[k]*mult*split;});groupCrit=true;
+        }else{
+          var amount=sourceRoll(world,e.min,e.max)*split;
+          if(ability.flags&&ability.flags.magic)amount*=Math.max(0,1+caster.mods().spellDamagePct);
+          var el=e.element||'neutral';components[el]=(components[el]||0)+amount;
+        }
+        continue;
+      }
+      flush();
       handler(world, caster, target, ability, e, split, hit, ctx);
     }
+    flush();
     return hit;
   };
 
@@ -357,11 +385,17 @@ Arena.define('combat/resolver',
 
   R.effectHandlers = {
 
+    selfHealthCost: function (world, caster, target, ability, e, split, hit) {
+      var cost=Math.max(0,Number(e.flat||0));
+      caster.hp=Math.max(1,caster.hp-cost);
+      world.bus.emit('HealthCostPaid',{entityId:caster.id,abilityId:ability.id,amount:cost});
+      hit.effects.push('selfHealthCost');
+    },
+
     sourceDamage: function (world, caster, target, ability, e, split, hit) {
       var cm=caster.mods();
       var raw=sourceRoll(world,e.min,e.max);
       if(ability.flags&&ability.flags.magic) raw*=Math.max(0,1+(cm.spellDamagePct||0));
-      raw+=sourceBonusFlat(cm,e.element);
       raw*=split;
       var res=Dmg.applyDamage(world,{source:caster,target:target,raw:raw,school:e.school||'pure',element:e.element||'generic',abilityId:ability.id,canCrit:false,rangeKind:sourceRangeKind(ability)});
       hit.damage+=res.applied;
@@ -372,9 +406,9 @@ Arena.define('combat/resolver',
       var pct=sourceRoll(world,e.pctMin,e.pctMax);
       var mult=e.bonus ? (1+pct) : pct;
       var cm=caster.mods();
-      var base=caster.power * B.AUTO_ATTACK.coefficient * Math.max(0,1+(cm.weaponDamagePct||0));
-      var raw=(base*mult + sourceBonusFlat(cm,'physical'))*split;
-      var res=Dmg.applyDamage(world,{source:caster,target:target,raw:raw,school:'physical',element:'physical',abilityId:ability.id,canCrit:true,rangeKind:sourceRangeKind(ability)});
+      var components=caster.weaponComponents(),raw=0;
+      Object.keys(components).forEach(function(k){components[k]*=mult*split;raw+=components[k];});
+      var res=Dmg.applyDamage(world,{source:caster,target:target,raw:raw,components:components,school:'physical',element:caster.weaponElement,abilityId:ability.id,canCrit:true,rangeKind:sourceRangeKind(ability)});
       hit.damage+=res.applied;
     },
 
@@ -382,7 +416,6 @@ Arena.define('combat/resolver',
       var cm=caster.mods();
       var tick=sourceRoll(world,e.min,e.max);
       if(ability.flags&&ability.flags.magic) tick*=Math.max(0,1+(cm.spellDamagePct||0));
-      tick+=sourceBonusFlat(cm,e.element);
       tick*=split;
       var interval=e.interval||1.0, duration=e.duration||interval;
       Status.apply(world,target,{effect:'dot',duration:duration,abilityId:ability.id,data:{tickDamage:tick,interval:interval,total:tick*Math.max(1,Math.round(duration/interval)),school:e.school||'magical',element:e.element||'generic',label:'Daño fuente'}},caster);
@@ -422,14 +455,14 @@ Arena.define('combat/resolver',
 
     sourceResourceRestore: function (world, caster, target, ability, e, split, hit) {
       var value=sourceRoll(world,e.min,e.max);
-      var amount=e.percent ? target.resourceMax*(value/100) : value;
+      var amount=e.percent ? target.effectiveResourceMax()*(value/100) : value;
       Heal.restoreResource(world,target,amount*split,'sourceAbility');
       hit.effects.push('sourceResourceRestore');
     },
 
     sourceManaDrain: function (world, caster, target, ability, e, split, hit) {
       var value=sourceRoll(world,e.min,e.max);
-      var requested=e.percent ? target.resourceMax*(value/100) : value;
+      var requested=e.percent ? target.effectiveResourceMax()*(value/100) : value;
       requested*=split;
       var amount=Math.min(target.resource,Math.max(0,requested));
       target.resource-=amount;
@@ -570,11 +603,11 @@ Arena.define('combat/resolver',
 
     restoreResource: function (world, caster, target, ability, e, split, hit) {
       Heal.restoreResource(world, target,
-        e.flat !== undefined ? e.flat : target.resourceMax * (e.pct || 0.1), 'ability');
+        e.flat !== undefined ? e.flat : target.effectiveResourceMax() * (e.pct || 0.1), 'ability');
     },
 
     drainResource: function (world, caster, target, ability, e, split, hit) {
-      var requested = e.flat !== undefined ? e.flat : target.resourceMax * (e.pct || 0);
+      var requested = e.flat !== undefined ? e.flat : target.effectiveResourceMax() * (e.pct || 0);
       var amount = Math.min(target.resource, Math.max(0, requested));
       target.resource -= amount;
       world.bus.emit('ResourceDrained', {
@@ -749,8 +782,7 @@ Arena.define('combat/resolver',
         if (!ally.alive || world.areHostile(caster,ally)) continue;
         var dx=ally.pos.x-caster.pos.x, dz=ally.pos.z-caster.pos.z;
         if (dx*dx+dz*dz > radius*radius) continue;
-        ally.prevPos.x=ally.pos.x; ally.prevPos.y=ally.pos.y; ally.prevPos.z=ally.pos.z;
-        ally.pos.x=gp.x + (moved%5)*0.45; ally.pos.z=gp.z + Math.floor(moved/5)*0.45;
+        world.moveEntityTo(ally,{x:gp.x+(moved%5)*0.45,y:gp.y||0,z:gp.z+Math.floor(moved/5)*0.45},{sweep:false,reason:'portal',abilityId:ability.id});
         moved++;
       }
       hit.effects.push('portal:'+moved);
@@ -767,6 +799,7 @@ Arena.define('combat/resolver',
 
   /* --- Condiciones reutilizables ----------------------------------------- */
   R.conditions = {
+    targetAlive: function(world,caster,target){return !!(target&&target.alive);},
     casterHasStatus: function (world, caster, target, ability, e) {
       return caster.hasStatus(e.status);
     },

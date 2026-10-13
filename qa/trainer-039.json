@@ -1,0 +1,13 @@
+{
+  "version": "0.39.0",
+  "checks": 12333,
+  "rankMechanicsCases": 2050,
+  "sourcePowers": 290,
+  "classAssignments": 410,
+  "rankVariants": 2050,
+  "emptySlots": 30,
+  "limits": [
+    "Headless engine tests; not browser/GPU or online multiplayer QA.",
+    "Workbook armor factor .52 is historical community beta."
+  ]
+}
