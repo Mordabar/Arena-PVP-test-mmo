@@ -1,0 +1,74 @@
+{
+  "url": "http://127.0.0.1:36243/index.html",
+  "state": "combate",
+  "seed": null,
+  "viewport": {
+    "width": 1600,
+    "height": 900,
+    "mobile": false,
+    "dpr": 1
+  },
+  "stateAdapter": {
+    "via": "Arena.Game",
+    "estado": "combate",
+    "phase": "ACTIVE"
+  },
+  "page": {
+    "ok": true,
+    "canvas": [
+      1600,
+      900
+    ],
+    "version": "0.39.0",
+    "build": "trainer-regnum-v039",
+    "drawCalls": 198,
+    "triangles": 30218,
+    "textures": 4,
+    "geometries": 91,
+    "entities": 2,
+    "tick": 0
+  },
+  "metrics": {
+    "sampled": 360000,
+    "colorEntropy": 7.369,
+    "colorEntropyMax": 15,
+    "distinctColors": 1188,
+    "dominantColorShare": 0.045,
+    "edgeDensity": 0.262,
+    "luminanceMean": 0.346,
+    "luminanceContrastRms": 0.169,
+    "luminanceP05P95": [
+      0.069,
+      0.527
+    ],
+    "luminanceRange": 0.457
+  },
+  "renderBudget": {
+    "drawCalls": {
+      "value": 198,
+      "budget": 900,
+      "status": "DENTRO"
+    },
+    "triangles": {
+      "value": 30218,
+      "budget": 400000,
+      "status": "DENTRO"
+    },
+    "textures": {
+      "value": 4,
+      "budget": 80,
+      "status": "DENTRO"
+    },
+    "geometries": {
+      "value": 91,
+      "budget": 400,
+      "status": "DENTRO"
+    }
+  },
+  "consoleErrors": [],
+  "notes": [
+    "render por software (ANGLE/SwiftShader): no medir FPS con esto"
+  ],
+  "failures": [],
+  "verdict": "APROBADO"
+}
