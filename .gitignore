@@ -10,3 +10,6 @@ qa/*
 !qa/ANIMATION_039.md
 !qa/VERIFICACION_039.md
 THREE_R160_API.md
+
+# Animaciones de Regnum bajo autorización privada: nunca al repositorio
+assets/regnum-private/
