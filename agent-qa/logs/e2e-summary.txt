@@ -1,0 +1,7 @@
+devastador exit=0
+guardian exit=1
+centinela exit=0
+rastreador exit=0
+arcanista exit=0
+vinculador exit=0
+DONE

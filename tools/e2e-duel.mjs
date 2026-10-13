@@ -51,6 +51,13 @@ const ESTADO = `(function(){
   };
 })()`;
 
+let teclasPulsadas = new Set();
+async function mantener(s, quiero) {
+  for (const k of teclasPulsadas) if (!quiero.has(k)) await key(s, k, false);
+  for (const k of quiero) if (!teclasPulsadas.has(k)) await key(s, k, true);
+  teclasPulsadas = new Set(quiero);
+}
+
 async function esperar(s, pred, seg, etiqueta) {
   const fin = Date.now() + seg * 1000;
   let st = null;
@@ -80,7 +87,7 @@ async function main() {
     await sleep(400);
     const entrado = await ev(s, `(function(){var b=document.querySelector('[data-action="start"]'); if(!b) return false; b.click(); return true;})()`);
     check(entrado, 'botón ENTRAR A LA ARENA disponible');
-    await esperar(s, st => st.phase === 'ACTIVE', 20, 'ACTIVE');
+    await esperar(s, st => st.phase === 'ACTIVE', 120, 'ACTIVE'); // SwiftShader: la cuenta atrás depende de fotogramas lentos (~1 fps)
     check(true, 'la partida pasa a ACTIVE');
     const inicio = await ev(s, ESTADO);
     check(!!inicio.me && inicio.me.alive, 'el jugador existe y está vivo al empezar');
@@ -101,23 +108,24 @@ async function main() {
       st = await ev(s, ESTADO);
       if (st.phase !== 'ACTIVE' && st.phase !== 'COUNTDOWN') break;
       if (!st.me || !st.foe || !st.me.alive) break;
-      // Encarar al rival: Q/E según el signo del ángulo, y W si está lejos.
+      // Encarar y acercarse: teclas MANTENIDAS mientras haga falta (no pulsos sueltos).
       const dx = st.foe.x - st.me.x, dz = st.foe.z - st.me.z;
       const dist = Math.hypot(dx, dz);
       const want = Math.atan2(dx, dz);
       let diff = want - st.me.yaw;
       while (diff > Math.PI) diff -= 2 * Math.PI;
       while (diff < -Math.PI) diff += 2 * Math.PI;
-      if (Math.abs(diff) > 0.25) await press(s, diff > 0 ? 'e' : 'q', 120);
-      else if (dist > 2.2) await key(s, 'w', true);
-      if (dist <= 2.2 || Math.abs(diff) > 0.25) await key(s, 'w', false);
+      const quiero = new Set();
+      if (diff > 0.2) quiero.add('e'); else if (diff < -0.2) quiero.add('q');
+      if (dist > 2.0 && Math.abs(diff) < 0.6) quiero.add('w');
+      await mantener(s, quiero);
       // Poderes: pulsar uno de la barra cada ~2.5 s, rotando.
       if (Date.now() - ultimoPoder > 2500) { await press(s, slots[k % slots.length], 60); k++; ultimoPoder = Date.now(); }
       if (!shotMid && Date.now() - t0 > 8000) { await s.screenshotBuffer().then(b => fs.writeFileSync(path.join(OUT, '03-combate-medio.png'), b)); shotMid = true; }
       trazas.push({ t: +((Date.now() - t0) / 1000).toFixed(1), phase: st.phase, me: st.me.hp, foe: st.foe.hp, dist: +dist.toFixed(2) });
       await sleep(180);
     }
-    await key(s, 'w', false);
+    await mantener(s, new Set());
 
     console.log('— Resultado');
     const fin = await esperar(s, st => st.phase === 'RESULTS', 40, 'RESULTS');
