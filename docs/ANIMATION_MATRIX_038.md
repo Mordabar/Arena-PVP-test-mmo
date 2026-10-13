@@ -75,7 +75,7 @@ El reinicio elimina las entidades y sus handles; crea reposo y cooldowns nuevos.
 | guardian | Estasis | STASIS · Idle_Loop | EXTERNAL_CC0 / FINAL · full | 9 | Pose anterior congelada; continúa al eliminar estado |
 | guardian | Muerte | DEATH · Death01 | EXTERNAL_CC0 / FINAL_USER_LOCKED · full | 10 | EntityDied; supera acciones y controles; pose final sostenida |
 | centinela | Reposo | IDLE · Idle_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · full | 0 | Sin entrada; mezcla a guardia al entrar en combate |
-| centinela | Guardia | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Modo de combate; sale al moverse o actuar |
+| centinela | Guardia | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Modo de combate; sale al moverse o actuar |
 | centinela | Caminar | WALK · Walk_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · lower | 1 | Desplazamiento real; sale al detenerse |
 | centinela | Correr | RUN · Jog_Fwd_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · lower | 1 | Desplazamiento real; sale al detenerse |
 | centinela | Sprint | SPRINT · Sprint_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · lower | 1 | Buff de velocidad y desplazamiento |
@@ -87,28 +87,28 @@ El reinicio elimina las entidades y sus handles; crea reposo y cooldowns nuevos.
 | centinela | Salto inicio | JUMP_START · Jump_Start | EXTERNAL_CC0 / FINAL · full | 5 | Evento de salto; transición a vuelo |
 | centinela | Salto vuelo | AIRBORNE · Jump_Loop | EXTERNAL_CC0 / FINAL · full | 5 | En el aire; transición al contacto con suelo |
 | centinela | Aterrizaje | LAND · Jump_Land | EXTERNAL_CC0 / FINAL · full | 5 | Contacto con suelo; peso visual llega a cero |
-| centinela | Normal preparación | ACTION · Arena_Archer_VideoShoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | WINDUP real; cancelar o RELEASE |
-| centinela | Normal ejecución | ACTION · Arena_Archer_VideoShoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | RELEASE autoritativo; nuevo evento reinicia clip |
-| centinela | Normal recuperación | ACTION · Arena_Archer_VideoShoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | RECOVERY/readyAt; disponible al cumplir ciclo |
-| centinela | Preparación de poder | CAST_CHARGE · Arena_Archer_VideoNotch | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | CastStarted; termina en RELEASE, cancelación o control |
+| centinela | Normal preparación | ACTION · Arena_Archer_Shoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | WINDUP real; cancelar o RELEASE |
+| centinela | Normal ejecución | ACTION · Arena_Archer_Shoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | RELEASE autoritativo; nuevo evento reinicia clip |
+| centinela | Normal recuperación | ACTION · Arena_Archer_Shoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | RECOVERY/readyAt; disponible al cumplir ciclo |
+| centinela | Preparación de poder | CAST_CHARGE · Arena_Archer_Notch | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | CastStarted; termina en RELEASE, cancelación o control |
 | centinela | Poder ofensivo | ACTION · Spell_Simple_Enter | EXTERNAL_CC0 / PROVISIONAL · upper | 3 | AbilityReleased; animación no decide el daño |
 | centinela | Curación / buff | ACTION · Spell_Simple_Enter | EXTERNAL_CC0 / PROVISIONAL · upper | 3 | AbilityReleased; reutiliza gesto nativo de utilidad |
 | centinela | Daño leve | HIT · Hit_Chest | EXTERNAL_CC0 / FINAL_USER_LOCKED · upper | 4 | DamageApplied; decae sin alterar simulación |
-| centinela | Daño durante casteo | CAST_CHARGE · Arena_Archer_VideoNotch | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · Chest quaternion aditivo | 3 | Capa aditiva breve de pecho; conserva casteo |
-| centinela | Bloqueo | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · VFX por evento | 4 | AbilityBlocked; melee usa Sword_Block, demás VFX; respeta acciones |
-| centinela | Interrupción | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | CastCancelled; vuelve a guardia, sin commit anticipado |
+| centinela | Daño durante casteo | CAST_CHARGE · Arena_Archer_Notch | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · Chest quaternion aditivo | 3 | Capa aditiva breve de pecho; conserva casteo |
+| centinela | Bloqueo | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · VFX por evento | 4 | AbilityBlocked; melee usa Sword_Block, demás VFX; respeta acciones |
+| centinela | Interrupción | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | CastCancelled; vuelve a guardia, sin commit anticipado |
 | centinela | Aturdimiento | STUN · Hit_Head | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 8 | StatusApplied/Removed; pose sostenida |
 | centinela | Noqueo caída | KNOCKDOWN_START · Death01 | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 8 | Primeros 0.38 s; reutiliza Death01 |
 | centinela | Noqueo tendido | KNOCKDOWN_LOOP · Death01 | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 8 | Control activo; mantiene último fotograma de Death01 |
 | centinela | Levantarse | KNOCKDOWN_EXIT · LayToIdle | EXTERNAL_CC0 / FINAL_USER_LOCKED · full | 7 | Control eliminado; LayToIdle durante salida visual |
-| centinela | Enraizamiento | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación bloquea desplazamiento; permite acciones legales |
-| centinela | Silencio | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación restringe poderes; locomoción y arma según reglas |
-| centinela | Desarme | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación restringe arma; permite magia legal |
+| centinela | Enraizamiento | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación bloquea desplazamiento; permite acciones legales |
+| centinela | Silencio | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación restringe poderes; locomoción y arma según reglas |
+| centinela | Desarme | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación restringe arma; permite magia legal |
 | centinela | Ralentización | RUN · Jog_Fwd_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · lower | 1 | Velocidad real gobierna paso; no inmovilización total |
 | centinela | Estasis | STASIS · Idle_Loop | EXTERNAL_CC0 / FINAL · full | 9 | Pose anterior congelada; continúa al eliminar estado |
 | centinela | Muerte | DEATH · Death01 | EXTERNAL_CC0 / FINAL_USER_LOCKED · full | 10 | EntityDied; supera acciones y controles; pose final sostenida |
 | rastreador | Reposo | IDLE · Idle_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · full | 0 | Sin entrada; mezcla a guardia al entrar en combate |
-| rastreador | Guardia | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Modo de combate; sale al moverse o actuar |
+| rastreador | Guardia | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Modo de combate; sale al moverse o actuar |
 | rastreador | Caminar | WALK · Walk_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · lower | 1 | Desplazamiento real; sale al detenerse |
 | rastreador | Correr | RUN · Jog_Fwd_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · lower | 1 | Desplazamiento real; sale al detenerse |
 | rastreador | Sprint | SPRINT · Sprint_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · lower | 1 | Buff de velocidad y desplazamiento |
@@ -120,23 +120,23 @@ El reinicio elimina las entidades y sus handles; crea reposo y cooldowns nuevos.
 | rastreador | Salto inicio | JUMP_START · Jump_Start | EXTERNAL_CC0 / FINAL · full | 5 | Evento de salto; transición a vuelo |
 | rastreador | Salto vuelo | AIRBORNE · Jump_Loop | EXTERNAL_CC0 / FINAL · full | 5 | En el aire; transición al contacto con suelo |
 | rastreador | Aterrizaje | LAND · Jump_Land | EXTERNAL_CC0 / FINAL · full | 5 | Contacto con suelo; peso visual llega a cero |
-| rastreador | Normal preparación | ACTION · Arena_Archer_VideoShoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | WINDUP real; cancelar o RELEASE |
-| rastreador | Normal ejecución | ACTION · Arena_Archer_VideoShoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | RELEASE autoritativo; nuevo evento reinicia clip |
-| rastreador | Normal recuperación | ACTION · Arena_Archer_VideoShoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | RECOVERY/readyAt; disponible al cumplir ciclo |
-| rastreador | Preparación de poder | CAST_CHARGE · Arena_Archer_VideoNotch | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | CastStarted; termina en RELEASE, cancelación o control |
+| rastreador | Normal preparación | ACTION · Arena_Archer_Shoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | WINDUP real; cancelar o RELEASE |
+| rastreador | Normal ejecución | ACTION · Arena_Archer_Shoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | RELEASE autoritativo; nuevo evento reinicia clip |
+| rastreador | Normal recuperación | ACTION · Arena_Archer_Shoot | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | RECOVERY/readyAt; disponible al cumplir ciclo |
+| rastreador | Preparación de poder | CAST_CHARGE · Arena_Archer_Notch | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · upper | 3 | CastStarted; termina en RELEASE, cancelación o control |
 | rastreador | Poder ofensivo | ACTION · Spell_Simple_Enter | EXTERNAL_CC0 / PROVISIONAL · upper | 3 | AbilityReleased; animación no decide el daño |
 | rastreador | Curación / buff | ACTION · Spell_Simple_Enter | EXTERNAL_CC0 / PROVISIONAL · upper | 3 | AbilityReleased; reutiliza gesto nativo de utilidad |
 | rastreador | Daño leve | HIT · Hit_Chest | EXTERNAL_CC0 / FINAL_USER_LOCKED · upper | 4 | DamageApplied; decae sin alterar simulación |
-| rastreador | Daño durante casteo | CAST_CHARGE · Arena_Archer_VideoNotch | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · Chest quaternion aditivo | 3 | Capa aditiva breve de pecho; conserva casteo |
-| rastreador | Bloqueo | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · VFX por evento | 4 | AbilityBlocked; melee usa Sword_Block, demás VFX; respeta acciones |
-| rastreador | Interrupción | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | CastCancelled; vuelve a guardia, sin commit anticipado |
+| rastreador | Daño durante casteo | CAST_CHARGE · Arena_Archer_Notch | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · Chest quaternion aditivo | 3 | Capa aditiva breve de pecho; conserva casteo |
+| rastreador | Bloqueo | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · VFX por evento | 4 | AbilityBlocked; melee usa Sword_Block, demás VFX; respeta acciones |
+| rastreador | Interrupción | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | CastCancelled; vuelve a guardia, sin commit anticipado |
 | rastreador | Aturdimiento | STUN · Hit_Head | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 8 | StatusApplied/Removed; pose sostenida |
 | rastreador | Noqueo caída | KNOCKDOWN_START · Death01 | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 8 | Primeros 0.38 s; reutiliza Death01 |
 | rastreador | Noqueo tendido | KNOCKDOWN_LOOP · Death01 | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 8 | Control activo; mantiene último fotograma de Death01 |
 | rastreador | Levantarse | KNOCKDOWN_EXIT · LayToIdle | EXTERNAL_CC0 / FINAL_USER_LOCKED · full | 7 | Control eliminado; LayToIdle durante salida visual |
-| rastreador | Enraizamiento | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación bloquea desplazamiento; permite acciones legales |
-| rastreador | Silencio | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación restringe poderes; locomoción y arma según reglas |
-| rastreador | Desarme | COMBAT_IDLE · Arena_Archer_VideoReady | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación restringe arma; permite magia legal |
+| rastreador | Enraizamiento | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación bloquea desplazamiento; permite acciones legales |
+| rastreador | Silencio | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación restringe poderes; locomoción y arma según reglas |
+| rastreador | Desarme | COMBAT_IDLE · Arena_Archer_Ready | SOURCE_DERIVED_CC0 / SOURCE_DERIVED_PROVISIONAL · full | 0 | Simulación restringe arma; permite magia legal |
 | rastreador | Ralentización | RUN · Jog_Fwd_Loop | EXTERNAL_CC0 / FINAL_USER_LOCKED · lower | 1 | Velocidad real gobierna paso; no inmovilización total |
 | rastreador | Estasis | STASIS · Idle_Loop | EXTERNAL_CC0 / FINAL · full | 9 | Pose anterior congelada; continúa al eliminar estado |
 | rastreador | Muerte | DEATH · Death01 | EXTERNAL_CC0 / FINAL_USER_LOCKED · full | 10 | EntityDied; supera acciones y controles; pose final sostenida |

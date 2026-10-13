@@ -105,7 +105,7 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
     if(!combatMode) return sel;
     if(pol.grip==='oneHandShield'){ sel.mask='lower';sel.directUpperBase='Idle_Shield_Loop';sel.directUpperBaseProgress=0.50; }
     else if(pol.grip==='twoHand'){ sel.mask='lower';sel.directUpperBase='Sword_Idle';sel.directUpperBaseProgress=0.50; }
-    else if(pol.grip==='bow'){ sel.mask='lower';sel.directUpperBase='Arena_Archer_VideoReady';sel.directUpperBaseProgress=0.50; }
+    else if(pol.grip==='bow'){ sel.mask='lower';sel.directUpperBase='Arena_Archer_ReadyRun';sel.directUpperBaseProgress=0.50; }
     else if(pol.grip==='staff'){ sel.mask='lower';sel.directUpperBase='Spell_Simple_Idle_Loop';sel.directUpperBaseProgress=0.50; }
     return sel;
   }
@@ -175,7 +175,7 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
       var attackLike=!!(va&&String(va).indexOf('archer')===0);
       var as=attackLike?SP.slots.archerAttackCharge:SP.slots.archerBuffCharge;
       var cprog=clamp(Number(intent.castProgress)||Number(handle.cast)||0,0,1);
-      return state('CAST_CHARGE',slotSel(as,{mask:'upper',directLowerBase:'Arena_Archer_VideoReady',directLowerBaseProgress:0.50,loop:false,syncAuthoritative:true,syncProgress:cprog,fallbackSyncProgress:cprog,bowDraw:attackLike?cprog:0,semanticSlot:attackLike?'archerAttackCharge':'archerBuffCharge'}));
+      return state('CAST_CHARGE',slotSel(as,{mask:'upper',directLowerBase:'Arena_Archer_Ready',directLowerBaseProgress:0.50,loop:false,syncAuthoritative:true,syncProgress:cprog,fallbackSyncProgress:cprog,bowDraw:attackLike?cprog:0,semanticSlot:attackLike?'archerAttackCharge':'archerBuffCharge'}));
     }
 
     /* v0.36 · Poderes melee con tiempo de casteo real (p. ej. Golpe Quebrador,
@@ -202,7 +202,7 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
         var aph=(handle&&handle.cfg&&handle.cfg.phases&&(handle.cfg.phases.ranged||handle.cfg.phases.light))||{impact:.56,recovery:.72};
         var at=clamp(A.t||0,0,1), impact=clamp(aph.impact||.56,.1,.9);
         var draw=A.family==='ranged'?(at<impact?clamp(at/impact,0,1):0):0;
-        return state('ACTION',slotSel(arslot,{mask:'upper',directLowerBase:'Arena_Archer_VideoReady',directLowerBaseProgress:0.50,loop:false,syncAuthoritative:true,syncProgress:(at<=impact?at/impact*.56:.56+(at-impact)/(1-impact)*.44),fallbackSyncProgress:(at<=impact?at/impact*.56:.56+(at-impact)/(1-impact)*.44),bowDraw:draw,semanticSlot:A.family==='ranged'?(A.isPower?'archerPowerRelease':'archerNormalAttack'):'archerBuffCharge'}));
+        return state('ACTION',slotSel(arslot,{mask:'upper',directLowerBase:'Arena_Archer_Ready',directLowerBaseProgress:0.50,loop:false,syncAuthoritative:true,syncProgress:(at<=impact?at/impact*.56:.56+(at-impact)/(1-impact)*.44),fallbackSyncProgress:(at<=impact?at/impact*.56:.56+(at-impact)/(1-impact)*.44),bowDraw:draw,semanticSlot:A.family==='ranged'?(A.isPower?'archerPowerRelease':'archerNormalAttack'):'archerBuffCharge'}));
       }
       if(archetype==='caster'){
         var cslot=A.family==='pulse'?SP.slots.casterNormalAttack:((A.castFamily==='heal'||A.castFamily==='buff')?SP.slots.casterUtility:SP.slots.casterPowerRelease);
@@ -285,7 +285,7 @@ Arena.define('render/animationStateMachine', ['data/animationProfiles','data/ani
     Object.keys(SP.slots).forEach(function(k){add(SP.slots[k].clip);});
     Object.keys(SP.locomotion).forEach(function(k){add(SP.locomotion[k].clip);add(SP.locomotion[k].fallback);});
     SP.jump.active.forEach(add);
-    ['Arena_Archer_VideoReady','Arena_Archer_VideoNotch','Arena_Archer_VideoShoot','Arena_Archer_VideoBuff'].forEach(add);
+    ['Arena_Archer_Ready','Arena_Archer_ReadyRun','Arena_Archer_Notch','Arena_Archer_Shoot','Arena_Archer_Buff'].forEach(add);
     return Object.keys(set);
   };
 

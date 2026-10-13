@@ -241,26 +241,22 @@ actual. A fecha de escribir esto:
 pero ausentes de los 45 clips reales — son de la biblioteca UAL2 *Source*, que
 este proyecto no tiene, sólo la *Standard*.
 
-**Esto NO significa que el arquero esté roto.** Cada uno de esos slots declara
-un `fallback` (`Arena_Archer_VideoReady/VideoNotch/VideoShoot/VideoBuff`), y
-esos SÍ funcionan: `threeDirectAnim.js` los **sintetiza en runtime**
-(`buildVideoArcherClips()`) a partir de `Pistol_Aim_Neutral` +
-`Pistol_Reload`, que sí existen. Comprobado en navegador real:
-`animLib.has('Arena_Archer_VideoReady') === true`.
+**Arquero (v0.40): clips PROPIOS, ya no sintetizados.** Los slots del arco apuntan
+a `Arena_Archer_Ready/ReadyRun/Notch/Shoot/Buff`, horneados offline con
+`tools/author-own-clips.mjs` sobre el rig UAL de 65 huesos (base `Idle_Loop` +
+torsión de columna + IK de pies y manos, guardado como cuaterniones locales) en
+`assets/animations/arena-own-v040.json`. Se cargan como el JSON CMU
+(`threeCmuClips.js`) y son pistas reales: `audit-clips.mjs` las ve. Ya no existe
+`buildVideoArcherClips()` ni la IK de arco en runtime (`applyArcherBowConstraint`
+sólo mide `_archerAimForwardDot`). Cadera y piernas son idénticas en los clips
+«planted» (van en la máscara inferior); sólo columna y brazos cambian. La suelta
+cae en 0.56 del clip `Shoot`, igual que `phases.ranged.impact`.
+Estado: **PROVISIONAL** hasta revisión visual del usuario; la hoja de esqueleto
+de `tools/own-clips-sheet.mjs` y las pruebas por CPU no son aprobación visual.
 
-Esta es la trampa exacta que hay que evitar: `audit-clips.mjs`, por ser
-estático, **no ve** clips sintetizados en runtime — la primera versión de esta
-misma herramienta los marcaba como ausentes por error, hasta que se comprobó
-en un navegador de verdad y se corrigió (ver el bloque
-`SINTETIZADOS_EN_RUNTIME` dentro del script). Si algún día
-`buildVideoArcherClips()` cambia y deja de producir esos nombres, hay que
-actualizar esa lista o el auditor volverá a mentir — en el sentido seguro
-(dirá que existen aunque no), así que la comprobación en navegador sigue
-siendo la que manda.
-
-Lo que sí queda pendiente de verdad: si esos cuatro fallbacks video-derived se
-VEN bien de arquero (silueta de tiro, pies, torso) es una pregunta de
-`inspect-canvas.mjs` + ojo humano, no de este auditor.
+Lo que queda pendiente de verdad: si estos clips se VEN bien de arquero
+(silueta de tiro, pies, torso, codo de la cuerda) es una pregunta de
+`anim-preview.mjs` + ojo humano, no de este auditor.
 
 ---
 

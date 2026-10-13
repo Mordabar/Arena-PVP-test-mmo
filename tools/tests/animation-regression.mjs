@@ -2,12 +2,13 @@ import assert from 'node:assert/strict';import fs from 'node:fs';import path fro
 import * as THREE from '../../vendor/three-0.160.0/three.module.js';
 import {GLTFLoader} from '../../vendor/three-0.160.0/examples/jsm/loaders/GLTFLoader.js';
 import {createDirectLibrary} from '../../js/render/three/threeDirectAnim.js';
+import {loadOwnClips} from './ownClips.mjs';
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const Arena={Data:{},Render:{},Math:{},Anim:{},define(n,d,f){f(this);}};const sandbox={Arena,console,Math,Object,Number,Array,String};vm.createContext(sandbox);
 for(const f of ['js/math/vec3.js','js/data/balance.js','js/data/animConfig.js','js/data/animationProfiles.js','js/data/animationSourcePlan.js','js/render/anim/skeleton.js','js/render/anim/actions.js','js/render/animationStateMachine.js'])vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),sandbox,{filename:f});
 const loader=new GLTFLoader();async function glb(f){const b=fs.readFileSync(path.join(root,f));return await new Promise((ok,bad)=>loader.parse(b.buffer.slice(b.byteOffset,b.byteOffset+b.byteLength),'',ok,bad));}
 const source=await glb('assets/animations/ual1-arena-runtime.glb'),second=await glb('assets/animations/ual2-melee-runtime.glb'),rm=await glb('assets/animations/ual2-rm-runtime.glb');
-const clips=[...source.animations,...second.animations,...rm.animations];const target=source.scene;const lib=createDirectLibrary(Arena,{animations:clips},target);let checks=0;function check(condition,msg){assert.ok(condition,msg);checks++;}
+const clips=[...source.animations,...second.animations,...rm.animations,...loadOwnClips()];const target=source.scene;const lib=createDirectLibrary(Arena,{animations:clips},target);let checks=0;function check(condition,msg){assert.ok(condition,msg);checks++;}
 const SM=Arena.Render.AnimationStateMachine,Act=Arena.Render.Actions;
 function handle(cls){return {cfg:Arena.Data.animConfigFor(cls,Arena.Data.archetypeOf(cls)),intent:{classId:cls,combatMode:true},action:Act.createState(1),loco:{moveSpeed:0,moveForward:1,moveRight:0,metersPerSecond:0},deadTime:0,hurt:0,hurtSequence:0};}
 for(const cls of Object.keys(Arena.Data.AnimationSourcePlan.classPolicy)){

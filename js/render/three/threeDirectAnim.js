@@ -296,106 +296,6 @@ function maskClip(clip, mask) {
 
 
 
-function buildStaticUpperPose(raw, sourceName, progress, outName) {
-  /* v0.30 · Source-derived READY POSE only.
-   *
-   * A sampled pose may define how an archetype HOLDS itself in combat, but it
-   * must never impersonate a missing attack/cast.  Sampling a real UAL clip at
-   * one audited frame is safer than applying legacy Euler offsets to this
-   * 65-joint rig.  The resulting clip is constant for one second and contains
-   * upper-body tracks only. */
-  const src = raw[sourceName];
-  if (!src) return null;
-  const t = Math.max(0, Math.min(1, Number(progress) || 0)) * src.duration;
-  const tracks = [];
-  for (const tr of src.tracks) {
-    const node = nodeOfTrack(tr);
-    if (!UPPER.has(node)) continue;
-    const sample = Array.from(tr.createInterpolant().evaluate(t));
-    const tc = tr.clone();
-    tc.times = new Float32Array([0, 1]);
-    tc.values = new Float32Array(sample.concat(sample));
-    tracks.push(tc);
-  }
-  return tracks.length ? new THREE.AnimationClip(outName, 1.0, tracks) : null;
-}
-
-
-function buildVideoArcherClips(raw) {
-  /* v0.33 · VIDEO-REFINED ARCHER FALLBACKS.
-   *
-   * The user's second gameplay video exposed the remaining flaw in v0.32:
-   * only the upper body was sampled while Idle_Loop owned pelvis/legs. The
-   * result was a visibly twisted archer — feet/pelvis square to the target,
-   * chest trying to behave like a side-on bow stance. The reference UAL2
-   * viewer shows a staggered, wider base under Bow_Aim_Neutral.
-   *
-   * Until the real Bow_* Source clips are available we therefore build a
-   * conservative FULL-BODY fallback. Pistol_Aim_Neutral contributes only the
-   * same-rig stance geometry (staggered feet/pelvis) and left-side scaffold;
-   * Pistol_Reload contributes the right-side timing scaffold. A dedicated
-   * two-bone bow constraint in threeCharacter.js then places the two hands in
-   * bow-specific targets. No pistol clip is exposed as an Arena semantic action.
-   */
-  const aim = raw.Pistol_Aim_Neutral, reload = raw.Pistol_Reload, idle = raw.Idle_Loop;
-  if (!aim || !reload || !idle) return [];
-  const by = clip => new Map((clip.tracks || []).map(t => [t.name, t]));
-  const aimBy=by(aim), reloadBy=by(reload), idleBy=by(idle);
-  const baseTracks=(aim.tracks||[]); // v0.33: full body, not UPPER-only.
-  function sample(map,name,p,dur){
-    const tr=map.get(name); if(!tr)return null;
-    return Array.from(tr.createInterpolant().evaluate(Math.max(0,Math.min(1,p))*dur));
-  }
-  function build(name,times,selector){
-    const tracks=[];
-    for(const base of baseTracks){
-      const node=nodeOfTrack(base), valueSize=base.getValueSize(), vals=[];
-      for(let i=0;i<times.length;i++){
-        const choice=selector(node,base.name,i);
-        const map=choice.src==='reload'?reloadBy:(choice.src==='idle'?idleBy:aimBy);
-        const dur=choice.src==='reload'?reload.duration:(choice.src==='idle'?idle.duration:aim.duration);
-        const v=sample(map,base.name,choice.p,dur) || sample(aimBy,base.name,.50,aim.duration);
-        if(!v)continue;
-        for(let j=0;j<valueSize;j++)vals.push(v[j]);
-      }
-      if(vals.length!==times.length*valueSize)continue;
-      const tc=base.clone(); tc.times=new Float32Array(times); tc.values=new Float32Array(vals); tracks.push(tc);
-    }
-    return tracks.length?new THREE.AnimationClip(name,times[times.length-1],tracks):null;
-  }
-  function right(node){return /_r$/.test(node)||/_r\./.test(node);}
-  function left(node){return /_l$/.test(node)||/_l\./.test(node);}
-  function torso(node){return /^spine_|^neck_|^Head$/.test(node);}
-  function lower(node){return LOWER.has(node) && !torso(node);}
-
-  const ready=build('Arena_Archer_VideoReady',[0,1],(node,n,i)=>{
-    /* Lower body stays on the audited Pistol_Aim stance. Upper body remains a
-       same-rig scaffold only; hand placement is corrected afterwards by IK. */
-    if(lower(node))return {src:'aim',p:.50};
-    if(right(node))return {src:'reload',p:.43};
-    if(left(node)||torso(node))return {src:'aim',p:.50};
-    return {src:'aim',p:.50};
-  });
-  const notch=build('Arena_Archer_VideoNotch',[0,.30,.68,1],(node,n,i)=>{
-    if(lower(node))return {src:'aim',p:.50};
-    const rp=[.30,.38,.48,.56][i];
-    const ap=[.48,.50,.50,.50][i];
-    if(right(node))return {src:'reload',p:rp};
-    if(left(node)||torso(node))return {src:'aim',p:ap};
-    return {src:'aim',p:.50};
-  });
-  const shoot=build('Arena_Archer_VideoShoot',[0,.42,.56,.72,1],(node,n,i)=>{
-    if(lower(node))return {src:'aim',p:.50};
-    const rp=[.56,.58,.68,.61,.43][i];
-    const ap=[.50,.50,.51,.50,.50][i];
-    if(right(node))return {src:'reload',p:rp};
-    if(left(node)||torso(node))return {src:'aim',p:ap};
-    return {src:'aim',p:.50};
-  });
-  const buff=buildStaticUpperPose(raw,'Idle_Loop',.22,'Arena_Archer_VideoBuff');
-  return [ready,notch,shoot,buff].filter(Boolean);
-}
-
 export function createDirectLibrary(Arena, sourceGltf, targetRoot, options = {}) {
   if (!Arena || !sourceGltf || !targetRoot) return null;
   const raw = Object.create(null), cache = Object.create(null);
@@ -412,11 +312,9 @@ export function createDirectLibrary(Arena, sourceGltf, targetRoot, options = {})
     if (sanitized) raw[sourceClip.name] = sanitized;
   });
 
-  /* v0.32: video-derived bow fallbacks. Exact Bow_* names remain requested
-     upstream; these authored clips are only used while Source is unavailable. */
+  /* v0.40: los clips de arco (Arena_Archer_*) ya vienen horneados en
+     arena-own-v040.json y entran por la biblioteca fusionada; no se sintetizan aquí. */
   const authoredNames = [], derivedNames = [];
-  const archerVideoClips = buildVideoArcherClips(raw);
-  archerVideoClips.forEach(c => { raw[c.name] = c; derivedNames.push(c.name); });
 
   function has(name) { return !!raw[name]; }
   function clipFor(name, mask, upperBase, upperBaseProgress, lowerBase, lowerBaseProgress, processOptions) {

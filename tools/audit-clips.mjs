@@ -67,26 +67,16 @@ if (fs.existsSync(cmuPath)) {
   }
 }
 
-/* Clips SINTETIZADOS en runtime por threeDirectAnim.js (buildVideoArcherClips),
- * a partir de Pistol_Aim_Neutral + Pistol_Reload + Idle_Loop. No existen como
- * pista literal en ningún .glb, así que este auditor ESTÁTICO no puede verlos
- * por sí mismo — y por eso, sin esta lista, los marcaba como ausentes cuando
- * en realidad se generan y sí están disponibles en el juego. Comprobado en
- * navegador real: lib.has('Arena_Archer_VideoReady') === true.
- *
- * Si tocas buildVideoArcherClips() y cambia lo que produce, actualiza esto — y
- * si algún día esos nombres dejan de generarse, este auditor volverá a fallar
- * "en falso positivo de existencia", que es el error seguro (avisa de más, no
- * de menos). */
-const SINTETIZADOS_EN_RUNTIME = {
-  'Arena_Archer_VideoReady': 'buildVideoArcherClips() ← Pistol_Aim_Neutral + Pistol_Reload',
-  'Arena_Archer_VideoNotch': 'buildVideoArcherClips() ← Pistol_Aim_Neutral + Pistol_Reload',
-  'Arena_Archer_VideoShoot': 'buildVideoArcherClips() ← Pistol_Aim_Neutral + Pistol_Reload',
-  'Arena_Archer_VideoBuff':  'buildVideoArcherClips() ← Pistol_Aim_Neutral + Pistol_Reload'
-};
-for (const [nombre, origen] of Object.entries(SINTETIZADOS_EN_RUNTIME)) {
-  if (!catalogo.has(nombre)) catalogo.set(nombre, []);
-  catalogo.get(nombre).push('SINTETIZADO: ' + origen);
+/* Clips PROPIOS de Arena, horneados offline (tools/author-own-clips.mjs) en
+ * assets/animations/arena-own-v040.json. Se leen igual que el JSON CMU: son
+ * pistas reales, no síntesis en runtime. */
+const ownPath = path.join(RAIZ, 'assets/animations/arena-own-v040.json');
+if (fs.existsSync(ownPath)) {
+  const own = JSON.parse(fs.readFileSync(ownPath, 'utf8'));
+  for (const c of (own.clips || [])) {
+    if (!catalogo.has(c.name)) catalogo.set(c.name, []);
+    catalogo.get(c.name).push('arena-own-v040.json');
+  }
 }
 
 if (flag('list')) {

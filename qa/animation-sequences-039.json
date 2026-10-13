@@ -1003,7 +1003,7 @@
       "file": null,
       "selected": {
         "state": "CAST_CHARGE",
-        "clip": "Arena_Archer_VideoNotch",
+        "clip": "Arena_Archer_Notch",
         "mask": "upper",
         "loop": false,
         "fade": 0.12,
@@ -1011,10 +1011,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoNotch",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Notch",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0,
@@ -1023,22 +1023,22 @@
         "semanticSlot": "archerAttackCharge"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.08746522459331948,
+        1.2859805360130148,
+        0.4774550094041681
       ],
       "right": [
-        0.048077434668684846,
-        1.4204992506326302,
-        0.3351254570528679
+        -0.1602040532445441,
+        1.0626403955523127,
+        -0.059999167301776374
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
       "nockGap": null,
-      "aimForwardDot": 0.9501510974915048
+      "aimForwardDot": 0.9082077266506474
     },
     {
       "class": "centinela",
@@ -1047,7 +1047,7 @@
       "file": null,
       "selected": {
         "state": "CAST_CHARGE",
-        "clip": "Arena_Archer_VideoNotch",
+        "clip": "Arena_Archer_Notch",
         "mask": "upper",
         "loop": false,
         "fade": 0.12,
@@ -1055,10 +1055,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoNotch",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Notch",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0.2,
@@ -1067,22 +1067,22 @@
         "semanticSlot": "archerAttackCharge"
       },
       "left": [
-        0.10073634767144231,
-        1.4167563272420352,
-        0.49559870137392303
+        0.06145494813011747,
+        1.399093471421633,
+        0.6034517856457897
       ],
       "right": [
-        0.07913106287815923,
-        1.4320313823048374,
-        0.31747284496620376
+        -0.034301942907430216,
+        1.289293804296628,
+        0.24759857062313215
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.270390394581544
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
-      "nockGap": 7.584015733198395e-9,
-      "aimForwardDot": 0.9927242773773848
+      "nockGap": 8.875549385188507e-9,
+      "aimForwardDot": 0.9656496363580134
     },
     {
       "class": "centinela",
@@ -1091,7 +1091,7 @@
       "file": null,
       "selected": {
         "state": "CAST_CHARGE",
-        "clip": "Arena_Archer_VideoNotch",
+        "clip": "Arena_Archer_Notch",
         "mask": "upper",
         "loop": false,
         "fade": 0.12,
@@ -1099,10 +1099,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoNotch",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Notch",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0.4,
@@ -1111,22 +1111,22 @@
         "semanticSlot": "archerAttackCharge"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.049100078368463335,
+        1.4883235519012035,
+        0.7042671353570106
       ],
       "right": [
-        0.10090064982850931,
-        1.446430976338358,
-        0.2745311158929586
+        0.030850855967216064,
+        1.4696939145837276,
+        0.3392807133450845
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
-      "nockGap": 3.129901698538515e-9,
-      "aimForwardDot": 0.9999997238111008
+      "nockGap": 1.5168534445066304e-8,
+      "aimForwardDot": 0.9987523523482245
     },
     {
       "class": "centinela",
@@ -1135,7 +1135,7 @@
       "file": null,
       "selected": {
         "state": "CAST_CHARGE",
-        "clip": "Arena_Archer_VideoNotch",
+        "clip": "Arena_Archer_Notch",
         "mask": "upper",
         "loop": false,
         "fade": 0.12,
@@ -1143,10 +1143,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoNotch",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Notch",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0.6,
@@ -1155,22 +1155,22 @@
         "semanticSlot": "archerAttackCharge"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.048189126427654876,
+        1.4883044466251694,
+        0.7045747422404331
       ],
       "right": [
-        0.10055076098326005,
-        1.4605761621897675,
-        0.18988590342767672
+        0.0481771082279574,
+        1.489075423739029,
+        0.2861181745004474
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
-      "nockGap": 1.2284277981019431e-8,
-      "aimForwardDot": 0.9999998157377846
+      "nockGap": 1.7241460707257864e-9,
+      "aimForwardDot": 0.9999999995875721
     },
     {
       "class": "centinela",
@@ -1179,7 +1179,7 @@
       "file": null,
       "selected": {
         "state": "CAST_CHARGE",
-        "clip": "Arena_Archer_VideoNotch",
+        "clip": "Arena_Archer_Notch",
         "mask": "upper",
         "loop": false,
         "fade": 0.12,
@@ -1187,10 +1187,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoNotch",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Notch",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0.8,
@@ -1199,22 +1199,22 @@
         "semanticSlot": "archerAttackCharge"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.048189126427654876,
+        1.4883044466251694,
+        0.7045747422404331
       ],
       "right": [
-        0.10046377239905926,
-        1.47467175454866,
-        0.10533988480277398
+        0.04818103416252184,
+        1.5094737477936357,
+        0.07634332707393582
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
-      "nockGap": 5.70467942097701e-9,
-      "aimForwardDot": 0.9999997560856742
+      "nockGap": 2.361788152065934e-9,
+      "aimForwardDot": 0.9999999999170397
     },
     {
       "class": "centinela",
@@ -1223,7 +1223,7 @@
       "file": null,
       "selected": {
         "state": "CAST_CHARGE",
-        "clip": "Arena_Archer_VideoNotch",
+        "clip": "Arena_Archer_Notch",
         "mask": "upper",
         "loop": false,
         "fade": 0.12,
@@ -1231,10 +1231,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoNotch",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Notch",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 1,
@@ -1243,22 +1243,22 @@
         "semanticSlot": "archerAttackCharge"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.048189126427654876,
+        1.4883044466251694,
+        0.7045747422404331
       ],
       "right": [
-        0.10056459662952646,
-        1.4888011913880748,
-        0.020840232806234232
+        0.048181166985289625,
+        1.5126617626625616,
+        0.043561126173242246
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
-      "nockGap": 6.062505957704813e-9,
-      "aimForwardDot": 0.9999999345630148
+      "nockGap": 0.00004083352472238367,
+      "aimForwardDot": 0.9999999999275039
     },
     {
       "class": "centinela",
@@ -1267,7 +1267,7 @@
       "file": null,
       "selected": {
         "state": "ACTION",
-        "clip": "Arena_Archer_VideoShoot",
+        "clip": "Arena_Archer_Shoot",
         "mask": "upper",
         "loop": false,
         "fade": 0.075,
@@ -1275,10 +1275,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoShoot",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Shoot",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0,
@@ -1288,22 +1288,22 @@
         "eventToken": "action:3"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.08746522459331948,
+        1.2859805360130148,
+        0.4774550094041681
       ],
       "right": [
-        0.05204050120692982,
-        1.4190756685118988,
-        0.3299746625245557
+        -0.1602040532445441,
+        1.0626403955523127,
+        -0.059999167301776374
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
       "nockGap": null,
-      "aimForwardDot": 0.959392320654722
+      "aimForwardDot": 0.9082077266506474
     },
     {
       "class": "centinela",
@@ -1312,7 +1312,7 @@
       "file": null,
       "selected": {
         "state": "ACTION",
-        "clip": "Arena_Archer_VideoShoot",
+        "clip": "Arena_Archer_Shoot",
         "mask": "upper",
         "loop": false,
         "fade": 0.075,
@@ -1320,10 +1320,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoShoot",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Shoot",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0.1931034482758621,
@@ -1333,22 +1333,22 @@
         "eventToken": "action:3"
       },
       "left": [
-        0.10073634767144246,
-        1.4167563272420347,
-        0.49559870137392287
+        0.04803731425670511,
+        1.4854289307563946,
+        0.7018352131787022
       ],
       "right": [
-        0.10117145849407967,
-        1.4421689671471425,
-        0.2981050924881674
+        0.02947827215861442,
+        1.4654799370034044,
+        0.33946064003221543
       ],
       "foot": [
-        -0.16369708009427217,
-        0.10490551774533896,
-        -0.2703903945815439
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
       "nockGap": null,
-      "aimForwardDot": 0.9999975730428813
+      "aimForwardDot": 0.9986910822737682
     },
     {
       "class": "centinela",
@@ -1357,7 +1357,7 @@
       "file": null,
       "selected": {
         "state": "ACTION",
-        "clip": "Arena_Archer_VideoShoot",
+        "clip": "Arena_Archer_Shoot",
         "mask": "upper",
         "loop": false,
         "fade": 0.075,
@@ -1365,10 +1365,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoShoot",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Shoot",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0.3862068965517242,
@@ -1378,22 +1378,22 @@
         "eventToken": "action:3"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.048189126427654876,
+        1.4883044466251694,
+        0.7045747422404331
       ],
       "right": [
-        0.10034638072934277,
-        1.4666356589194158,
-        0.15225966296262122
+        0.04841992451428642,
+        1.5124915185071297,
+        0.09539686463062522
       ],
       "foot": [
-        -0.16369708009427222,
-        0.1049055177453388,
-        -0.2703903945815439
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
       "nockGap": null,
-      "aimForwardDot": 0.9999993549716586
+      "aimForwardDot": 0.9999999282294757
     },
     {
       "class": "centinela",
@@ -1402,7 +1402,7 @@
       "file": null,
       "selected": {
         "state": "ACTION",
-        "clip": "Arena_Archer_VideoShoot",
+        "clip": "Arena_Archer_Shoot",
         "mask": "upper",
         "loop": false,
         "fade": 0.075,
@@ -1410,10 +1410,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoShoot",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Shoot",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0.580952380952381,
@@ -1423,22 +1423,22 @@
         "eventToken": "action:3"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.04740251329710789,
+        1.4773574816254433,
+        0.7150576777152782
       ],
       "right": [
-        0.09630692559980089,
-        1.4856845515826025,
-        0.036763180415894825
+        -0.015805605840461534,
+        1.5099149461515873,
+        -0.0021261494593747265
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
       "nockGap": null,
-      "aimForwardDot": 0.9999534071025578
+      "aimForwardDot": 0.9961386988884485
     },
     {
       "class": "centinela",
@@ -1447,7 +1447,7 @@
       "file": null,
       "selected": {
         "state": "ACTION",
-        "clip": "Arena_Archer_VideoShoot",
+        "clip": "Arena_Archer_Shoot",
         "mask": "upper",
         "loop": false,
         "fade": 0.075,
@@ -1455,10 +1455,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoShoot",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Shoot",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 0.7904761904761906,
@@ -1468,22 +1468,22 @@
         "eventToken": "action:3"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.04813387469246368,
+        1.4769723357214914,
+        0.7132458300898474
       ],
       "right": [
-        0.07216059608998199,
-        1.4689164763311615,
-        0.12033836786268122
+        0.004383359946838528,
+        1.5212089596875118,
+        -0.020876696722295307
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
       "nockGap": null,
-      "aimForwardDot": 0.9971132029421182
+      "aimForwardDot": 0.9982288951519804
     },
     {
       "class": "centinela",
@@ -1492,7 +1492,7 @@
       "file": null,
       "selected": {
         "state": "ACTION",
-        "clip": "Arena_Archer_VideoShoot",
+        "clip": "Arena_Archer_Shoot",
         "mask": "upper",
         "loop": false,
         "fade": 0.075,
@@ -1500,10 +1500,10 @@
         "window": null,
         "phaseGroup": null,
         "procedural": false,
-        "source": "SOURCE_DERIVED_CC0",
-        "qualityStatus": "SOURCE_DERIVED_PROVISIONAL",
-        "requestedClip": "Arena_Archer_VideoShoot",
-        "directLowerBase": "Arena_Archer_VideoReady",
+        "source": "EXTERNAL_CC0",
+        "qualityStatus": "PROVISIONAL",
+        "requestedClip": "Arena_Archer_Shoot",
+        "directLowerBase": "Arena_Archer_Ready",
         "directLowerBaseProgress": 0.5,
         "syncAuthoritative": true,
         "syncProgress": 1,
@@ -1513,22 +1513,22 @@
         "eventToken": "action:3"
       },
       "left": [
-        0.10073634767144234,
-        1.4167563272420352,
-        0.4955987013739231
+        0.08746421700165666,
+        1.285980725433634,
+        0.47745620625010277
       ],
       "right": [
-        0.051748549807089164,
-        1.4194920882133757,
-        0.3301389561508662
+        -0.16020365960726543,
+        1.0626433911826143,
+        -0.059998748530088575
       ],
       "foot": [
-        -0.1636970800942722,
-        0.10490551774533874,
-        -0.27039039458154396
+        -0.0833884034534645,
+        0.1468895740028494,
+        -0.3148187273944132
       ],
       "nockGap": null,
-      "aimForwardDot": 0.9588569884855511
+      "aimForwardDot": 0.9082088569721657
     },
     {
       "class": "arcanista",

@@ -47,9 +47,10 @@ try {
     glbLoader.loadAsync('./assets/animations/ual1-arena-runtime.glb?build=v0390'),
     glbLoader.loadAsync('./assets/animations/ual2-melee-runtime.glb?build=v0390'),
     glbLoader.loadAsync('./assets/animations/ual2-rm-runtime.glb?build=v0390'),
-    loadCmuClips('./assets/animations/arena-cmu-v031.json?build=v0390')
+    loadCmuClips('./assets/animations/arena-cmu-v031.json?build=v0390'),
+    loadCmuClips('./assets/animations/arena-own-v040.json?build=v0400')
   ]);
-  var ual1Gltf = loaded[0], ual2Gltf = loaded[1], ual2RmGltf = loaded[2], cmuLibrary = loaded[3];
+  var ual1Gltf = loaded[0], ual2Gltf = loaded[1], ual2RmGltf = loaded[2], cmuLibrary = loaded[3], ownLibrary = loaded[4];
 
   var mergedAnimations = [], seenAnim = new Set();
   function appendLibrary(gltf) {
@@ -63,6 +64,10 @@ try {
   (cmuLibrary.clips || []).forEach(function (clip) {
     if (!seenAnim.has(clip.name)) { seenAnim.add(clip.name); mergedAnimations.push(clip); }
   });
+  (ownLibrary.clips || []).forEach(function (clip) {
+    clip.userData.arenaSource = 'ARENA_AUTHORED_IK';
+    if (!seenAnim.has(clip.name)) { seenAnim.add(clip.name); mergedAnimations.push(clip); }
+  });
   var animationLibraryGltf = { scene: ual1Gltf.scene, animations: mergedAnimations };
   Arena.Render.animationSourceReport = {
     body: 'Quaternius UAL native humanoid',
@@ -72,6 +77,8 @@ try {
     ual2rm: (ual2RmGltf.animations || []).length,
     cmu: (cmuLibrary.clips || []).length,
     cmuSource: 'Anims_Only_FBX_V1.zip (locomotion/kick only)',
+    own: (ownLibrary.clips || []).length,
+    ownSource: 'tools/author-own-clips.mjs (arquero: IK horneada sobre UAL)',
     merged: mergedAnimations.length,
     darkElfLoaded: false
   };
@@ -106,7 +113,8 @@ try {
     'Slide_Start','Slide_Loop','Slide_Exit','Shield_Dash_RM',
     'Arena_CMU_Walk_Backward','Arena_CMU_Strafe_Left','Arena_CMU_Strafe_Right',
     'Arena_CMU_Diagonal_FL','Arena_CMU_Diagonal_FR','Arena_CMU_Diagonal_BL','Arena_CMU_Diagonal_BR',
-    'Arena_CMU_Turn_Left','Arena_CMU_Turn_Right','Arena_CMU_Kick'
+    'Arena_CMU_Turn_Left','Arena_CMU_Turn_Right','Arena_CMU_Kick',
+    'Arena_Archer_Ready','Arena_Archer_ReadyRun','Arena_Archer_Notch','Arena_Archer_Shoot','Arena_Archer_Buff'
   ];
   var available = new Set((animationLibraryGltf.animations || []).map(function(c){ return c.name; }));
   required.forEach(function(n){ if(!available.has(n)) throw new Error('Biblioteca UAL runtime incompleta: falta '+n); });
@@ -118,7 +126,7 @@ try {
     missing: required.filter(function(n){return !available.has(n);}),
     available: required.filter(function(n){return available.has(n);}),
     userLockedWarrior: ['Hit_Chest','Hit_Head','Idle_Loop','Walk_Loop','Jog_Fwd_Loop','Sprint_Loop','Jump_Start','Jump_Loop','Jump_Land','Sword_Idle','Idle_Shield_Loop','Sword_Regular_A','Sword_Regular_A_Rec','Sword_Regular_B','Sword_Regular_B_Rec','Sword_Regular_C','Shield_Dash_RM','Shield_OneShot','Slide_Start','Slide_Loop','Slide_Exit'],
-    archerVideoContract: {requested:['Bow_Aim_Neutral','Bow_Notch','Bow_Shoot','Bow_RapidShoot'],fallbacks:['Arena_Archer_VideoReady','Arena_Archer_VideoNotch','Arena_Archer_VideoShoot','Arena_Archer_VideoBuff']},
+    archerClipContract: {authored:['Arena_Archer_Ready','Arena_Archer_ReadyRun','Arena_Archer_Notch','Arena_Archer_Shoot','Arena_Archer_Buff'],source:'ARENA_AUTHORED_IK'},
     /* v0.36: sólo 'kick' sigue cableado a su clip CMU. Los otros nueve nombres
        siguen en arena-cmu-v031.json (cargados, disponibles) pero
        animationSourcePlan.js ya no los referencia — su ventana de origen

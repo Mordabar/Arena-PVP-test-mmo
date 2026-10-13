@@ -22,7 +22,7 @@ Este reporte separa lo que se **comprobó** de lo que **no se pudo comprobar**. 
 | `tools/tests/game-flow-regression.mjs` | Flujo de partida con HUD/renderer simulados | OK |
 | `tools/tests/catalogue-smoke.mjs` | 382 poderes activos del catálogo | 0 errores de ejecución |
 | `tools/tests/armor-comparison.mjs` (nueva) | Mitigación numérica, resistencias, debuffs | OK, 11 checks |
-| `tools/tests/animation-regression.mjs` | Selección de estados, prioridades, mezcla nativa | OK |
+| `tools/tests/animation-regression.mjs` | Selección de estados, prioridades, mezcla nativa (ahora incluye los clips propios) | OK, 377 checks |
 | `tools/tests/animation-sequences-039.mjs` | Secuencias de pose por CPU | OK, 2018 checks, 42 instantáneas |
 | `tools/tests/static-visual-039.mjs` | Rutas, SVG, VFX por CPU | OK |
 | `tools/inspect-canvas.mjs --state combate` | Canvas no en blanco, presupuesto de render | APROBADO |
@@ -60,7 +60,8 @@ Estados según el skill `arena-armor-and-weapons`: `VALIDADO`, `PROVISIONAL`, `N
 ## 6. Animaciones
 
 - Pruebas de secuencia por CPU pasan (2018 checks), pero **no hay verificación de secuencias en navegador en esta sesión**.
-- Según `CONTINUIDAD.md`, arco, patada y lateral/retroceso son **PROVISIONALES** y no tienen clips originales. Se mantienen así; no se declaran finales.
+- **Arquero (v0.40):** clips propios `Arena_Archer_Ready/ReadyRun/Notch/Shoot/Buff`, horneados con `tools/author-own-clips.mjs` (IK offline sobre el rig UAL de 65 huesos → `assets/animations/arena-own-v040.json`). Sustituyen a los clips sintetizados en runtime desde pistola y a la IK de arco en runtime. Comprobado por CPU: la mano del arco queda delante (+Z) y la de la cuerda junto a la cara; vector de apuntado alineado con el frente (producto escalar ≈ 1.0); la suelta cae en 0.56 del clip, igual que `phases.ranged.impact`; cadera y piernas idénticas entre clips «planted». Estado: **PROVISIONAL** hasta que el usuario lo vea en su PC.
+- Según `CONTINUIDAD.md`, patada y lateral/retroceso siguen **PROVISIONALES**; no se declaran finales. Mago (bastón) sigue con los clips reales `Spell_Simple_*`.
 - Capturas E2E disponibles en `agent-qa/e2e-*/` (lobby, arena, combate, resultado).
 
 ## 7. Partidas completas contra bot
@@ -82,7 +83,7 @@ Para evaluarlo hace falta un navegador con GPU real o una partida humana en el P
 
 - Armadura visual equipable: `BLOQUEADO_POR_ASSET`.
 - Secuencias de armas y escudo en navegador (idle, avance, ataque, cast, muerte): NO_PROBADO.
-- Calidad de animación de arco, patada y lateral/retroceso: PROVISIONAL, sin clips originales.
+- Calidad de animación de arco (clips propios v0.40), patada y lateral/retroceso: PROVISIONAL; falta revisión humana.
 - Combate equilibrado y partidas completas medidas a velocidad real: bloqueado por el entorno (ver §7).
 - Visual de los 36 poderes del kit: NO_EVIDENCIA.
 - Balance de armadura: la anulación completa del golpe a partir de armadura ≥ golpe/0.52 es una decisión de diseño pendiente de revisión.

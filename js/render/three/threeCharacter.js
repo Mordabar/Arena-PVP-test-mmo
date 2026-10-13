@@ -462,83 +462,14 @@ export function createCharacterFactory(Arena, scene, opts) {
     this.skinnedRoot.updateMatrixWorld(true);
   };
 
+  /* v0.40 · Telemetría del arco. La pose YA NO se corrige aquí con IK en runtime:
+     los clips Arena_Archer_* traen manos y torso horneados (tools/author-own-clips.mjs).
+     Sólo se mide: positivo = el arco apunta al hemisferio frontal del cuerpo. */
   Character.prototype.applyArcherBowConstraint = function(entity, sel) {
-    if(!this.directUalRig || !sel || Arena.Data.archetypeOf(entity.classId)!=='archer')return;
-    var combat=!!(this.handle&&this.handle.intent&&this.handle.intent.combatMode);
-    if(!combat)return;
-    var st=sel.state||'';
-    var locomotion=/^(WALK|RUN|SPRINT|BACKPEDAL|STRAFE|DIAGONAL|TURN)$/.test(st);
-    var ready=/^(COMBAT_IDLE|ARCHER_COMBAT_IDLE)$/.test(st)||locomotion;
-    var charge=st==='CAST_CHARGE'&&sel.semanticSlot==='archerAttackCharge';
-    var action=st==='ACTION'&&sel.semanticSlot!=='archerBuffCharge';
-    if(!ready&&!charge&&!action)return;
-
-    /* Lock the planted combat base across notch/release. v0.32 allowed the
-       stationary release composite to collapse the feet toward each other,
-       which is visible in the user's rear-view recording as a torso twist.
-       Capture the audited COMBAT_IDLE lower pose once, then reuse it only for
-       stationary bow charge/release. Locomotion always keeps its own legs. */
-    var lowerNames=['Hips','LeftUpperLeg','LeftLowerLeg','LeftFoot','LeftToe','RightUpperLeg','RightLowerLeg','RightFoot','RightToe'];
-    if(ready&&!locomotion){
-      this._archerReadyLower=Object.create(null);
-      for(var li=0;li<lowerNames.length;li++){var ln=lowerNames[li],lb=this.rigBones[ln];if(lb)this._archerReadyLower[ln]={p:lb.position.clone(),q:lb.quaternion.clone()};}
-    } else if((charge||action)&&!sel.liveLowerLocomotion&&this._archerReadyLower){
-      for(var lj=0;lj<lowerNames.length;lj++){var lnn=lowerNames[lj],bb=this.rigBones[lnn],src=this._archerReadyLower[lnn];if(!bb||!src)continue;bb.position.copy(src.p);bb.quaternion.copy(src.q);}
-      this.skinnedRoot.updateMatrixWorld(true);
-    }
-
-    var phase=Number.isFinite(sel.syncProgress)?Math.max(0,Math.min(1,sel.syncProgress)):0;
-    var draw=ready?0:(Number.isFinite(sel.bowDraw)?sel.bowDraw:0);
-    var snap=0;
-    if(action&&phase>=.56){
-      // Fingers recoil behind the cheek at RELEASE, then return to the bow.
-      // String unloads immediately; the hand does not teleport forward with it.
-      var recovery=Math.max(0,Math.min(1,(phase-.56)/.44));
-      draw=1-recovery;
-      snap=Math.sin(recovery*Math.PI)*.65;
-    }
-
-    /* v0.34 · WORLD-FORWARD BOW BASIS.
-       The hardware screenshot showed the authored fallback aiming into the
-       opposite hemisphere. A blind 180° pelvis correction is unsafe because
-       the UAL Pistol_Aim scaffold itself already reaches +Z; rotating a parent
-       bone can twist the shoulder chain. Instead, derive the bow-hand targets
-       directly from the simulation-owned visual yaw. This makes the final
-       right-hand→left-hand aim vector agree with the character's forward
-       hemisphere regardless of how the source pose was exported. */
-    _archLeftLocal.set(0.10,1.40,0.49);
-    _archLeftPoleLocal.set(0.48,1.20,0.20);
-    // Grip, nock and cheek share the same aim plane. A previous 30 cm lateral
-    // offset made the string imply a shot ~33 degrees beside the actual rival.
-    _archRightStart.set(0.10,1.40,0.44);
-    _archRightDraw.set(0.10,1.47,0.02);
-    _archRightSnap.set(0.04,1.47,-0.02);
-    _archRightLocal.copy(_archRightStart).lerp(_archRightDraw,draw).lerp(_archRightSnap,snap*0.72);
-    _archRightPoleLocal.set(-0.58,1.46,-0.02);
-
-    var fyaw=this.root.rotation.y, sc=Math.max(0.001,this.skinnedRoot.scale.x||1);
+    if(!this.directUalRig||!sel||Arena.Data.archetypeOf(entity.classId)!=='archer')return;
+    var fyaw=this.root.rotation.y;
     _archForwardWorld.set(Math.sin(fyaw),0,Math.cos(fyaw)).normalize();
-    _archLateralWorld.set(Math.cos(fyaw),0,-Math.sin(fyaw)).normalize();
-    this.root.getWorldPosition(_archRootWorld);
-    function bowWorld(out,local){
-      out.copy(_archRootWorld)
-        .addScaledVector(_archLateralWorld,local.x*sc)
-        .addScaledVector(_archForwardWorld,local.z*sc);
-      out.y += local.y*sc;
-      return out;
-    }
-    bowWorld(_archLeftWorld,_archLeftLocal);
-    bowWorld(_archLeftPoleWorld,_archLeftPoleLocal);
-    bowWorld(_archRightWorld,_archRightLocal);
-    bowWorld(_archRightPoleWorld,_archRightPoleLocal);
-    var w=locomotion?0.97:(ready?0.98:0.995);
-    solveTwoBoneIK(this.rigBones.LeftUpperArm,this.rigBones.LeftLowerArm,this.rigBones.LeftHand,_archLeftWorld,_archLeftPoleWorld,w);
-    solveTwoBoneIK(this.rigBones.RightUpperArm,this.rigBones.RightLowerArm,this.rigBones.RightHand,_archRightWorld,_archRightPoleWorld,w);
     this.skinnedRoot.updateMatrixWorld(true);
-
-    /* Adversarial runtime metric: positive means the drawn bow points into the
-       same forward hemisphere as the simulation-facing body. This is debug/
-       presentation telemetry only; it never changes combat legality or yaw. */
     this.rigBones.LeftHand.getWorldPosition(_archLeftWorld);
     this.rigBones.RightHand.getWorldPosition(_archRightWorld);
     _archAimVec.copy(_archLeftWorld).sub(_archRightWorld);_archAimVec.y=0;
@@ -693,7 +624,7 @@ export function createCharacterFactory(Arena, scene, opts) {
         procedural:false, visualBlockerHold:true, intentionalBlank:true
       });
       if (arche === 'archer') {
-        sel.directUpperBase='Arena_Archer_VideoReady'; sel.directUpperBaseProgress=0.50;
+        sel.directUpperBase='Arena_Archer_ReadyRun'; sel.directUpperBaseProgress=0.50;
       } else if (arche === 'caster') {
         sel.directUpperBase='Spell_Simple_Idle_Loop'; sel.directUpperBaseProgress=0.50;
       }
@@ -728,7 +659,7 @@ export function createCharacterFactory(Arena, scene, opts) {
         directComposite=true;
       } else if (rangedCombatLocomotion) {
         sel.mask='lower';
-        sel.directUpperBase = arche === 'archer' ? 'Arena_Archer_VideoReady' : 'Spell_Simple_Idle_Loop';
+        sel.directUpperBase = arche === 'archer' ? 'Arena_Archer_ReadyRun' : 'Spell_Simple_Idle_Loop';
         sel.directUpperBaseProgress = 0.50;
         directComposite=true;
       } else if (sel.directUpperBase) {

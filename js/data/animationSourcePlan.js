@@ -95,21 +95,15 @@ Arena.define('data/animationSourcePlan', [], function (Arena) {
       casterNormalAttack:slot('Spell_Simple_Shoot', STATUS.FINAL, 'ataque normal mago'),
       casterPowerRelease:slot('Spell_Simple_Shoot', STATUS.FINAL, 'release de poder mago'),
 
-      /* Archer v0.35: instrucción explícita del usuario (25-08-2026) — "elimina
-         las que tenemos, crea unas por defecto en cada estado y ya luego las
-         reemplazamos con un video". Las UAL Standard/RM que sí tenemos NO
-         contienen una familia Bow_*; fingir un nombre "Bow_Aim_Neutral" que
-         nunca va a existir en los binarios sólo generaba una referencia
-         colgante (ver tools/audit-clips.mjs). El default por estado es ahora
-         directamente el clip sintetizado en runtime por buildVideoArcherClips()
-         en threeDirectAnim.js (Pistol_Aim_Neutral + Pistol_Reload + Idle_Loop),
-         sin capa intermedia de nombres aspiracionales. Cuando llegue el vídeo
-         de referencia del arquero, esta familia se reemplaza por clips Source
-         reales y estos slots vuelven a apuntar a nombres exactos. */
-      combatIdleArcher:  slot('Arena_Archer_VideoReady', STATUS.SOURCE_DERIVED, 'modo combate arquero / aim neutral (default hasta vídeo de referencia)'),
-      archerAttackCharge:slot('Arena_Archer_VideoNotch', STATUS.SOURCE_DERIVED, 'notch/draw previo al disparo (default hasta vídeo de referencia)'),
-      archerNormalAttack:slot('Arena_Archer_VideoShoot', STATUS.SOURCE_DERIVED, 'ataque normal de arco (default hasta vídeo de referencia)'),
-      archerPowerRelease:slot('Arena_Archer_VideoShoot', STATUS.SOURCE_DERIVED, 'release rápido/poder de arco (default hasta vídeo de referencia)'),
+      /* Archer v0.40: clips PROPIOS (Arena_Archer_*), horneados offline por
+         tools/author-own-clips.mjs sobre el rig UAL de 65 huesos y cargados desde
+         assets/animations/arena-own-v040.json. Ya no se sintetizan en runtime a
+         partir de clips de pistola. Estado PROVISIONAL hasta revisión visual del
+         usuario en su PC (los pies/cadera del arquero van en la máscara inferior). */
+      combatIdleArcher:  slot('Arena_Archer_Ready', STATUS.PROVISIONAL, 'modo combate arquero / aim neutral (clip propio v0.40)'),
+      archerAttackCharge:slot('Arena_Archer_Notch', STATUS.PROVISIONAL, 'notch/draw previo al disparo (clip propio v0.40)'),
+      archerNormalAttack:slot('Arena_Archer_Shoot', STATUS.PROVISIONAL, 'ataque normal de arco (clip propio v0.40)'),
+      archerPowerRelease:slot('Arena_Archer_Shoot', STATUS.PROVISIONAL, 'release rápido/poder de arco (clip propio v0.40)'),
       archerBuffCharge:  slot('Spell_Simple_Enter', STATUS.PROVISIONAL, 'buff arquero sin gesto de disparo')
     },
 
